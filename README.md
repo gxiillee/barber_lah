@@ -1,12 +1,9 @@
-# barber_lah
-Github para la gestion de Barber la h
-<p align="center">
-  <img src="./banner de Hassan.jpg" alt="Banner de Introducción" width="100%">
-</p>
 =======
 # 💈 Barbershop La H — Sistema de Gestión Web
 ### TFG · Ciclo Superior DAW (Desarrollo de Aplicaciones Web)
-
+<p align="center">
+  <img src="./banner de Hassan.jpg" alt="Banner de Introducción" width="100%">
+</p>
 ---
 
 ## 📋 Descripción del proyecto
