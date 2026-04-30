@@ -1,4 +1,3 @@
-=======
 # 💈 Barbershop La H — Sistema de Gestión Web
 ### TFG · Ciclo Superior DAW (Desarrollo de Aplicaciones Web)
 <p align="center">
