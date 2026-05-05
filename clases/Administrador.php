@@ -56,7 +56,7 @@ class Administrador extends Usuario {
         if ($fila == false) {
             return 0;
         }
-
+        //no se puede devolver todo el array $fila, se devuelve solo la etiqueta ['total'].
         return $fila['total'];
     }
 }
