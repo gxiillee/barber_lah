@@ -42,7 +42,11 @@ class Reserva {
     public function getNota(): ?string          { return $this->nota; }
     public function getCreatedAt(): string      { return $this->createdAt; }
 
-
+    /**
+     * Devuelve todas las reservas por cliente
+     * Se puede usar en el historial del cliente mostrandole
+     * su historial
+     */
     // Devuelve todas las reservas de un cliente
     public static function getByCliente(int $idCliente): array {
         $conexion  = BD::obtenerConexion();
@@ -51,7 +55,10 @@ class Reserva {
         return $stmt->fetchAll();
     }
 
-
+    /**
+     * Devuelve reservas por barbero y fecha.
+     * se usa para ver cada barber sus citas del dia
+     */
     // Devuelve las reservas de un barbero en una fecha concreta
     public static function getByBarberoYFecha(int $idBarbero, string $fecha): array {
         $conexion  = BD::obtenerConexion();
@@ -60,8 +67,10 @@ class Reserva {
         return $stmt->fetchAll();
     }
 
-
-    // Crea una reserva nueva y devuelve el id generado
+    /**
+     * Crea una nueva reserva con su cliente barbero servicio fecha....
+     * Crea una reserva nueva y devuelve el id generado
+     */
     public static function crear(int $idCliente, int $idBarbero, int $idServicio, string $fecha, string $hora, float $precio, int $duracion, ?string $nota): int {
         $conexion  = BD::obtenerConexion();
         $stmt = $conexion->prepare("
@@ -81,8 +90,10 @@ class Reserva {
         return (int) $conexion->lastInsertId();
     }
 
-
-    // Cambia el estado de una reserva (confirmada, completada, cancelada)
+    /**
+     * Cambia el estado de una reserva
+     * se usa para poner confirmada, completada, cancelada
+     */
     public static function cambiarEstado(int $id, string $estado): bool {
         $conexion  = BD::obtenerConexion();
         $stmt = $conexion->prepare("UPDATE reservas SET estado = :estado WHERE id = :id");

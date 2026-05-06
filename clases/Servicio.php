@@ -26,14 +26,22 @@ class Servicio {
     public function getDescripcion(): ?string { return $this->descripcion; }
     public function isActivo(): bool      { return $this->activo; }
 
-    // Devuelve todos los servicios activos
+    /**
+     * Devuelve todos los servicios activos
+     * se usa para no mostrar los inactivos pero
+     * seguir teniendolos en bd para historicos
+     */
     public static function ObtenerActivos(): array {
         $conexion  = BD::obtenerConexion();
         $stmt = $conexion->query("SELECT * FROM servicios WHERE activo = TRUE ORDER BY nombre");
         return $stmt->fetchAll();
     }
 
-    // Devuelve un servicio por id
+    /**
+     * Devuelve un servicio por ID
+     * se usaria en editar servicio y
+     * al darle resumen al cliente de su reserva con su servicio
+     */
     public static function ObtenerById(int $id): ?array {
         $conexion  = BD::obtenerConexion();
         $stmt = $conexion->prepare("SELECT * FROM servicios WHERE id = :id");

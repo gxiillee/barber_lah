@@ -27,6 +27,16 @@ class Bloqueo {
     public function getHoraFin(): ?string    { return $this->horaFin; }
     public function getMotivo(): ?string     { return $this->motivo; }
 
+
+
+
+    /**
+     * ESTA POR VER
+     */
+
+
+
+
     // Comprueba si un barbero tiene el día completo bloqueado
     public function esDiaCompleto(): bool {
         return $this->horaInicio === null && $this->horaFin === null;

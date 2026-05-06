@@ -24,6 +24,12 @@ class Horario {
     public function getHoraInicio(): string { return $this->horaInicio; }
     public function getHoraFin(): string    { return $this->horaFin; }
 
+
+    /**
+     * ESTAN POR VER TODAVIA
+     */
+
+
     // Devuelve el horario de un barbero en un día concreto
     public static function getByBarberoYDia(int $idBarbero, string $dia): ?array {
         $pdo  = BD::obtenerConexion();

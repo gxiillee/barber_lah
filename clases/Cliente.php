@@ -9,13 +9,15 @@ class Cliente extends Usuario {
         parent::__construct($id, $nombre, $email, $password, $telefono, 'cliente');
     }
 
-
-    // Método para el registro de un cliente nuevo desde la web pública
-    public static function crear($nombre, $email, $password_plana, $telefono) {
+    /**
+     * Crea un nuevo usuario
+     * Se usa en al registrar un nuevo cliente en login.php
+     */
+    public static function crear($nombre, $email, $password_normal, $telefono) {
         $conexion = BD::obtenerConexion();
 
         // Encriptar la contraseña antes de guardar
-        $password_hash = password_hash($password_plana, PASSWORD_DEFAULT);
+        $password_hash = password_hash($password_normal, PASSWORD_DEFAULT);
 
         $stmt = $conexion->prepare("
             INSERT INTO usuarios (nombre, email, password, telefono, rol, activo) 
@@ -33,8 +35,10 @@ class Cliente extends Usuario {
         return $conexion->lastInsertId();
     }
 
-
-    // Método para el panel de admin: obtener todos los clientes
+    /**
+     * Devuelve un array con todos los clientes registrados
+     * Se usa en panel admin mostrando clientes
+     */
     public static function obtenerTodosLosClientes() {
         $conexion = BD::obtenerConexion();
 
@@ -44,7 +48,7 @@ class Cliente extends Usuario {
 
         $todosLosClientes = [];
 
-        // Uso de fetch_assoc y bucle while según la memoria
+        // Uso de fetch_assoc y bucle while
         while ($fila = $stmt->fetch(PDO::FETCH_ASSOC)) {
             $todosLosClientes[] = new Cliente(
                 $fila['id'],
