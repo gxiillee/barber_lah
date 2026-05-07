@@ -42,7 +42,11 @@ class Administrador extends Usuario {
         return $admins;
     }
 
-    // Ejemplo de método de gestión: Obtener resumen para el dashboard
+    /**
+     * MÉTODO PARA COGER
+     * Se recoge las filas con fetch
+     * Se usará en el panel gestion para que hassan lo vea
+     */
     public static function obtenerResumenCitasHoy() {
         $conexion = BD::obtenerConexion();
 
