@@ -47,7 +47,6 @@ $servicios = Servicio::obtenerActivos();
 
             <!-- Links desktop -->
             <div class="hidden items-center gap-10 md:flex">
-                <a href="#experiencia" class="font-montserrat text-[0.65rem] uppercase tracking-[0.2rem] text-white/50 transition-colors duration-300 hover:text-[var(--gold)]">Barbería</a>
                 <a href="#sobre"       class="font-montserrat text-[0.65rem] uppercase tracking-[0.2rem] text-white/50 transition-colors duration-300 hover:text-[var(--gold)]">Nosotros</a>
                 <a href="#servicios"   class="font-montserrat text-[0.65rem] uppercase tracking-[0.2rem] text-white/50 transition-colors duration-300 hover:text-[var(--gold)]">Servicios</a>
                 <a href="#contacto"    class="font-montserrat text-[0.65rem] uppercase tracking-[0.2rem] text-white/50 transition-colors duration-300 hover:text-[var(--gold)]">Encuéntranos</a>
@@ -69,7 +68,7 @@ $servicios = Servicio::obtenerActivos();
     <!-- ===================== SECCIÓN VIDEO SCROLL ===================== -->
     <section id="experiencia" class="relative w-full" style="height: 350vh;">
 
-        <div class="sticky top-0 h-screen w-screen overflow-hidden bg-black">
+        <div class="sticky top-0 h-screen w-full overflow-hidden bg-black">
 
             <!-- Video principal -->
             <video id="mainVideo"
@@ -461,9 +460,10 @@ $servicios = Servicio::obtenerActivos();
                     </iframe>
                 </div>
             </div>
+        </div>
 
         <!-- ── Barra inferior copyright ── -->
-        <div class="border-t border-[var(--gold)]/10 px-12 py-6 md:px-16">
+         <div class="border-t border-[var(--gold)]/10 px-12 py-6 md:px-16">
             <div class="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4">
                 <p class="font-montserrat text-[0.55rem] uppercase tracking-[0.2rem] text-white/20">
                     © <?= date('Y') ?> Barbershop La H · Hassan · Zaragoza
