@@ -32,9 +32,22 @@ class Servicio {
      * seguir teniendolos en bd para historicos
      */
     public static function ObtenerActivos(): array {
-        $conexion  = BD::obtenerConexion();
+        $conexion = BD::obtenerConexion();
         $stmt = $conexion->query("SELECT * FROM servicios WHERE activo = TRUE ORDER BY nombre");
-        return $stmt->fetchAll();
+
+        $servicios = [];
+        while ($fila = $stmt->fetch()) {
+            // "Mapeamos" los datos de la BD al constructor de tu clase
+            $servicios[] = new Servicio(
+                $fila['id'],
+                $fila['nombre'],
+                (float)$fila['precio'],
+                (int)$fila['duracion_min'], // Ojo: en la BD es duracion_min
+                $fila['descripcion'],
+                (bool)$fila['activo']
+            );
+        }
+        return $servicios;
     }
 
     /**
@@ -42,11 +55,22 @@ class Servicio {
      * se usaria en editar servicio y
      * al darle resumen al cliente de su reserva con su servicio
      */
-    public static function ObtenerById(int $id): ?array {
-        $conexion  = BD::obtenerConexion();
+    public static function ObtenerById(int $id): ?Servicio {
+        $conexion = BD::obtenerConexion();
         $stmt = $conexion->prepare("SELECT * FROM servicios WHERE id = :id");
         $stmt->execute([':id' => $id]);
-        $resultado = $stmt->fetch();
-        return $resultado ?: null;
+        $fila = $stmt->fetch();
+
+        if ($fila) {
+            return new Servicio(
+                $fila['id'],
+                $fila['nombre'],
+                (float)$fila['precio'],
+                (int)$fila['duracion_min'],
+                $fila['descripcion'],
+                (bool)$fila['activo']
+            );
+        }
+        return null; // <--- IMPRESCINDIBLE: Si no hay fila, devuelve nulo.
     }
 }
