@@ -1,7 +1,7 @@
 # 💈 Barbershop La H — Sistema de Gestión Web
 ### TFG · Ciclo Superior DAW (Desarrollo de Aplicaciones Web)
 <p align="center">
-  <img src="assets/img/banner de Hassan.jpg" alt="Banner de Introducción" width="100%">
+  <img src="/public/assets/img/banner.jpg" alt="Banner de Introducción" width="100%">
 </p>
 ---
 
