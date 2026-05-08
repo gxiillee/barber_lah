@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Barbershop La H — Hassan · Zaragoza</title>
+
+    <!-- Google Fonts: Playfair Display (editorial) + Cormorant Garamond (cuerpo elegante) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Montserrat:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+    <!-- Tailwind CSS v4 — Browser CDN -->
+    <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
+
+    <!-- Colores y fuentes personalizadas en Tailwind 4 -->
+    <style type="text/tailwindcss">
+        @theme {
+            --color-gold:       #c9a962;
+            --color-gold-light: #e5d4a1;
+            --color-gold-dark:  #8a6f3d;
+            --color-obsidian:   #080808;
+            --color-charcoal:   #111111;
+            --color-zinc-925:   #0f0f0f;
+
+            --font-playfair:   'Playfair Display', serif;
+            --font-cormorant:  'Cormorant Garamond', serif;
+            --font-montserrat: 'Montserrat', sans-serif;
+        }
+    </style>
+
+    <!-- Estilos personalizados (animaciones, efectos, video) -->
+    <link rel="stylesheet" href="assets/css/estilos.css">
+</head>
+
+<body class="bg-obsidian text-white font-montserrat overflow-x-hidden">
+
+
+    <!-- ===================== PRELOADER ===================== -->
+    <div id="preloader" class="preloader">
+        <div class="text-center">
+            <div class="preloader-emblem font-playfair text-gold tracking-[0.6rem] text-4xl mb-2">LA H</div>
+            <div class="preloader-subtitle font-cormorant text-white/30 tracking-[0.4rem] text-xs uppercase mb-10">Barbershop · Zaragoza</div>
+            <div class="preloader-bar"></div>
+        </div>
+    </div>
+
+
+    <!-- ===================== NAVEGACIÓN ===================== -->
+    <nav id="mainNav" class="bsh-nav fixed top-0 left-0 w-full z-50">
+        <div class="max-w-7xl mx-auto px-10 py-7 flex justify-between items-center">
+
+            <!-- Logo -->
+            <a href="assets/img/logo.jpg" class="font-playfair text-gold tracking-[0.3rem] text-base uppercase select-none">
+                Barbershop La H
+            </a>
+
+            <!-- Links desktop -->
+            <div class="hidden md:flex items-center gap-10">
+                <a href="#experiencia" class="nav-link font-montserrat text-[0.65rem] tracking-[0.2rem] uppercase text-white/50 hover:text-gold transition-colors duration-300">Experiencia</a>
+                <a href="#sobre"       class="nav-link font-montserrat text-[0.65rem] tracking-[0.2rem] uppercase text-white/50 hover:text-gold transition-colors duration-300">Nosotros</a>
+                <a href="#servicios"   class="nav-link font-montserrat text-[0.65rem] tracking-[0.2rem] uppercase text-white/50 hover:text-gold transition-colors duration-300">Servicios</a>
+                <a href="#reservas"    class="bsh-btn-outline font-montserrat text-[0.65rem] tracking-[0.2rem] uppercase">
+                    Reservar Cita
+                </a>
+            </div>
+
+            <!-- Hamburger mobile -->
+            <button id="menuToggle" class="md:hidden flex flex-col gap-[5px] p-2" aria-label="Menú">
+                <span class="block w-6 h-px bg-gold transition-all duration-300"></span>
+                <span class="block w-4 h-px bg-gold/60 transition-all duration-300"></span>
+                <span class="block w-6 h-px bg-gold transition-all duration-300"></span>
+            </button>
+        </div>
+    </nav>
+
+
+    <!-- ===================== SECCIÓN VIDEO SCROLL ===================== -->
+    <section id="experiencia" class="video-scroll-section" style="height: 350vh;">
+
+        <div class="video-sticky-wrapper sticky top-0 h-screen overflow-hidden">
+
+            <!-- Video principal -->
+            <video id="mainVideo" class="scroll-video" playsinline muted preload="auto">
+                <source src="assets/video/video_optimizado.mp4" type="video/mp4">
+                <!-- Fallback: imagen si no hay video -->
+            </video>
+
+            <!-- Degradado viñeta cinematográfico -->
+            <div class="video-vignette absolute inset-0 pointer-events-none" style="z-index:5;"></div>
+
+            <!-- Overlay de transición (fade a negro al final) -->
+            <div id="transitionOverlay"
+                 class="absolute inset-0 bg-obsidian pointer-events-none"
+                 style="z-index:25; opacity:0;">
+            </div>
+
+
+            <!-- ── TÍTULO INTRO ── -->
+            <div id="introBlock" class="absolute inset-0 flex items-center justify-center pointer-events-none" style="z-index:15;">
+                <div class="text-center px-8">
+                    <p id="introTagline" class="font-cormorant text-gold/60 tracking-[0.5rem] text-xs uppercase mb-6 intro-fade">
+                        Una experiencia única
+                    </p>
+                    <h1 id="introTitle" class="font-playfair text-[clamp(3.5rem,10vw,7rem)] leading-none tracking-[0.4rem] uppercase intro-title-gradient intro-fade">
+                        EL RITUAL
+                    </h1>
+                    <p id="introCity" class="font-cormorant text-white/25 tracking-[0.5rem] text-sm uppercase mt-6 intro-fade">
+                        Barbershop La H · Zaragoza
+                    </p>
+                </div>
+            </div>
+
+
+            <!-- ── ETIQUETAS FLOTANTES ── -->
+
+            <!-- Label 1 -->
+            <div id="label1" class="float-label absolute left-[8%] top-[28%]" style="z-index:15;">
+                <span class="label-number font-montserrat text-gold/40 text-[0.6rem] tracking-[0.4rem] uppercase">01</span>
+                <h3 class="font-playfair text-2xl text-gold mt-2 mb-3 leading-tight">El Corte</h3>
+                <p class="font-cormorant text-white/55 text-base leading-relaxed max-w-[260px]">
+                    Precisión milimétrica en cada línea.<br>
+                    La geometría que define tu estilo.
+                </p>
+            </div>
+
+            <!-- Label 2 -->
+            <div id="label2" class="float-label absolute right-[8%] top-[42%] text-right" style="z-index:15;">
+                <span class="label-number font-montserrat text-gold/40 text-[0.6rem] tracking-[0.4rem] uppercase">02</span>
+                <h3 class="font-playfair text-2xl text-gold mt-2 mb-3 leading-tight">El Ambiente</h3>
+                <p class="font-cormorant text-white/55 text-base leading-relaxed max-w-[260px] ml-auto">
+                    Un refugio de elegancia para el<br>
+                    caballero que sabe lo que quiere.
+                </p>
+            </div>
+
+            <!-- Label 3 -->
+            <div id="label3" class="float-label absolute left-[10%] top-[65%]" style="z-index:15;">
+                <span class="label-number font-montserrat text-gold/40 text-[0.6rem] tracking-[0.4rem] uppercase">03</span>
+                <h3 class="font-playfair text-2xl text-gold mt-2 mb-3 leading-tight">El Acabado</h3>
+                <p class="font-cormorant text-white/55 text-base leading-relaxed max-w-[260px]">
+                    Productos de alta gama para un<br>
+                    resultado impecable que dura días.
+                </p>
+            </div>
+
+
+            <!-- ── BARRA DE PROGRESO INFERIOR ── -->
+            <div class="absolute bottom-8 left-12 right-12 flex items-center gap-5" style="z-index:30;">
+                <span class="font-montserrat text-[0.6rem] tracking-[0.3rem] text-white/20 uppercase shrink-0">Scroll</span>
+                <div class="flex-1 h-px bg-white/10 relative overflow-hidden">
+                    <div id="progressFill" class="absolute top-0 left-0 h-full bg-gold" style="width:0%; transition: width 0.05s linear;"></div>
+                </div>
+                <span id="progressLabel" class="font-montserrat text-[0.6rem] tracking-[0.2rem] text-white/20 shrink-0 w-8 text-right">0%</span>
+            </div>
+
+            <!-- ── INDICADOR SCROLL INICIAL ── -->
+            <div id="scrollHint" class="absolute bottom-24 left-1/2 -translate-x-1/2 text-center pointer-events-none" style="z-index:30;">
+                <div class="scroll-mouse mx-auto"></div>
+                <span class="font-montserrat text-[0.55rem] tracking-[0.35rem] text-white/25 uppercase mt-3 block">Scroll</span>
+            </div>
+
+        </div>
+    </section>
+
+
+    <!-- ===================== SECCIÓN SOBRE ===================== -->
+    <section id="sobre" class="sobre-section bg-charcoal relative overflow-hidden">
+
+        <!-- Línea decorativa vertical -->
+        <div class="sobre-line-deco absolute top-0 left-1/2 -translate-x-1/2 w-px bg-gold/10" style="height:80px;"></div>
+
+        <div class="max-w-6xl mx-auto px-8 pt-28 pb-32">
+
+            <!-- Encabezado -->
+            <div class="text-center mb-24 reveal-up">
+                <span class="font-montserrat text-[0.6rem] tracking-[0.5rem] text-gold/70 uppercase">Barbershop La H</span>
+                <h2 class="font-playfair text-5xl md:text-6xl mt-5 mb-5 text-white leading-tight">Sobre Nosotros</h2>
+                <div class="w-12 h-px bg-gold mx-auto"></div>
+            </div>
+
+            <!-- Grid: imagen + texto -->
+            <div class="grid md:grid-cols-2 gap-16 lg:gap-24 items-center">
+
+                <!-- Imagen Hassan -->
+                <div class="reveal-left">
+                    <div class="sobre-img-wrapper relative">
+                        <img src="assets/img/banner.jpg"
+                             alt="Hassan — Barbero Profesional"
+                             class="sobre-img w-full">
+                        <!-- Marco decorativo oro -->
+                        <div class="sobre-img-frame absolute top-5 left-5 right-[-16px] bottom-[-16px] border border-gold/20 pointer-events-none"></div>
+                        <!-- Badge -->
+                        <div class="sobre-badge absolute bottom-[-20px] right-[-10px] md:right-[-20px] bg-obsidian border border-gold/30 px-6 py-4 text-center">
+                            <span class="font-playfair text-gold text-3xl block leading-none">+10</span>
+                            <span class="font-montserrat text-white/40 text-[0.55rem] tracking-[0.2rem] uppercase block mt-1">Años de exp.</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Texto -->
+                <div class="reveal-right mt-10 md:mt-0">
+                    <h3 class="font-playfair text-3xl md:text-4xl mb-8 leading-tight">
+                        Hola, soy <em class="text-gold not-italic">Hassan</em>
+                    </h3>
+
+                    <p class="font-cormorant text-white/60 text-lg leading-relaxed mb-6">
+                        Con más de <strong class="text-white font-normal">10 años de experiencia</strong> en el mundo de la barbería,
+                        me he convertido en mucho más que un barbero: soy tu aliado para
+                        encontrar el estilo que te representa.
+                    </p>
+                    <p class="font-cormorant text-white/60 text-lg leading-relaxed mb-6">
+                        En <strong class="text-white font-normal">Barbershop La H</strong> combinamos técnica clásica
+                        con las tendencias más modernas para crear un look único que
+                        se adapte a tu personalidad y estilo de vida.
+                    </p>
+                    <p class="font-cormorant text-white/60 text-lg leading-relaxed mb-10">
+                        Nuestra barbería es un espacio de confianza donde el tiempo
+                        se detiene y cada cliente recibe una atención completamente personalizada.
+                    </p>
+
+                    <!-- CTA buttons -->
+                    <div class="flex flex-wrap items-center gap-6 mb-12">
+                        <a href="#reservas" class="bsh-btn-primary font-montserrat text-[0.65rem] tracking-[0.2rem] uppercase">
+                            Reservar Cita
+                        </a>
+                        <a href="https://instagram.com/barbershop_la_h" target="_blank" rel="noopener"
+                           class="font-montserrat text-[0.65rem] tracking-[0.2rem] text-white/30 hover:text-gold uppercase transition-colors duration-300">
+                            @barbershop_la_h ↗
+                        </a>
+                    </div>
+
+                    <!-- Firma -->
+                    <div class="border-t border-gold/15 pt-8">
+                        <p class="font-playfair italic text-gold text-2xl">— Hassan</p>
+                        <p class="font-montserrat text-[0.6rem] tracking-[0.2rem] text-white/25 uppercase mt-1">C/ Miguel Servet 24, Zaragoza</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+
+    <!-- JS principal -->
+    <script src="assets/js/main.js"></script>
+
+</body>
+</html>

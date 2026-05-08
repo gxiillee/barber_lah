@@ -1,0 +1,396 @@
+/* ================================================================
+   Barbershop La H — estilos.css
+   Animaciones, efectos de video, transiciones y diseño custom.
+   Las utilidades de Tailwind se aplican en index.html.
+   ================================================================ */
+
+/* ── Variables globales ── */
+:root {
+    --gold:       #c9a962;
+    --gold-light: #e5d4a1;
+    --gold-dark:  #8a6f3d;
+    --obsidian:   #080808;
+    --charcoal:   #111111;
+    --dur-smooth: 0.7s;
+    --ease-out:   cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+
+/* ================================================================
+   PRELOADER
+   ================================================================ */
+
+.preloader {
+    position: fixed;
+    inset: 0;
+    background: var(--obsidian);
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: opacity 0.9s ease, visibility 0.9s ease;
+}
+
+.preloader.hidden {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+}
+
+/* Logo entra con expansión de tracking */
+.preloader-emblem {
+    opacity: 0;
+    letter-spacing: 2rem;
+    animation: preloaderLogo 1s var(--ease-out) 0.3s forwards;
+}
+
+@keyframes preloaderLogo {
+    from { opacity: 0; letter-spacing: 2rem; }
+    to   { opacity: 1; letter-spacing: 0.6rem; }
+}
+
+.preloader-subtitle {
+    opacity: 0;
+    animation: fadeIn 0.6s ease 1s forwards;
+}
+
+/* Barra de carga animada */
+.preloader-bar {
+    width: 100px;
+    height: 1px;
+    background: rgba(201, 169, 98, 0.15);
+    margin: 0 auto;
+    overflow: hidden;
+}
+
+.preloader-bar::after {
+    content: '';
+    display: block;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent 0%, var(--gold) 50%, transparent 100%);
+    animation: barSlide 1.4s ease-in-out 0.5s infinite;
+}
+
+@keyframes barSlide {
+    from { transform: translateX(-100%); }
+    to   { transform: translateX(100%); }
+}
+
+
+/* ================================================================
+   NAVEGACIÓN
+   ================================================================ */
+
+.bsh-nav {
+    background: transparent;
+    border-bottom: 1px solid transparent;
+    transition: background 0.5s ease, border-color 0.5s ease, padding 0.4s ease;
+}
+
+.bsh-nav.scrolled {
+    background: rgba(8, 8, 8, 0.93);
+    border-bottom-color: rgba(201, 169, 98, 0.1);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+}
+
+/* Botón outline (nav) */
+.bsh-btn-outline {
+    display: inline-block;
+    border: 1px solid rgba(201, 169, 98, 0.5);
+    color: var(--gold);
+    padding: 0.5rem 1.4rem;
+    transition: background 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+}
+
+.bsh-btn-outline:hover {
+    background: var(--gold);
+    color: var(--obsidian);
+    border-color: var(--gold);
+}
+
+/* Botón primario (sección sobre) */
+.bsh-btn-primary {
+    display: inline-block;
+    background: var(--gold);
+    color: var(--obsidian);
+    font-weight: 600;
+    padding: 0.85rem 2rem;
+    letter-spacing: 0.15rem;
+    transition: background 0.3s ease, color 0.3s ease, transform 0.2s ease;
+}
+
+.bsh-btn-primary:hover {
+    background: var(--gold-light);
+    transform: translateY(-1px);
+}
+
+
+/* ================================================================
+   SECCIÓN VIDEO SCROLL
+   ================================================================ */
+
+.video-scroll-section {
+    position: relative;
+}
+
+/* El wrapper sticky ocupa exactamente el viewport */
+.video-sticky-wrapper {
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow: hidden;
+}
+
+/* Video posicionado para cubrir todo sin distorsión */
+.scroll-video {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    min-width: 100%;
+    min-height: 100%;
+    transform: translate(-50%, -50%);
+    object-fit: cover;
+    will-change: transform, opacity;
+    backface-visibility: hidden;
+}
+
+/* Viñeta radial cinematográfica */
+.video-vignette {
+    background: radial-gradient(ellipse at center,
+        transparent 25%,
+        rgba(8, 8, 8, 0.55) 70%,
+        rgba(8, 8, 8, 0.88) 100%);
+}
+
+
+/* ================================================================
+   TÍTULOS INTRO (fade in/out controlados por JS)
+   ================================================================ */
+
+.intro-title-gradient {
+    background: linear-gradient(175deg, #ffffff 20%, var(--gold) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    will-change: opacity, transform;
+    /* JS controlará opacity */
+}
+
+/* Fade inicial para los elementos del intro block */
+.intro-fade {
+    opacity: 0;
+    /* JS sube opacity vía style directo */
+}
+
+
+/* ================================================================
+   ETIQUETAS FLOTANTES DEL VIDEO
+   ================================================================ */
+
+.float-label {
+    opacity: 0;
+    transform: translateY(18px);
+    /* La transición suave la controla la clase .visible */
+    transition:
+        opacity 0.65s var(--ease-out),
+        transform 0.8s var(--ease-out);
+    pointer-events: none;
+}
+
+.float-label.visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.label-number {
+    display: block;
+    /* ya está en HTML con clases Tailwind */
+}
+
+/* Línea decorativa antes del número */
+.float-label::before {
+    content: '';
+    display: block;
+    width: 24px;
+    height: 1px;
+    background: rgba(201, 169, 98, 0.35);
+    margin-bottom: 10px;
+}
+
+
+/* ================================================================
+   INDICADOR DE SCROLL (ratón animado)
+   ================================================================ */
+
+.scroll-mouse {
+    width: 22px;
+    height: 36px;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 12px;
+    position: relative;
+    transition: opacity 0.5s ease;
+}
+
+.scroll-mouse::after {
+    content: '';
+    position: absolute;
+    top: 7px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 2px;
+    height: 7px;
+    background: var(--gold);
+    border-radius: 2px;
+    animation: scrollDot 1.8s ease-in-out infinite;
+    opacity: 0.7;
+}
+
+@keyframes scrollDot {
+    0%   { top: 7px;  opacity: 0.7; }
+    60%  { top: 20px; opacity: 0;   }
+    100% { top: 7px;  opacity: 0;   }
+}
+
+#scrollHint {
+    transition: opacity 0.6s ease;
+}
+
+#scrollHint.hidden-hint {
+    opacity: 0;
+}
+
+
+/* ================================================================
+   SECCIÓN SOBRE / HASSAN
+   ================================================================ */
+
+.sobre-section {
+    position: relative;
+}
+
+/* Imagen de Hassan */
+.sobre-img {
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    object-fit: cover;
+    object-position: center;
+    display: block;
+    filter: brightness(0.92) saturate(0.85);
+    transition: filter 0.6s ease;
+}
+
+.sobre-img:hover {
+    filter: brightness(1) saturate(1);
+}
+
+/* Marco decorativo dorado detrás de la imagen */
+.sobre-img-frame {
+    /* Posicionado en HTML con clases Tailwind */
+    pointer-events: none;
+}
+
+/* Badge "+10 años" */
+.sobre-badge {
+    min-width: 100px;
+}
+
+/* Línea divisora superior de la sección */
+.sobre-line-deco {
+    display: block;
+}
+
+
+/* ================================================================
+   ANIMACIONES DE REVEAL (IntersectionObserver vía JS)
+   ================================================================ */
+
+/* Estado inicial — invisible y desplazado */
+.reveal-up {
+    opacity: 0;
+    transform: translateY(30px);
+    transition: opacity 0.9s var(--ease-out), transform 0.9s var(--ease-out);
+}
+
+.reveal-left {
+    opacity: 0;
+    transform: translateX(-40px);
+    transition: opacity 0.9s var(--ease-out) 0.15s, transform 0.9s var(--ease-out) 0.15s;
+}
+
+.reveal-right {
+    opacity: 0;
+    transform: translateX(40px);
+    transition: opacity 0.9s var(--ease-out) 0.3s, transform 0.9s var(--ease-out) 0.3s;
+}
+
+/* Estado final — visible */
+.revealed .reveal-up,
+.revealed .reveal-left,
+.revealed .reveal-right {
+    opacity: 1;
+    transform: translate(0, 0);
+}
+
+/* Reveal para la sección completa */
+.sobre-section {
+    /* La sección ya es visible por defecto; los elementos internos se revelan */
+}
+
+
+/* ================================================================
+   ANIMACIONES UTILITARIAS
+   ================================================================ */
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+
+@keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+
+/* ================================================================
+   RESPONSIVE — ajustes mobile
+   ================================================================ */
+
+@media (max-width: 768px) {
+
+    .float-label {
+        /* En mobile los labels se centran y reducen */
+        left: 50% !important;
+        right: auto !important;
+        transform: translateX(-50%) translateY(18px) !important;
+        text-align: center;
+        width: 85vw;
+    }
+
+    .float-label.visible {
+        transform: translateX(-50%) translateY(0) !important;
+    }
+
+    .float-label::before {
+        margin: 0 auto 10px;
+    }
+
+    .float-label p {
+        margin: 0 auto;
+    }
+
+    .sobre-img {
+        height: 380px;
+    }
+
+    .sobre-img-frame {
+        display: none; /* simplificamos en mobile */
+    }
+
+    .sobre-badge {
+        right: 10px;
+        bottom: -14px;
+    }
+}
