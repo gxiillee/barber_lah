@@ -224,6 +224,19 @@
 }
 
 /* ================================================================
+   SERVICIOS — Animacion para el movil
+   ================================================================ */
+
+@keyframes bounceX {
+    0%, 100% { transform: translateX(0);    opacity: 0.4; }
+    50%       { transform: translateX(5px); opacity: 1;   }
+}
+
+.animate-bounce-x {
+    animation: bounceX 1.2s ease-in-out infinite;
+}
+
+/* ================================================================
    GALERÍA — Carrusel de cortes
    ================================================================ */
 

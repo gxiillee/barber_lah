@@ -221,7 +221,7 @@ $productos = [
                     <div class="relative">
                         <img src="assets/img/logo.jpg"
                              alt="Hassan"
-                             class="block h-[500px] w-full border-[3px] border-[var(--gold)] bg-[var(--obsidian)] object-cover shadow-[20px_20px_0_#2a2a2a] transition-transform duration-[1200ms] ease-out hover:scale-105">
+                             class="block h-[280px] md:h-[500px] w-full border-[3px] border-[var(--gold)] bg-[var(--obsidian)] object-cover shadow-[20px_20px_0_#2a2a2a] transition-transform duration-[1200ms] ease-out hover:scale-105">
 
                         <div class="pointer-events-none absolute top-5 left-5 right-[-16px] bottom-[-16px] border border-[var(--gold)] opacity-20"></div>
 
@@ -287,24 +287,17 @@ $productos = [
 
     <section id="servicios" class="relative overflow-hidden bg-[var(--obsidian)] py-32">
 
-        <!-- Línea decorativa superior -->
         <div class="absolute top-0 left-1/2 h-[80px] w-px -translate-x-1/2 bg-[var(--gold)] opacity-10"></div>
 
-        <!-- Ruido de fondo sutil -->
         <div class="pointer-events-none absolute inset-0 opacity-[0.025]"
              style="background-image: url('data:image/svg+xml,%3Csvg viewBox=\'0 0 200 200\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cfilter id=\'n\'%3E%3CfeTurbulence type=\'fractalNoise\' baseFrequency=\'0.9\' numOctaves=\'4\'/%3E%3C/filter%3E%3Crect width=\'100%25\' height=\'100%25\' filter=\'url(%23n)\'/%3E%3C/svg%3E');
-              background-size: 200px 200px;"></div>
+          background-size: 200px 200px;"></div>
 
         <div class="mx-auto max-w-7xl px-8">
 
-            <!-- Cabecera -->
             <header class="reveal-text mb-20 text-center">
-            <span class="font-montserrat text-[0.6rem] uppercase tracking-[0.5rem] text-[var(--gold)] opacity-70">
-                Lo que hacemos
-            </span>
-                <h2 class="font-playfair mt-5 mb-5 text-5xl md:text-6xl leading-tight text-white">
-                    Nuestros Servicios
-                </h2>
+                <span class="font-montserrat text-[0.6rem] uppercase tracking-[0.5rem] text-[var(--gold)] opacity-70">Lo que hacemos</span>
+                <h2 class="font-playfair mt-5 mb-5 text-5xl md:text-6xl leading-tight text-white">Nuestros Servicios</h2>
                 <div class="mx-auto h-px w-12 bg-[var(--gold)]"></div>
                 <p class="font-cormorant mx-auto mt-8 max-w-xl text-xl leading-relaxed text-white/45">
                     Cada servicio es una experiencia pensada al detalle.<br>
@@ -312,73 +305,75 @@ $productos = [
                 </p>
             </header>
 
-            <!-- Grid de servicios -->
-            <div class="grid gap-px md:grid-cols-2 lg:grid-cols-3"
-                 style="background-color: rgba(212,175,55,0.08);">
+            <!-- Wrapper con fade derecho en móvil -->
+            <div class="relative">
 
-                <?php
-                // $servicios viene de Servicio::obtenerTodos() llamado arriba en el PHP
-                // Numeración visual para cada tarjeta
-                $numero = 1;
-                foreach ($servicios as $servicio) { ?>
+                <!-- Gradiente "peek" — solo móvil -->
+                <div class="pointer-events-none absolute right-0 top-0 h-full w-16 z-10
+                        bg-gradient-to-l from-[var(--obsidian)] to-transparent md:hidden"></div>
 
-                    <article class="reveal-text group relative flex flex-col justify-between bg-[var(--obsidian)] p-10 transition-colors duration-500
-                                hover:bg-[var(--charcoal)]"
-                             style="transition-delay: <?= ($numero - 1) * 0.08 ?>s;">
-                        <!-- Número decorativo -->
-                        <span class="font-playfair absolute top-8 right-10 text-[4rem] leading-none font-bold
-                                 text-[var(--gold)] opacity-5 select-none transition-opacity duration-500
-                                 group-hover:opacity-10">
-                        <?= str_pad($numero, 2, '0', STR_PAD_LEFT) ?>
-                    </span>
+                <!-- Grid / carril -->
+                <div class="flex overflow-x-auto snap-x snap-mandatory gap-px
+                        md:grid md:overflow-visible md:snap-none md:grid-cols-2 lg:grid-cols-3"
+                     style="background-color: rgba(212,175,55,0.08); scrollbar-width: none;">
 
-                        <div>
-                            <!-- Etiqueta duración -->
-                            <div class="mb-6 flex items-center gap-3">
-                                <div class="h-px w-6 bg-[var(--gold)] opacity-50"></div>
-                                <span class="font-montserrat text-[0.55rem] uppercase tracking-[0.3rem] text-[var(--gold)]/50">
-                                <?= htmlspecialchars($servicio->getDuracionMin()) ?>
-                            </span>
-                            </div>
-
-                            <!-- Nombre -->
-                            <h3 class="font-playfair mb-4 text-2xl leading-tight text-white
-                                   transition-colors duration-300 group-hover:text-[var(--gold)]">
-                                <?= htmlspecialchars($servicio->getNombre()) ?>
-                            </h3>
-
-                            <!-- Descripción -->
-                            <p class="font-cormorant text-base leading-relaxed text-white/60
-                                  transition-colors duration-300 group-hover:text-white/60">
-                                <?= htmlspecialchars($servicio->getDescripcion()) ?>
-                            </p>
-                        </div>
-
-                        <!-- Precio + CTA -->
-                        <footer class="mt-10 flex items-end justify-between border-t border-[var(--gold)]/10 pt-8">
-                            <div>
-                            <span class="font-montserrat block text-[0.55rem] uppercase tracking-[0.2rem] text-white/20 mb-1">
-                                Precio
-                            </span>
-                                <span class="font-playfair text-3xl font-bold text-[var(--gold)]">
-                                <?= number_format($servicio->getPrecio(), 0) ?>€
-                            </span>
-                            </div>
-                            <a href="#reservas"
-                               class="font-montserrat text-[0.6rem] uppercase tracking-[0.2rem] text-white/25
-                                  border-b border-transparent transition-all duration-300
-                                  group-hover:text-[var(--gold)] group-hover:border-[var(--gold)]/40">
-                                Reservar →
-                            </a>
-                        </footer>
-                    </article>
                     <?php
-                    $numero++;
-                } ?>
+                    $numero = 1;
+                    foreach ($servicios as $servicio) { ?>
 
-            </div>
+                        <article class="reveal-text group relative flex flex-col justify-between bg-[var(--obsidian)] p-10
+                                    transition-colors duration-500 hover:bg-[var(--charcoal)]
+                                    shrink-0 w-[72vw] snap-start md:w-auto"
+                                 style="transition-delay: <?= ($numero - 1) * 0.08 ?>s;">
 
-            <!-- Nota inferior -->
+                        <span class="font-playfair absolute top-8 right-10 text-[4rem] leading-none font-bold
+                                     text-[var(--gold)] opacity-5 select-none transition-opacity duration-500
+                                     group-hover:opacity-10">
+                            <?= str_pad($numero, 2, '0', STR_PAD_LEFT) ?>
+                        </span>
+
+                            <div>
+                                <div class="mb-6 flex items-center gap-3">
+                                    <div class="h-px w-6 bg-[var(--gold)] opacity-50"></div>
+                                    <span class="font-montserrat text-[0.55rem] uppercase tracking-[0.3rem] text-[var(--gold)]/50">
+                                    <?= htmlspecialchars($servicio->getDuracionMin()) ?>
+                                </span>
+                                </div>
+
+                                <h3 class="font-playfair mb-4 text-2xl leading-tight text-white
+                                       transition-colors duration-300 group-hover:text-[var(--gold)]">
+                                    <?= htmlspecialchars($servicio->getNombre()) ?>
+                                </h3>
+
+                                <p class="font-cormorant text-base leading-relaxed text-white/60
+                                      transition-colors duration-300 group-hover:text-white/60">
+                                    <?= htmlspecialchars($servicio->getDescripcion()) ?>
+                                </p>
+                            </div>
+
+                            <footer class="mt-10 flex items-end justify-between border-t border-[var(--gold)]/10 pt-8">
+                                <div>
+                                    <span class="font-montserrat block text-[0.55rem] uppercase tracking-[0.2rem] text-white/20 mb-1">Precio</span>
+                                    <span class="font-playfair text-3xl font-bold text-[var(--gold)]">
+                                    <?= number_format($servicio->getPrecio(), 0) ?>€
+                                </span>
+                                </div>
+                                <a href="#reservas"
+                                   class="font-montserrat text-[0.6rem] uppercase tracking-[0.2rem] text-white/25
+                                      border-b border-transparent transition-all duration-300
+                                      group-hover:text-[var(--gold)] group-hover:border-[var(--gold)]/40">
+                                    Reservar →
+                                </a>
+                            </footer>
+
+                        </article>
+
+                        <?php $numero++; } ?>
+
+                </div><!-- /grid -->
+
+            </div><!-- /wrapper -->
+
             <p class="reveal-text font-cormorant mt-12 text-center text-base text-white/25 italic">
                 ¿Tienes dudas? Escríbenos en Instagram
                 <a href="https://instagram.com/barbershop_la_h" target="_blank" rel="noopener"
@@ -550,7 +545,7 @@ $productos = [
             </header>
 
             <!-- Grid de productos -->
-            <div class="grid gap-px sm:grid-cols-2 lg:grid-cols-3"
+            <div class="grid gap-px grid-cols-2 lg:grid-cols-3"
                  style="background-color: rgba(212,175,55,0.06);">
 
                 <?php foreach ($productos as $i => $prod) { ?>
@@ -559,7 +554,7 @@ $productos = [
                              style="transition-delay: <?= $i * 0.07 ?>s;">
 
                         <!-- Imagen con overlay dorado en hover -->
-                        <div class="relative overflow-hidden h-[260px]">
+                        <div class="relative overflow-hidden h-[140px] md:h-[260px]">
                             <img src="<?= htmlspecialchars($prod['imagen']) ?>"
                                  alt="<?= htmlspecialchars($prod['nombre']) ?>"
                                  class="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
@@ -571,7 +566,7 @@ $productos = [
                         </div>
 
                         <!-- Info -->
-                        <div class="p-8">
+                        <div class="p-4 md:p-8">
 
                             <!-- Número decorativo de fondo -->
                             <span class="pointer-events-none absolute top-4 right-6 font-playfair text-[5rem]
