@@ -1,0 +1,10 @@
+[{
+  "_id": {
+    "$oid": "69feff2963782f60f2945357"
+  },
+  "nombre": "Cera Mate Premium",
+  "precio": 15.99,
+  "imagen": "assets/img/productos/cera-impala.png",
+  "descripcion": "Fijación fuerte y acabado natural",
+  "activo": true
+}]

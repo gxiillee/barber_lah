@@ -1,0 +1,106 @@
+[{
+  "_id": {
+    "$oid": "69feff0e63782f60f2945352"
+  },
+  "imagen": "assets/img/galeria/taper.jpeg",
+  "categoria": "Taper Fade",
+  "descripcion": "Degradado suave con acabado en navaja"
+},
+{
+  "_id": {
+    "$oid": "69feff0e63782f60f2945353"
+  },
+  "imagen": "assets/img/galeria/lowfade.jpeg",
+  "categoria": "Low Fade",
+  "descripcion": "Textura y volumen superior"
+},
+{
+  "_id": {
+    "$oid": "69ff03ed63782f60f294535b"
+  },
+  "imagen": "assets/img/galeria/mullet.jpeg",
+  "categoria": "Mullet Moderno",
+  "descripcion": "Reinterpretación del clásico de los 80 con laterales pulidos y caída natural.",
+  "fecha": "2024-05-22"
+},
+{
+  "_id": {
+    "$oid": "69ff03ed63782f60f294535c"
+  },
+  "imagen": "assets/img/galeria/high-fade.jpeg",
+  "categoria": "High Fade",
+  "descripcion": "Degradado alto de máxima precisión con contraste nítido en la zona superior.",
+  "fecha": "2024-05-23"
+},
+{
+  "_id": {
+    "$oid": "69ff03ed63782f60f294535d"
+  },
+  "imagen": "assets/img/galeria/mohicano.jpeg",
+  "categoria": "Mohicano",
+  "descripcion": "Estilo audaz con cresta definida y laterales degradados al cero.",
+  "fecha": "2024-05-24"
+},
+{
+  "_id": {
+    "$oid": "69ff03ed63782f60f294535e"
+  },
+  "imagen": "assets/img/galeria/taper-rizado.jpeg",
+  "categoria": "Taper Fade",
+  "descripcion": "Degradado sutil para cabello rizado, manteniendo el volumen y la textura orgánica.",
+  "fecha": "2024-05-25"
+},
+{
+  "_id": {
+    "$oid": "69ff03ed63782f60f294535f"
+  },
+  "imagen": "assets/img/galeria/low-fade-v.jpeg",
+  "categoria": "Low Fade en V",
+  "descripcion": "Degradado bajo con terminación en punta posterior para un perfil agresivo y limpio.",
+  "fecha": "2024-05-26"
+},
+{
+  "_id": {
+    "$oid": "69ff03ed63782f60f2945360"
+  },
+  "imagen": "assets/img/galeria/mullet-diseno-1.jpeg",
+  "categoria": "Mullet con Diseño",
+  "descripcion": "Corte de autor con grecas geométricas integradas en el degradado lateral.",
+  "fecha": "2024-05-27"
+},
+{
+  "_id": {
+    "$oid": "69ff03ed63782f60f2945361"
+  },
+  "imagen": "assets/img/galeria/mohicano-diseno-2.jpeg",
+  "categoria": "Mohicano Freestyle",
+  "descripcion": "Diseño artístico a navaja sobre base de mohicano, exclusividad en cada línea.",
+  "fecha": "2024-05-28"
+},
+{
+  "_id": {
+    "$oid": "69ff05c263782f60f2945363"
+  },
+  "imagen": "assets/img/galeria/buzz-cut.jpeg",
+  "categoria": "Buzz cut",
+  "descripcion": "Elegancia atemporal con un acabado pulido y contornos definidos.",
+  "fecha": "2024-05-29"
+},
+{
+  "_id": {
+    "$oid": "69ff05c263782f60f2945364"
+  },
+  "imagen": "assets/img/galeria/burst-fade.jpeg",
+  "categoria": "Burst Fade",
+  "descripcion": "Degradado circular acentuando la zona de la oreja, ideal para resaltar la caída natural.",
+  "fecha": "2024-05-30"
+},
+{
+  "_id": {
+    "$oid": "69ff05c263782f60f2945365"
+  },
+  "imagen": "assets/img/galeria/taper-texturizado.jpeg",
+  "categoria": "Taper texturizado",
+  "descripcion": "Flequillo corto con textura intensa en la parte superior para un look urbano y moderno.",
+  "fecha": "2024-05-31"
+}]
