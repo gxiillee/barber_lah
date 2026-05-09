@@ -284,12 +284,18 @@ document.querySelectorAll('a[href^="#"]').forEach((link) => {
    ──────────────────────────────────────────────────────────────── */
 
 const menuToggle = document.getElementById("menuToggle");
+const mobileMenu = document.getElementById("mobileMenu");
 
-if (menuToggle) {
+if (menuToggle && mobileMenu) {
   menuToggle.addEventListener("click", () => {
-    // Implementar menú mobile si hace falta en el futuro
-    // Por ahora simplemente el nav colapsado es funcional para desktop
-    console.log("Mobile menu — pendiente de implementar drawer");
+    const isOpen = mobileMenu.style.display === "flex";
+    if (isOpen) {
+      mobileMenu.style.display = "none";
+      mobileMenu.classList.remove("menu-open");
+    } else {
+      mobileMenu.style.display = "flex";
+      mobileMenu.classList.add("menu-open");
+    }
   });
 }
 
@@ -341,3 +347,143 @@ document.addEventListener("DOMContentLoaded", () => {
     revealObserver.observe(el);
   });
 });
+
+/* ================================================================
+   CARRUSEL GALERÍA
+   Auto-play que se pausa al poner el ratón encima.
+   Click en slide → abre lightbox.
+   ================================================================ */
+
+(function initGaleria() {
+  const track = document.getElementById("galeriaTrack");
+  const slides = document.querySelectorAll(".galeria-slide");
+  const dots = document.querySelectorAll(".galeria-dot");
+  const btnPrev = document.getElementById("galeriaPrev");
+  const btnNext = document.getElementById("galeriaNext");
+  const carrusel = document.getElementById("galeriaCarrusel");
+
+  if (!track || slides.length === 0) return;
+
+  const INTERVAL = parseInt(carrusel.dataset.interval) || 4000;
+  let current = 0;
+  let timer = null;
+  let isHovered = false;
+
+  /* ── Calcula el ancho de cada slide (incluye el gap de 2px) ── */
+  function slideWidth() {
+    return slides[0].offsetWidth + 2; // 2px = margin-right
+  }
+
+  /* ── Mueve el carrusel al índice indicado ── */
+  function goTo(index) {
+    // Wrap infinito
+    if (index >= slides.length) index = 0;
+    if (index < 0) index = slides.length - 1;
+
+    current = index;
+    track.style.transform = `translateX(-${current * slideWidth()}px)`;
+
+    // Actualiza puntos
+    dots.forEach((dot, i) => {
+      dot.classList.toggle("active", i === current);
+    });
+  }
+
+  /* ── Auto-play ── */
+  function startAuto() {
+    timer = setInterval(() => {
+      if (!isHovered) goTo(current + 1);
+    }, INTERVAL);
+  }
+
+  function stopAuto() {
+    clearInterval(timer);
+    timer = null;
+  }
+
+  /* ── Pausa al hover ── */
+  carrusel.addEventListener("mouseenter", () => {
+    isHovered = true;
+  });
+  carrusel.addEventListener("mouseleave", () => {
+    isHovered = false;
+  });
+
+  /* ── Flechas ── */
+  btnPrev.addEventListener("click", () => {
+    stopAuto();
+    goTo(current - 1);
+    startAuto();
+  });
+  btnNext.addEventListener("click", () => {
+    stopAuto();
+    goTo(current + 1);
+    startAuto();
+  });
+
+  /* ── Puntos ── */
+  dots.forEach((dot) => {
+    dot.addEventListener("click", () => {
+      stopAuto();
+      goTo(parseInt(dot.dataset.index));
+      startAuto();
+    });
+  });
+
+  /* ── Recalcula posición si cambia el tamaño de ventana ── */
+  window.addEventListener("resize", () => goTo(current));
+
+  /* ── Arranca ── */
+  goTo(0);
+  startAuto();
+})();
+
+/* ================================================================
+   LIGHTBOX
+   Click en slide → abre lightbox con imagen ampliada.
+   ================================================================ */
+
+(function initLightbox() {
+  const lightbox = document.getElementById("galeriaLightbox");
+  const lbImg = document.getElementById("lightboxImg");
+  const lbCat = document.getElementById("lightboxCategoria");
+  const lbDesc = document.getElementById("lightboxDesc");
+  const lbClose = document.getElementById("lightboxClose");
+
+  if (!lightbox) return;
+
+  /* Abre el lightbox con los datos del slide clickado */
+  document.querySelectorAll(".galeria-slide").forEach((slide) => {
+    slide.addEventListener("click", () => {
+      lbImg.src = slide.dataset.src;
+      lbImg.alt = slide.dataset.categoria;
+      lbCat.textContent = slide.dataset.categoria;
+      lbDesc.textContent = slide.dataset.descripcion;
+
+      lightbox.classList.add("open");
+      document.body.style.overflow = "hidden"; // bloquea scroll
+    });
+  });
+
+  /* Cierra con el botón */
+  lbClose.addEventListener("click", closeLightbox);
+
+  /* Cierra haciendo clic en el fondo oscuro */
+  lightbox.addEventListener("click", (e) => {
+    if (e.target === lightbox) closeLightbox();
+  });
+
+  /* Cierra con Escape */
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") closeLightbox();
+  });
+
+  function closeLightbox() {
+    lightbox.classList.remove("open");
+    document.body.style.overflow = "auto";
+    /* Limpia src para liberar memoria */
+    setTimeout(() => {
+      lbImg.src = "";
+    }, 400);
+  }
+})();

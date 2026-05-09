@@ -73,6 +73,19 @@
 }
 
 /* ================================================================
+   MENÚ MOBILE — drawer fullscreen
+   ================================================================ */
+
+/* Animación de entrada del menú */
+@keyframes menuSlideIn {
+    from { opacity: 0; transform: translateY(-12px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+#mobileMenu.menu-open {
+    animation: menuSlideIn 0.35s var(--ease-out) forwards;
+}
+/* ================================================================
    SECCIÓN VIDEO SCROLL
    ================================================================ */
 
@@ -208,6 +221,60 @@
 .reveal-text.active {
     opacity: 1;
     transform: translateY(0);
+}
+
+/* ================================================================
+   GALERÍA — Carrusel de cortes
+   ================================================================ */
+
+/* Hover sobre cada slide: muestra el overlay y el borde dorado */
+.galeria-slide:hover .galeria-overlay {
+    opacity: 1;
+}
+
+.galeria-slide:hover .galeria-border {
+    border-color: rgba(212, 175, 55, 0.35);
+}
+
+/* Zoom sutil de la imagen al hacer hover */
+.galeria-slide:hover img {
+    transform: scale(1.04);
+}
+
+/* Punto activo del carrusel */
+.galeria-dot.active {
+    background-color: var(--gold);
+    width: 2rem; /* w-8 */
+}
+
+/* ================================================================
+   LIGHTBOX
+   ================================================================ */
+
+/* El lightbox usa display:flex pero está hidden por defecto.
+   La clase .open lo activa sin conflicto con Tailwind */
+#galeriaLightbox.open {
+    display: flex;
+}
+
+/* Animación de entrada */
+@keyframes lightboxIn {
+    from { opacity: 0; transform: scale(0.96); }
+    to   { opacity: 1; transform: scale(1); }
+}
+
+#galeriaLightbox.open > div {
+    animation: lightboxIn 0.4s var(--ease-out) forwards;
+}
+
+
+/* ================================================================
+   PRODUCTOS
+   ================================================================ */
+
+/* La tarjeta de producto necesita position: relative para el número */
+.producto-card {
+    position: relative;
 }
 
 /* ================================================================

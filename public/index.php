@@ -1,6 +1,39 @@
 <?php
 require_once '../clases/Servicio.php';
 $servicios = Servicio::obtenerActivos();
+
+/*
+ ================================================================
+  DATOS MOCK — sustituir por consultas MongoDB cuando esté configurado
+  Con MongoDB PHP Driver sería algo así:
+  ESTO LO USARE CUANDO CONFIGURE EL MONGO DB CON GALERIA DE CORTES Y PRODUCTOS
+  POR AHORA NO VA
+
+  $client    = new MongoDB\Client("mongodb://localhost:27017");
+  $db        = $client->barbershop_la_h;
+  $galeria   = $db->galeria->find([], ['sort' => ['fecha' => -1]])->toArray();
+  $productos = $db->productos->find(['activo' => true])->toArray();
+ ================================================================
+*/
+
+$galeria = [
+        ['id' => 1, 'imagen' => 'assets/img/galeria/corte1.jpg', 'categoria' => 'Fade clásico',   'descripcion' => 'Degradado suave con acabado en navaja'],
+        ['id' => 2, 'imagen' => 'assets/img/galeria/corte2.jpg', 'categoria' => 'Corte moderno',  'descripcion' => 'Textura y volumen en la parte superior'],
+        ['id' => 3, 'imagen' => 'assets/img/galeria/corte3.jpg', 'categoria' => 'Barba completa', 'descripcion' => 'Perfilado y arreglo de barba larga'],
+        ['id' => 4, 'imagen' => 'assets/img/galeria/corte4.jpg', 'categoria' => 'Mullet',         'descripcion' => 'Corte retro con acabado pulido'],
+        ['id' => 5, 'imagen' => 'assets/img/galeria/corte5.jpg', 'categoria' => 'Skin fade',      'descripcion' => 'Degradado al cero con diseño lateral'],
+        ['id' => 6, 'imagen' => 'assets/img/galeria/corte6.jpg', 'categoria' => 'Texturizado',    'descripcion' => 'Corte irregular con efecto despeinado'],
+];
+
+$productos = [
+        ['id' => 1, 'imagen' => 'assets/img/productos/prod1.jpg', 'nombre' => 'Pomada Mate',        'descripcion' => 'Fijación fuerte sin brillo. Control total todo el día.',      'precio' => 14],
+        ['id' => 2, 'imagen' => 'assets/img/productos/prod2.jpg', 'nombre' => 'Aceite de Barba',    'descripcion' => 'Hidrata y suaviza. Con aceite de argán y jojoba.',             'precio' => 18],
+        ['id' => 3, 'imagen' => 'assets/img/productos/prod3.jpg', 'nombre' => 'Crema de Afeitar',   'descripcion' => 'Espuma densa para un afeitado apurado sin irritación.',        'precio' => 12],
+        ['id' => 4, 'imagen' => 'assets/img/productos/prod4.jpg', 'nombre' => 'Cera de Peinado',    'descripcion' => 'Fijación media con acabado natural. Para estilos versátiles.', 'precio' => 13],
+        ['id' => 5, 'imagen' => 'assets/img/productos/prod5.jpg', 'nombre' => 'Champú Anticaída',   'descripcion' => 'Formulado con biotina y keratina. Uso diario.',                'precio' => 16],
+        ['id' => 6, 'imagen' => 'assets/img/productos/prod6.jpg', 'nombre' => 'Bálsamo de Barba',   'descripcion' => 'Fijación ligera y nutrición profunda. Aroma madera y ámbar.', 'precio' => 15],
+];
+
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -47,10 +80,10 @@ $servicios = Servicio::obtenerActivos();
 
             <!-- Links desktop -->
             <div class="hidden items-center gap-10 md:flex">
-                <a href="#sobre"       class="font-montserrat text-[0.65rem] uppercase tracking-[0.2rem] text-white/50 transition-colors duration-300 hover:text-[var(--gold)]">Nosotros</a>
-                <a href="#servicios"   class="font-montserrat text-[0.65rem] uppercase tracking-[0.2rem] text-white/50 transition-colors duration-300 hover:text-[var(--gold)]">Servicios</a>
-                <a href="#contacto"    class="font-montserrat text-[0.65rem] uppercase tracking-[0.2rem] text-white/50 transition-colors duration-300 hover:text-[var(--gold)]">Encuéntranos</a>
-                <a href="#reservas" class="border border-[var(--gold)]/50 px-6 py-2 font-montserrat text-[0.65rem] uppercase tracking-[0.2rem] text-[var(--gold)] transition-all duration-300 hover:bg-[var(--gold)] hover:text-[var(--obsidian)]">
+                <a href="#sobre"       class="font-montserrat text-[0.72rem] uppercase tracking-[0.2rem] text-white/50 transition-colors duration-300 hover:text-[var(--gold)]">Nosotros</a>
+                <a href="#servicios"   class="font-montserrat text-[0.72rem] uppercase tracking-[0.2rem] text-white/50 transition-colors duration-300 hover:text-[var(--gold)]">Servicios</a>
+                <a href="#contacto"    class="font-montserrat text-[0.72rem] uppercase tracking-[0.2rem] text-white/50 transition-colors duration-300 hover:text-[var(--gold)]">Encuéntranos</a>
+                <a href="#reservas" class="border border-[var(--gold)]/50 px-6 py-2 font-montserrat text-[0.72rem] uppercase tracking-[0.2rem] text-[var(--gold)] transition-all duration-300 hover:bg-[var(--gold)] hover:text-[var(--obsidian)]">
                     Reservar Cita
                 </a>
             </div>
@@ -63,6 +96,13 @@ $servicios = Servicio::obtenerActivos();
             </button>
         </div>
     </nav>
+    <!-- Seccion para solo móvil -->
+    <div id="mobileMenu" style="display:none;" class="fixed inset-0 z-[60] bg-[var(--obsidian)] flex-col items-center justify-center gap-10">
+        <a href="#sobre"     onclick="document.getElementById('mobileMenu').style.display='none'" class="font-montserrat text-sm uppercase tracking-[0.3rem] text-white/60 hover:text-[var(--gold)]">Nosotros</a>
+        <a href="#servicios" onclick="document.getElementById('mobileMenu').style.display='none'" class="font-montserrat text-sm uppercase tracking-[0.3rem] text-white/60 hover:text-[var(--gold)]">Servicios</a>
+        <a href="#contacto"  onclick="document.getElementById('mobileMenu').style.display='none'" class="font-montserrat text-sm uppercase tracking-[0.3rem] text-white/60 hover:text-[var(--gold)]">Encuéntranos</a>
+        <a href="#reservas"  onclick="document.getElementById('mobileMenu').style.display='none'" class="border border-[var(--gold)]/50 px-8 py-3 font-montserrat text-sm uppercase tracking-[0.2rem] text-[var(--gold)]">Reservar Cita</a>
+    </div>
 
 
     <!-- ===================== SECCIÓN VIDEO SCROLL ===================== -->
@@ -71,10 +111,11 @@ $servicios = Servicio::obtenerActivos();
         <div class="sticky top-0 h-screen w-full overflow-hidden bg-black">
 
             <!-- Video principal -->
+            <!-- Añadir un poster si no carga: poster="assets/img/poster_hero.jpg" -->
             <video id="mainVideo"
                    class="absolute min-w-full min-h-full w-auto h-auto object-cover"
                    style="top: 50%; left: 50%; transform: translate(-50%, -50%); will-change: transform;"
-                   playsinline muted preload="auto">
+                   playsinline muted preload="metadata">
                 <source src="assets/video/video_intro.mp4" type="video/mp4">
             </video>
 
@@ -180,7 +221,7 @@ $servicios = Servicio::obtenerActivos();
                     <div class="relative">
                         <img src="assets/img/logo.jpg"
                              alt="Hassan"
-                             class="block h-[500px] w-full border-[3px] border-[var(--gold)] bg-[var(--obsidian)] object-cover shadow-[20px_20px_0_#2a2a2a] transition-transform duration-[2000s] ease-out hover:scale-105">
+                             class="block h-[500px] w-full border-[3px] border-[var(--gold)] bg-[var(--obsidian)] object-cover shadow-[20px_20px_0_#2a2a2a] transition-transform duration-[1200ms] ease-out hover:scale-105">
 
                         <div class="pointer-events-none absolute top-5 left-5 right-[-16px] bottom-[-16px] border border-[var(--gold)] opacity-20"></div>
 
@@ -214,11 +255,11 @@ $servicios = Servicio::obtenerActivos();
                     </div>
 
                     <div class="mb-12 flex flex-wrap items-center gap-6">
-                        <a href="#reservas" class="bg-[var(--gold)] px-8 py-4 font-montserrat text-[0.65rem] font-bold uppercase tracking-[0.2rem] text-black transition-all hover:bg-white hover:-translate-y-1">
+                        <a href="#reservas" class="bg-[var(--gold)] px-8 py-4 font-montserrat text-[0.72rem] font-bold uppercase tracking-[0.2rem] text-black transition-all hover:bg-white hover:-translate-y-1">
                             Reservar Cita
                         </a>
                         <a href="https://instagram.com/barbershop_la_h" target="_blank" rel="noopener"
-                           class="font-montserrat text-[0.65rem] uppercase tracking-[0.2rem] text-white/30 transition-colors duration-300 hover:text-[var(--gold)]">
+                           class="font-montserrat text-[0.72rem] uppercase tracking-[0.2rem] text-white/30 transition-colors duration-300 hover:text-[var(--gold)]">
                             @barbershop_la_h ↗
                         </a>
                     </div>
@@ -229,7 +270,7 @@ $servicios = Servicio::obtenerActivos();
                             — Hassan
                         </p>
 
-                        <p class="font-montserrat mt-2 text-[0.6rem] uppercase tracking-[0.2rem] text-white/40">
+                        <p class="font-montserrat mt-2 text-[0.6rem] uppercase tracking-[0.2rem] text-white/60">
                             <a href="#contacto">Encuentranos en el mapa</a>
                         </p>
                     </footer>
@@ -237,6 +278,7 @@ $servicios = Servicio::obtenerActivos();
             </div>
         </div>
     </section>
+
 
     <!-- ══════════════════════════════════════════════════════════════
      SECCIÓN SERVICIOS
@@ -283,7 +325,6 @@ $servicios = Servicio::obtenerActivos();
                     <article class="reveal-text group relative flex flex-col justify-between bg-[var(--obsidian)] p-10 transition-colors duration-500
                                 hover:bg-[var(--charcoal)]"
                              style="transition-delay: <?= ($numero - 1) * 0.08 ?>s;">
-
                         <!-- Número decorativo -->
                         <span class="font-playfair absolute top-8 right-10 text-[4rem] leading-none font-bold
                                  text-[var(--gold)] opacity-5 select-none transition-opacity duration-500
@@ -307,7 +348,7 @@ $servicios = Servicio::obtenerActivos();
                             </h3>
 
                             <!-- Descripción -->
-                            <p class="font-cormorant text-base leading-relaxed text-white/40
+                            <p class="font-cormorant text-base leading-relaxed text-white/60
                                   transition-colors duration-300 group-hover:text-white/60">
                                 <?= htmlspecialchars($servicio->getDescripcion()) ?>
                             </p>
@@ -330,9 +371,7 @@ $servicios = Servicio::obtenerActivos();
                                 Reservar →
                             </a>
                         </footer>
-
                     </article>
-
                     <?php
                     $numero++;
                 } ?>
@@ -350,6 +389,241 @@ $servicios = Servicio::obtenerActivos();
 
         </div>
     </section>
+
+    <!-- ══════════════════════════════════════════════════════════════
+     SECCIÓN GALERÍA — Carrusel de cortes
+     Pegar después de #servicios, antes del footer
+     ══════════════════════════════════════════════════════════════ -->
+
+    <section id="galeria" class="relative overflow-hidden bg-[var(--charcoal)] py-32">
+
+        <!-- Línea decorativa superior -->
+        <div class="absolute top-0 left-1/2 h-[80px] w-px -translate-x-1/2 bg-[var(--gold)] opacity-10"></div>
+
+        <div class="mx-auto max-w-7xl px-8">
+
+            <!-- Cabecera -->
+            <header class="reveal-text mb-20 text-center">
+                <span class="font-montserrat text-[0.6rem] uppercase tracking-[0.5rem] text-[var(--gold)] opacity-70">Portfolio</span>
+                <h2 class="font-playfair mt-5 mb-5 text-5xl md:text-6xl leading-tight text-white">Nuestro Trabajo</h2>
+                <div class="mx-auto h-px w-12 bg-[var(--gold)]"></div>
+                <p class="font-cormorant mx-auto mt-8 max-w-xl text-xl leading-relaxed text-white/45">
+                    Cada corte es una firma. Cada cliente, un lienzo.
+                </p>
+            </header>
+
+        </div>
+
+        <!-- Carrusel — ancho completo -->
+        <div class="relative" id="galeriaCarrusel"
+             data-autoplay="true"
+             data-interval="4000">
+
+            <!-- Track deslizante -->
+            <div id="galeriaTrack"
+                 class="flex transition-transform duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]"
+                 style="will-change: transform;">
+
+                <?php foreach ($galeria as $i => $foto) { ?>
+                    <div class="galeria-slide relative shrink-0 cursor-pointer select-none overflow-hidden"
+                         style="width: clamp(280px, 38vw, 520px); margin-right: 2px;"
+                         data-index="<?= $i ?>"
+                         data-src="<?= htmlspecialchars($foto['imagen']) ?>"
+                         data-categoria="<?= htmlspecialchars($foto['categoria']) ?>"
+                         data-descripcion="<?= htmlspecialchars($foto['descripcion']) ?>">
+
+                        <!-- Imagen -->
+                        <img src="<?= htmlspecialchars($foto['imagen']) ?>"
+                             alt="<?= htmlspecialchars($foto['categoria']) ?>"
+                             class="block h-[480px] w-full object-cover transition-transform duration-700 ease-out"
+                             loading="lazy">
+
+                        <!-- Overlay info (aparece en hover vía CSS) -->
+                        <div class="galeria-overlay absolute inset-0 flex flex-col justify-end p-8
+                            bg-gradient-to-t from-black/80 via-black/20 to-transparent
+                            opacity-0 transition-opacity duration-500">
+                    <span class="font-montserrat block text-[0.55rem] uppercase tracking-[0.4rem] text-[var(--gold)]/70 mb-2">
+                        <?= htmlspecialchars($foto['categoria']) ?>
+                    </span>
+                            <p class="font-cormorant text-lg text-white/80">
+                                <?= htmlspecialchars($foto['descripcion']) ?>
+                            </p>
+                            <span class="font-montserrat mt-4 block text-[0.5rem] uppercase tracking-[0.3rem] text-white/30">
+                        Clic para ampliar
+                    </span>
+                        </div>
+
+                        <!-- Borde dorado sutil -->
+                        <div class="pointer-events-none absolute inset-0 border border-[var(--gold)]/0 transition-all duration-500 galeria-border"></div>
+
+                    </div>
+                <?php } ?>
+
+            </div><!-- /track -->
+
+            <!-- Flecha izquierda -->
+            <button id="galeriaPrev"
+                    class="absolute left-6 top-1/2 z-10 -translate-y-1/2
+                       flex h-12 w-12 items-center justify-center
+                       border border-[var(--gold)]/30 bg-black/60 backdrop-blur-sm
+                       text-[var(--gold)] transition-all duration-300
+                       hover:bg-[var(--gold)] hover:text-black"
+                    aria-label="Anterior">
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5"/>
+                </svg>
+            </button>
+
+            <!-- Flecha derecha -->
+            <button id="galeriaNext"
+                    class="absolute right-6 top-1/2 z-10 -translate-y-1/2
+                       flex h-12 w-12 items-center justify-center
+                       border border-[var(--gold)]/30 bg-black/60 backdrop-blur-sm
+                       text-[var(--gold)] transition-all duration-300
+                       hover:bg-[var(--gold)] hover:text-black"
+                    aria-label="Siguiente">
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5"/>
+                </svg>
+            </button>
+
+            <!-- Puntos indicadores -->
+            <div class="mt-10 flex justify-center gap-3" id="galeriaDots">
+                <?php foreach ($galeria as $i => $foto) { ?>
+                    <button class="galeria-dot h-px w-6 bg-white/20 transition-all duration-300"
+                            data-index="<?= $i ?>"
+                            aria-label="Ir a imagen <?= $i + 1 ?>"></button>
+                <?php } ?>
+            </div>
+
+        </div><!-- /carrusel -->
+
+    </section>
+
+
+    <!-- ── LIGHTBOX (oculto por defecto) ── -->
+    <div id="galeriaLightbox" style="display:none;" class="fixed inset-0 z-[200] items-center justify-center bg-black/90 backdrop-blur-sm">
+
+        <!-- Botón cerrar -->
+        <button id="lightboxClose"
+                class="absolute top-6 right-8 font-montserrat text-[0.6rem] uppercase tracking-[0.3rem] text-white/40 transition-colors hover:text-[var(--gold)]">
+            Cerrar ✕
+        </button>
+
+        <!-- Imagen ampliada -->
+        <div class="mx-auto flex max-w-[90vw] flex-col items-center gap-6 px-4">
+            <img id="lightboxImg" src="" alt=""
+                 class="max-h-[75vh] max-w-full object-contain shadow-2xl border border-[var(--gold)]/20">
+            <div class="text-center">
+                <span id="lightboxCategoria" class="font-montserrat block text-[0.6rem] uppercase tracking-[0.4rem] text-[var(--gold)]/60 mb-2"></span>
+                <p id="lightboxDesc" class="font-cormorant text-xl text-white/60"></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════════════
+     SECCIÓN PRODUCTOS
+     Pegar después de #galeria, antes del footer
+     ══════════════════════════════════════════════════════════════ -->
+
+    <section id="productos" class="relative overflow-hidden bg-[var(--obsidian)] py-32">
+
+        <!-- Línea decorativa superior -->
+        <div class="absolute top-0 left-1/2 h-[80px] w-px -translate-x-1/2 bg-[var(--gold)] opacity-10"></div>
+
+        <!-- Ruido de fondo igual que #servicios -->
+        <div class="pointer-events-none absolute inset-0 opacity-[0.025]"
+             style="background-image: url('data:image/svg+xml,%3Csvg viewBox=\'0 0 200 200\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cfilter id=\'n\'%3E%3CfeTurbulence type=\'fractalNoise\' baseFrequency=\'0.9\' numOctaves=\'4\'/%3E%3C/filter%3E%3Crect width=\'100%25\' height=\'100%25\' filter=\'url(%23n)\'/%3E%3C/svg%3E');
+          background-size: 200px 200px;"></div>
+
+        <div class="mx-auto max-w-7xl px-8">
+
+            <!-- Cabecera -->
+            <header class="reveal-text mb-20 text-center">
+                <span class="font-montserrat text-[0.6rem] uppercase tracking-[0.5rem] text-[var(--gold)] opacity-70">Tienda</span>
+                <h2 class="font-playfair mt-5 mb-5 text-5xl md:text-6xl leading-tight text-white">Productos</h2>
+                <div class="mx-auto h-px w-12 bg-[var(--gold)]"></div>
+                <p class="font-cormorant mx-auto mt-8 max-w-xl text-xl leading-relaxed text-white/45">
+                    Los productos que usamos en cada servicio.<br>
+                    Disponibles directamente en la barbería.
+                </p>
+            </header>
+
+            <!-- Grid de productos -->
+            <div class="grid gap-px sm:grid-cols-2 lg:grid-cols-3"
+                 style="background-color: rgba(212,175,55,0.06);">
+
+                <?php foreach ($productos as $i => $prod) { ?>
+                    <article class="reveal-text producto-card group relative bg-[var(--obsidian)] overflow-hidden
+                            transition-colors duration-500 hover:bg-[var(--charcoal)]"
+                             style="transition-delay: <?= $i * 0.07 ?>s;">
+
+                        <!-- Imagen con overlay dorado en hover -->
+                        <div class="relative overflow-hidden h-[260px]">
+                            <img src="<?= htmlspecialchars($prod['imagen']) ?>"
+                                 alt="<?= htmlspecialchars($prod['nombre']) ?>"
+                                 class="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
+                                 loading="lazy">
+
+                            <!-- Overlay dorado muy sutil -->
+                            <div class="absolute inset-0 bg-[var(--gold)] opacity-0 mix-blend-overlay
+                                transition-opacity duration-500 group-hover:opacity-10"></div>
+                        </div>
+
+                        <!-- Info -->
+                        <div class="p-8">
+
+                            <!-- Número decorativo de fondo -->
+                            <span class="pointer-events-none absolute top-4 right-6 font-playfair text-[5rem]
+                                 leading-none font-bold text-[var(--gold)] opacity-[0.04] select-none
+                                 transition-opacity duration-500 group-hover:opacity-[0.08]">
+                        <?= str_pad($i + 1, 2, '0', STR_PAD_LEFT) ?>
+                    </span>
+
+                            <h3 class="font-playfair mb-3 text-2xl text-white transition-colors duration-300
+                               group-hover:text-[var(--gold)]">
+                                <?= htmlspecialchars($prod['nombre']) ?>
+                            </h3>
+
+                            <p class="font-cormorant mb-8 text-base leading-relaxed text-white/55
+                              transition-colors duration-300 group-hover:text-white/70">
+                                <?= htmlspecialchars($prod['descripcion']) ?>
+                            </p>
+
+                            <footer class="flex items-end justify-between border-t border-[var(--gold)]/10 pt-6">
+                                <div>
+                                    <span class="font-montserrat block text-[0.5rem] uppercase tracking-[0.2rem] text-white/20 mb-1">Precio</span>
+                                    <span class="font-playfair text-3xl font-bold text-[var(--gold)]">
+                                <?= $prod['precio'] ?>€
+                            </span>
+                                </div>
+                                <a href="https://instagram.com/barbershop_la_h"
+                                   target="_blank" rel="noopener"
+                                   class="font-montserrat text-[0.55rem] uppercase tracking-[0.2rem] text-white/25
+                                  border-b border-transparent transition-all duration-300
+                                  group-hover:text-[var(--gold)] group-hover:border-[var(--gold)]/40">
+                                    Preguntar →
+                                </a>
+                            </footer>
+
+                        </div>
+                    </article>
+                <?php } ?>
+
+            </div>
+
+            <!-- Nota inferior -->
+            <p class="reveal-text font-cormorant mt-12 text-center text-base text-white/25 italic">
+                Pásate por la barbería o escríbenos en
+                <a href="https://instagram.com/barbershop_la_h" target="_blank" rel="noopener"
+                   class="text-[var(--gold)]/50 transition-colors hover:text-[var(--gold)] not-italic ml-1">
+                    @barbershop_la_h ↗
+                </a>
+            </p>
+
+        </div>
+    </section>
+
 
     <!-- ══════════════════════════════════════════════════════════════
      FOOTER — CONTACTO + MAPA
@@ -428,8 +702,8 @@ $servicios = Servicio::obtenerActivos();
                             <span class="font-montserrat block text-[0.55rem] uppercase tracking-[0.3rem] text-[var(--gold)]/40 mb-2">Horario</span>
                             <div class="font-cormorant text-lg leading-relaxed text-white/60 space-y-1">
                                 <!-- Actualiza estos horarios cuando Hassan los confirme -->
-                                <p>Lunes — Viernes &nbsp;<span class="text-white/40">·</span>&nbsp; 10:00 – 20:00</p>
-                                <p>Sábado &nbsp;<span class="text-white/40">·</span>&nbsp; 10:00 – 14:00</p>
+                                <p>Lunes — Viernes &nbsp;<span class="text-white/60">·</span>&nbsp; 10:00 – 20:00</p>
+                                <p>Sábado &nbsp;<span class="text-white/0">·</span>&nbsp; 10:00 – 14:00</p>
                                 <p class="text-white/30">Domingo &nbsp;<span>·</span>&nbsp; Cerrado</p>
                             </div>
                         </div>
@@ -439,8 +713,7 @@ $servicios = Servicio::obtenerActivos();
 
                 <!-- CTA reserva -->
                 <div class="reveal-text">
-                    <a href="#reservas"
-                       class="inline-block bg-[var(--gold)] px-8 py-4 font-montserrat text-[0.85rem] font-bold uppercase tracking-[0.2rem] text-black transition-all duration-300 hover:bg-white hover:-translate-y-1 shadow-md shadow-black/20">
+                    <a href="#reservas" class="bg-[var(--gold)] px-8 py-4 font-montserrat text-[0.72rem] font-bold uppercase tracking-[0.2rem] text-black transition-all hover:bg-white hover:-translate-y-1">
                         Reservar Cita
                     </a>
                 </div>
