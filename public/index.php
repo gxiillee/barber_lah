@@ -1,40 +1,16 @@
 <?php
+
+require_once __DIR__ . '/../vendor/autoload.php'; // ¡ESTO ES VITAL para que funcione Mongo!
+require_once '../clases/BdMongo.php';
+require_once '../clases/Galeria_corte.php';
+require_once '../clases/Producto.php';
 require_once '../clases/Servicio.php';
-$servicios = Servicio::obtenerActivos();
 
-/*
- ================================================================
-  DATOS MOCK — sustituir por consultas MongoDB cuando esté configurado
-  Con MongoDB PHP Driver sería algo así:
-  ESTO LO USARE CUANDO CONFIGURE EL MONGO DB CON GALERIA DE CORTES Y PRODUCTOS
-  POR AHORA NO VA
-
-  $client    = new MongoDB\Client("mongodb://localhost:27017");
-  $db        = $client->barbershop_la_h;
-  $galeria   = $db->galeria->find([], ['sort' => ['fecha' => -1]])->toArray();
-  $productos = $db->productos->find(['activo' => true])->toArray();
- ================================================================
-*/
-
-$galeria = [
-        ['id' => 1, 'imagen' => 'assets/img/galeria/corte1.jpg', 'categoria' => 'Fade clásico',   'descripcion' => 'Degradado suave con acabado en navaja'],
-        ['id' => 2, 'imagen' => 'assets/img/galeria/corte2.jpg', 'categoria' => 'Corte moderno',  'descripcion' => 'Textura y volumen en la parte superior'],
-        ['id' => 3, 'imagen' => 'assets/img/galeria/corte3.jpg', 'categoria' => 'Barba completa', 'descripcion' => 'Perfilado y arreglo de barba larga'],
-        ['id' => 4, 'imagen' => 'assets/img/galeria/corte4.jpg', 'categoria' => 'Mullet',         'descripcion' => 'Corte retro con acabado pulido'],
-        ['id' => 5, 'imagen' => 'assets/img/galeria/corte5.jpg', 'categoria' => 'Skin fade',      'descripcion' => 'Degradado al cero con diseño lateral'],
-        ['id' => 6, 'imagen' => 'assets/img/galeria/corte6.jpg', 'categoria' => 'Texturizado',    'descripcion' => 'Corte irregular con efecto despeinado'],
-];
-
-$productos = [
-        ['id' => 1, 'imagen' => 'assets/img/productos/prod1.jpg', 'nombre' => 'Pomada Mate',        'descripcion' => 'Fijación fuerte sin brillo. Control total todo el día.',      'precio' => 14],
-        ['id' => 2, 'imagen' => 'assets/img/productos/prod2.jpg', 'nombre' => 'Aceite de Barba',    'descripcion' => 'Hidrata y suaviza. Con aceite de argán y jojoba.',             'precio' => 18],
-        ['id' => 3, 'imagen' => 'assets/img/productos/prod3.jpg', 'nombre' => 'Crema de Afeitar',   'descripcion' => 'Espuma densa para un afeitado apurado sin irritación.',        'precio' => 12],
-        ['id' => 4, 'imagen' => 'assets/img/productos/prod4.jpg', 'nombre' => 'Cera de Peinado',    'descripcion' => 'Fijación media con acabado natural. Para estilos versátiles.', 'precio' => 13],
-        ['id' => 5, 'imagen' => 'assets/img/productos/prod5.jpg', 'nombre' => 'Champú Anticaída',   'descripcion' => 'Formulado con biotina y keratina. Uso diario.',                'precio' => 16],
-        ['id' => 6, 'imagen' => 'assets/img/productos/prod6.jpg', 'nombre' => 'Bálsamo de Barba',   'descripcion' => 'Fijación ligera y nutrición profunda. Aroma madera y ámbar.', 'precio' => 15],
-];
-
+$servicios = Servicio::obtenerActivos(); // De Postgres
+$galeriaCortes   = Corte::obtenerTodos();      // De Mongo
+$productos = Producto::obtenerActivos(); // De Mongo
 ?>
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -151,7 +127,7 @@ $productos = [
      left-[8%] top-[28%]
      max-md:left-1/2 max-md:right-auto max-md:-translate-x-1/2 max-md:text-center max-md:w-[85vw]">
                 <span class="font-montserrat block text-[0.6rem] uppercase tracking-[0.4rem] text-[var(--gold)]/40">01</span>
-                <h3 class="font-playfair mt-2 mb-3 text-2xl leading-tight text-[var(--gold)]">El Corte</h3>
+                <h3 class="font-playfair mt-2 mb-3 text-3xl leading-tight text-[var(--gold)] drop-shadow-[0_2px_12px_rgba(212,175,55,0.4)]">El Corte</h3>
                 <p class="font-cormorant max-w-[260px] text-base leading-relaxed text-white/55 max-md:mx-auto">
                     Precisión milimétrica en cada línea.<br>
                     La geometría que define tu estilo.
@@ -163,7 +139,7 @@ $productos = [
      right-[8%] top-[42%]
      max-md:left-1/2 max-md:right-auto max-md:-translate-x-1/2 max-md:text-center max-md:w-[85vw]">
                 <span class="font-montserrat block text-[0.6rem] uppercase tracking-[0.4rem] text-[var(--gold)]/40">02</span>
-                <h3 class="font-playfair mt-2 mb-3 text-2xl leading-tight text-[var(--gold)]">El Ambiente</h3>
+                <h3 class="font-playfair mt-2 mb-3 text-3xl leading-tight text-[var(--gold)] drop-shadow-[0_2px_12px_rgba(212,175,55,0.4)]">El Ambiente</h3>
                 <p class="font-cormorant ml-auto max-w-[260px] text-base leading-relaxed text-white/55 max-md:mx-auto">
                     Un refugio de elegancia para el<br>
                     caballero que sabe lo que quiere.
@@ -175,7 +151,7 @@ $productos = [
      left-[10%] top-[65%]
      max-md:left-1/2 max-md:right-auto max-md:-translate-x-1/2 max-md:text-center max-md:w-[85vw]">
                 <span class="font-montserrat block text-[0.6rem] uppercase tracking-[0.4rem] text-[var(--gold)]/40">03</span>
-                <h3 class="font-playfair mt-2 mb-3 text-2xl leading-tight text-[var(--gold)]">El Acabado</h3>
+                <h3 class="font-playfair mt-2 mb-3 text-3xl leading-tight text-[var(--gold)] drop-shadow-[0_2px_12px_rgba(212,175,55,0.4)]">El Acabado</h3>
                 <p class="font-cormorant max-w-[260px] text-base leading-relaxed text-white/55 max-md:mx-auto">
                     Productos de alta gama para un<br>
                     resultado impecable que dura días.
@@ -419,7 +395,7 @@ $productos = [
                  class="flex transition-transform duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]"
                  style="will-change: transform;">
 
-                <?php foreach ($galeria as $i => $foto) { ?>
+                <?php foreach ($galeriaCortes as $i => $foto) { ?>
                     <div class="galeria-slide relative shrink-0 cursor-pointer select-none overflow-hidden"
                          style="width: clamp(280px, 38vw, 520px); margin-right: 2px;"
                          data-index="<?= $i ?>"
@@ -484,7 +460,7 @@ $productos = [
 
             <!-- Puntos indicadores -->
             <div class="mt-10 flex justify-center gap-3" id="galeriaDots">
-                <?php foreach ($galeria as $i => $foto) { ?>
+                <?php foreach ($galeriaCortes as $i => $foto) { ?>
                     <button class="galeria-dot h-px w-6 bg-white/20 transition-all duration-300"
                             data-index="<?= $i ?>"
                             aria-label="Ir a imagen <?= $i + 1 ?>"></button>
