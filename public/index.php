@@ -107,13 +107,13 @@ $productos = Producto::obtenerActivos(); // De Mongo
             <!-- ── TÍTULO INTRO ── -->
             <div id="introBlock" class="absolute inset-0 z-[15] flex items-center justify-center pointer-events-none">
                 <div class="text-center px-8">
-                    <p id="introTagline" class="font-cormorant mb-6 text-xs uppercase tracking-[0.5rem] text-[var(--gold)]/60 opacity-0 transition-opacity duration-1000">
+                    <p id="introTagline" class="font-cormorant mb-6 text-xs uppercase tracking-[0.5rem] text-[var(--gold)]/60">
                         Una experiencia única
                     </p>
-                    <h1 id="introTitle" class="intro-title-gradient font-playfair text-[clamp(3.5rem,10vw,7rem)] leading-none tracking-[0.4rem] uppercase opacity-0 transition-all duration-1000">
+                    <h1 id="introTitle" class="intro-title-gradient font-playfair text-[clamp(3.5rem,10vw,7rem)] leading-none tracking-[0.4rem] uppercase transition-all duration-1000">
                         BARBER LA H
                     </h1>
-                    <p id="introCity" class="font-cormorant mt-6 text-sm uppercase tracking-[0.5rem] text-white/25 opacity-0 transition-opacity duration-1000">
+                    <p id="introCity" class="font-cormorant mt-6 text-sm uppercase tracking-[0.5rem] text-white/25">
                         Barbershop La H · Zaragoza
                     </p>
                 </div>
@@ -397,7 +397,7 @@ $productos = Producto::obtenerActivos(); // De Mongo
 
                 <?php foreach ($galeriaCortes as $i => $foto) { ?>
                     <div class="galeria-slide relative shrink-0 cursor-pointer select-none overflow-hidden"
-                         style="width: clamp(280px, 38vw, 520px); margin-right: 2px;"
+                         style="margin-right: 2px;"
                          data-index="<?= $i ?>"
                          data-src="<?= htmlspecialchars($foto['imagen']) ?>"
                          data-categoria="<?= htmlspecialchars($foto['categoria']) ?>"
@@ -471,27 +471,6 @@ $productos = Producto::obtenerActivos(); // De Mongo
 
     </section>
 
-
-    <!-- ── LIGHTBOX (oculto por defecto) ── -->
-    <div id="galeriaLightbox" style="display:none;" class="fixed inset-0 z-[200] items-center justify-center bg-black/90 backdrop-blur-sm">
-
-        <!-- Botón cerrar -->
-        <button id="lightboxClose"
-                class="absolute top-6 right-8 font-montserrat text-[0.6rem] uppercase tracking-[0.3rem] text-white/40 transition-colors hover:text-[var(--gold)]">
-            Cerrar ✕
-        </button>
-
-        <!-- Imagen ampliada -->
-        <div class="mx-auto flex max-w-[90vw] flex-col items-center gap-6 px-4">
-            <img id="lightboxImg" src="" alt=""
-                 class="max-h-[75vh] max-w-full object-contain shadow-2xl border border-[var(--gold)]/20">
-            <div class="text-center">
-                <span id="lightboxCategoria" class="font-montserrat block text-[0.6rem] uppercase tracking-[0.4rem] text-[var(--gold)]/60 mb-2"></span>
-                <p id="lightboxDesc" class="font-cormorant text-xl text-white/60"></p>
-            </div>
-        </div>
-    </div>
-
     <!-- ══════════════════════════════════════════════════════════════
      SECCIÓN PRODUCTOS
      Pegar después de #galeria, antes del footer
@@ -561,20 +540,13 @@ $productos = Producto::obtenerActivos(); // De Mongo
                                 <?= htmlspecialchars($prod['descripcion']) ?>
                             </p>
 
-                            <footer class="flex items-end justify-between border-t border-[var(--gold)]/10 pt-6">
+                            <footer class="border-t border-[var(--gold)]/10 pt-6">
                                 <div>
                                     <span class="font-montserrat block text-[0.5rem] uppercase tracking-[0.2rem] text-white/20 mb-1">Precio</span>
                                     <span class="font-playfair text-3xl font-bold text-[var(--gold)]">
                                 <?= $prod['precio'] ?>€
                             </span>
                                 </div>
-                                <a href="https://instagram.com/barbershop_la_h"
-                                   target="_blank" rel="noopener"
-                                   class="font-montserrat text-[0.55rem] uppercase tracking-[0.2rem] text-white/25
-                                  border-b border-transparent transition-all duration-300
-                                  group-hover:text-[var(--gold)] group-hover:border-[var(--gold)]/40">
-                                    Preguntar →
-                                </a>
                             </footer>
 
                         </div>

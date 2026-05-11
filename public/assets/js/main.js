@@ -130,15 +130,10 @@ function setLabelVisible(el, visible) {
 function updateIntroTitle(p) {
   let opacity;
 
-  if (p < 0.04) {
-    // Fade in muy rápido al comenzar
-    opacity = p / 0.04;
-  } else if (p < 0.2) {
-    // Visible al 100%
-    opacity = 1;
+  if (p <= 0.15) {
+    opacity = 1; // visible desde el primer momento
   } else if (p < 0.28) {
-    // Fade out antes del primer label
-    opacity = 1 - (p - 0.2) / 0.08;
+    opacity = 1 - (p - 0.15) / 0.13; // fade out suave
   } else {
     opacity = 0;
   }
@@ -297,6 +292,13 @@ if (menuToggle && mobileMenu) {
       mobileMenu.classList.add("menu-open");
     }
   });
+  // cierra al tocar el fondo (fuera de los links)
+  mobileMenu.addEventListener("click", (e) => {
+    if (e.target === mobileMenu) {
+      mobileMenu.style.display = "none";
+      mobileMenu.classList.remove("menu-open");
+    }
+  });
 }
 
 /* ────────────────────────────────────────────────────────────────
@@ -376,14 +378,19 @@ document.addEventListener("DOMContentLoaded", () => {
 
   /* ── Mueve el carrusel al índice indicado ── */
   function goTo(index) {
-    // Wrap infinito
     if (index >= slides.length) index = 0;
     if (index < 0) index = slides.length - 1;
 
     current = index;
-    track.style.transform = `translateX(-${current * slideWidth()}px)`;
 
-    // Actualiza puntos
+    // En móvil centra el slide; en desktop sin offset
+    const isMobile = window.innerWidth <= 768;
+    const centerOffset = isMobile
+      ? (window.innerWidth - slides[0].offsetWidth) / 2
+      : 0;
+
+    track.style.transform = `translateX(${centerOffset - current * slideWidth()}px)`;
+
     dots.forEach((dot, i) => {
       dot.classList.toggle("active", i === current);
     });
@@ -436,54 +443,4 @@ document.addEventListener("DOMContentLoaded", () => {
   /* ── Arranca ── */
   goTo(0);
   startAuto();
-})();
-
-/* ================================================================
-   LIGHTBOX
-   Click en slide → abre lightbox con imagen ampliada.
-   ================================================================ */
-
-(function initLightbox() {
-  const lightbox = document.getElementById("galeriaLightbox");
-  const lbImg = document.getElementById("lightboxImg");
-  const lbCat = document.getElementById("lightboxCategoria");
-  const lbDesc = document.getElementById("lightboxDesc");
-  const lbClose = document.getElementById("lightboxClose");
-
-  if (!lightbox) return;
-
-  /* Abre el lightbox con los datos del slide clickado */
-  document.querySelectorAll(".galeria-slide").forEach((slide) => {
-    slide.addEventListener("click", () => {
-      lbImg.src = slide.dataset.src;
-      lbImg.alt = slide.dataset.categoria;
-      lbCat.textContent = slide.dataset.categoria;
-      lbDesc.textContent = slide.dataset.descripcion;
-
-      lightbox.classList.add("open");
-      document.body.style.overflow = "hidden"; // bloquea scroll
-    });
-  });
-
-  /* Cierra con el botón */
-  lbClose.addEventListener("click", closeLightbox);
-
-  /* Cierra haciendo clic en el fondo oscuro */
-  lightbox.addEventListener("click", (e) => {
-    if (e.target === lightbox) closeLightbox();
-  });
-
-  /* Cierra con Escape */
-  document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape") closeLightbox();
-  });
-
-  function closeLightbox() {
-    lightbox.classList.remove("open");
-    document.body.style.overflow = "auto";
-    /* Limpia src para liberar memoria */
-    setTimeout(() => {
-      lbImg.src = "";
-    }, 400);
-  }
 })();

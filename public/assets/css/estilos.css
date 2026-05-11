@@ -85,6 +85,13 @@
 #mobileMenu.menu-open {
     animation: menuSlideIn 0.35s var(--ease-out) forwards;
 }
+
+/* Dispositivos táctiles: sin hover persistente */
+@media (hover: none) {
+    .galeria-slide:hover .galeria-overlay { opacity: 0; }
+    .galeria-slide:hover .galeria-border  { border-color: transparent; }
+    .galeria-slide:hover img              { transform: none; }
+}
 /* ================================================================
    SECCIÓN VIDEO SCROLL
    ================================================================ */
@@ -242,6 +249,10 @@
    GALERÍA — Carrusel de cortes
    ================================================================ */
 
+.galeria-slide {
+    width: clamp(280px, 38vw, 520px); /* en pc — se ve perfecto grande */
+}
+
 /* Hover sobre cada slide: muestra el overlay y el borde dorado */
 .galeria-slide:hover .galeria-overlay {
     opacity: 1;
@@ -262,26 +273,11 @@
     width: 2rem; /* w-8 */
 }
 
-/* ================================================================
-   LIGHTBOX
-   ================================================================ */
-
-/* El lightbox usa display:flex pero está hidden por defecto.
-   La clase .open lo activa sin conflicto con Tailwind */
-#galeriaLightbox.open {
-    display: flex;
+@media (max-width: 768px) {
+    .galeria-slide {
+        width: 84vw; /* móvil — casi pantalla completa */
+    }
 }
-
-/* Animación de entrada */
-@keyframes lightboxIn {
-    from { opacity: 0; transform: scale(0.96); }
-    to   { opacity: 1; transform: scale(1); }
-}
-
-#galeriaLightbox.open > div {
-    animation: lightboxIn 0.4s var(--ease-out) forwards;
-}
-
 
 /* ================================================================
    PRODUCTOS
