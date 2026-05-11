@@ -9,7 +9,7 @@ class BD {
         // Solo crea la conexión si aún no existe (la primera vez que se llama)
         if (self::$conexion === null) {
 
-            $host      = 'localhost';
+            $host      = '192.168.4.17';
             $puerto    = '5432';
             $bd        = 'barberlah';
             $usuario   = 'postgres';
