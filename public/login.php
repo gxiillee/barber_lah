@@ -7,22 +7,25 @@ require_once __DIR__ . '/../clases/Administrador.php';
 
 session_start();
 
-// Si ya hay un usuario guardado en sesion, no mostramos el login otra vez.
-if (isset($_SESSION['usuario']) && $_SESSION['usuario'] instanceof Usuario) {
-    $_SESSION['usuario']->redirigirDespuesLogin(__DIR__);
+// 1. Obtener usuario de sesión una sola vez para mejorar legibilidad
+$usuarioSesion = $_SESSION['usuario'] ?? null;
+
+if ($usuarioSesion instanceof Usuario) {
+    $usuarioSesion->redirigirDespuesLogin(__DIR__);
 }
 
-// Estado base que usa la vista: errores, modo abierto y valores escritos.
+// 2. Inicialización del estado
 $estado = Usuario::estadoFormularioLogin();
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // El hidden "accion" indica si se envio login o registro.
     $accion = $_POST['accion'] ?? 'login';
-    $estado = $accion === 'registro'
-        ? Cliente::procesarRegistroLogin($_POST)
-        : Usuario::procesarLogin($_POST);
 
-    // Si la clase devuelve un usuario valido, se guarda en sesion y se redirige.
+    // Delegamos el procesamiento según la acción
+    $estado = ($accion === 'registro')
+            ? Cliente::procesarRegistroLogin($_POST)
+            : Usuario::procesarLogin($_POST);
+
+    // Si el login/registro fue exitoso, guardamos y redirigimos
     if ($estado['usuario'] instanceof Usuario) {
         session_regenerate_id(true);
         $_SESSION['usuario'] = $estado['usuario'];
@@ -30,12 +33,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-// Token anti-CSRF: evita aceptar formularios enviados desde otra web.
-$csrfToken = Usuario::obtenerTokenLogin();
-// Valores que se reimprimen si hay error, para que el usuario no pierda lo escrito.
-$valores = $estado['valores'];
-// Mantiene abierto el panel de registro cuando el error viene de registro.
-$wrapperClase = $estado['modo'] === 'registro' ? 'login-wrapper es-registro' : 'login-wrapper';
+// 3. Preparación de variables para la vista (Extract de estado)
+$csrfToken   = Usuario::obtenerTokenLogin();
+//para si da error contraseña el email se ponga solo de nuevo
+$valores     = $estado['valores'];
+//para mostrar los errores
+$errorLogin  = $estado['errorLogin'];
+$errorReg    = $estado['errorRegistro'];
+
+// Clase dinámica para el contenedor principal
+$wrapperClase = "login-wrapper " . ($estado['modo'] === 'registro' ? 'es-registro' : '');
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -70,12 +77,12 @@ $wrapperClase = $estado['modo'] === 'registro' ? 'login-wrapper es-registro' : '
                 <h1 class="mb-1.5 text-center font-[var(--font-playfair)] text-[23px] font-bold text-[#f5f0e8]" id="loginTitle">Bienvenido</h1>
                 <p class="mb-6 text-center text-[11px] tracking-[0.06em] text-white/40">Accede a tu cuenta</p>
 
-                <?php if ($estado['errorLogin'] !== '') { ?>
+                <?php if ($errorLogin !== ''): ?>
                     <div class="mb-3.5 flex w-full items-center gap-2 rounded-md border border-red-500/35 bg-red-500/10 px-3.5 py-2.5 text-[11px] leading-snug tracking-[0.03em] text-[#ff6b6b]" role="alert">
                         <i class="bi bi-exclamation-circle shrink-0 text-[13px]"></i>
-                        <?= htmlspecialchars($estado['errorLogin']) ?>
+                        <?= htmlspecialchars($errorLogin) ?>
                     </div>
-                <?php } ?>
+                <?php endif; ?>
 
                 <form method="post" action="login.php" class="w-full">
                     <input type="hidden" name="accion" value="login">
@@ -113,12 +120,12 @@ $wrapperClase = $estado['modo'] === 'registro' ? 'login-wrapper es-registro' : '
                 <h2 class="mb-1.5 text-center font-[var(--font-playfair)] text-[23px] font-bold text-[#f5f0e8]" id="registerTitle">Únete al club</h2>
                 <p class="mb-6 text-center text-[11px] tracking-[0.06em] text-white/40">Crea tu cuenta VIP</p>
 
-                <?php if ($estado['errorRegistro'] !== '') { ?>
+                <?php if ($errorReg !== ''): ?>
                     <div class="mb-3.5 flex w-full items-center gap-2 rounded-md border border-red-500/35 bg-red-500/10 px-3.5 py-2.5 text-[11px] leading-snug tracking-[0.03em] text-[#ff6b6b]" role="alert">
                         <i class="bi bi-exclamation-circle shrink-0 text-[13px]"></i>
-                        <?= htmlspecialchars($estado['errorRegistro']) ?>
+                        <?= htmlspecialchars($errorReg) ?>
                     </div>
-                <?php } ?>
+                <?php endif; ?>
 
                 <form method="post" action="login.php" class="w-full">
                     <input type="hidden" name="accion" value="registro">

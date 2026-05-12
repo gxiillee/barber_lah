@@ -1,37 +1,35 @@
 <?php
+// Obliga php a ser estricto con lo que tiene que devolver una funcion
+declare(strict_types=1);
+
 require_once 'BD.php';
 require_once 'Usuario.php';
 
 class Administrador extends Usuario {
 
-    // El constructor llama al padre y fija el rol a 'admin'
+    // 1. CONSTRUCTOR
+    // Hereda de Usuario y fuerza el rol a 'admin'.
+    // El teléfono es opcional para administradores.
     public function __construct($id, $nombre, $email, $password, $telefono = null) {
         parent::__construct($id, $nombre, $email, $password, $telefono, 'admin');
     }
 
-    /**
-     * MÉTODO DE SEGURIDAD
-     * Verifica de forma simple si el usuario tiene rol de administrador.
-     */
-    public static function esAdmin($usuario) {
-        // Si el usuario existe y su método getRol devuelve 'admin', es verdadero
-        return (is_object($usuario) && $usuario->getRol() === 'admin');
-    }
+    // 2. MÉTODOS DE CONSULTA (Lectura de datos)
 
     /**
-     * MÉTODOS ESTÁTICOS DE BASE DE DATOS
+     * Obtiene la lista de todos los administradores activos.
+     * Útil si el negocio crece y Hassan tiene colaboradores.
      */
-
-    // Obtener todos los administradores del sistema (por si Hassan tuviera socios)
-    public static function obtenerTodosLosAdmins() {
+    public static function obtenerTodosLosAdmins(): array {
         $conexion = BD::obtenerConexion();
 
-        $stmt = $conexion->prepare("SELECT * FROM usuarios WHERE rol = 'admin' AND activo = 1");
+        // Ajustado para PostgreSQL (activo = true)
+        $stmt = $conexion->prepare("SELECT * FROM usuarios WHERE rol = 'admin' AND activo = true");
         $stmt->execute();
 
         $admins = [];
         while ($fila = $stmt->fetch(PDO::FETCH_ASSOC)) {
-            $admins[] = new Administrador(
+            $admins[] = new self(
                 $fila['id'],
                 $fila['nombre'],
                 $fila['email'],
@@ -42,25 +40,27 @@ class Administrador extends Usuario {
         return $admins;
     }
 
+    // 3. MÉTODOS DE ESTADÍSTICAS (Panel de Gestión)
+
     /**
-     * MÉTODO PARA COGER
-     * Se recoge las filas con fetch
-     * Se usará en el panel gestion para que hassan lo vea
+     * Devuelve el número total de citas agendadas para el día de hoy.
+     * Se utiliza para el resumen rápido del Dashboard.
      */
-    public static function obtenerResumenCitasHoy() {
+    public static function obtenerResumenCitasHoy(): int {
         $conexion = BD::obtenerConexion();
 
+        // COUNT(*) siempre devuelve una fila, incluso si es 0
         $stmt = $conexion->prepare("SELECT COUNT(*) as total FROM reservas WHERE fecha = CURRENT_DATE");
         $stmt->execute();
 
-        // la fila que recoge de la BD
         $fila = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        // Si fetch devuelve false, es que no hay datos; retornamos 0 directamente
-        if ($fila == false) {
-            return 0;
-        }
-        //no se puede devolver todo el array $fila, se devuelve solo la etiqueta ['total'].
-        return $fila['total'];
+        // Retornamos el valor entero directamente
+        return $fila ? (int)$fila['total'] : 0;
     }
+
+    /**
+     * Ejemplo de método adicional: Obtener próximos clientes (opcional)
+     * Puedes ir añadiendo aquí lógica específica que solo Hassan deba ver.
+     */
 }

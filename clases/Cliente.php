@@ -1,115 +1,127 @@
 <?php
+// Obliga php a ser estricto con lo que tiene que devolver una funcion
+declare(strict_types=1);
+
 require_once 'BD.php';
 require_once 'Usuario.php';
 
 class Cliente extends Usuario {
 
-    // El constructor llama al constructor del padre (Usuario) forzando el rol 'cliente'
+    // 1. CONSTRUCTOR
+    // Forzamos el rol 'cliente' al llamar al constructor padre.
     public function __construct($id, $nombre, $email, $password, $telefono) {
         parent::__construct($id, $nombre, $email, $password, $telefono, 'cliente');
     }
 
-    /**
-     * Crea un nuevo usuario
-     * Se usa en al registrar un nuevo cliente en login.php
-     */
-    public static function crear($nombre, $email, $password_normal, $telefono) {
-        $conexion = BD::obtenerConexion();
+    // 2. MÉTODOS DE ACCIÓN (Escritura en BD)
 
-        // Encriptar la contraseña antes de guardar
+    /**
+     * Inserta un nuevo cliente en la base de datos con contraseña encriptada.
+     */
+    public static function crear(string $nombre, string $email, string $password_normal, string $telefono): string {
+        $conexion = BD::obtenerConexion();
         $password_hash = password_hash($password_normal, PASSWORD_DEFAULT);
 
         $stmt = $conexion->prepare("
             INSERT INTO usuarios (nombre, email, password, telefono, rol, activo) 
-            VALUES (:nombre, :email, :password, :telefono, 'cliente', 1)
+            VALUES (:nombre, :email, :password, :telefono, 'cliente', true)
         ");
 
-        // Ejecutar con el array de parámetros
         $stmt->execute([
-            'nombre' => $nombre,
-            'email' => $email,
+            'nombre'   => $nombre,
+            'email'    => $email,
             'password' => $password_hash,
             'telefono' => $telefono
         ]);
 
-        return $conexion->lastInsertId();
+        return (string)$conexion->lastInsertId();
     }
 
-    // Valida el formulario de registro y crea el cliente si todo es correcto.
+    // 3. PROCESAMIENTO DE FORMULARIO (Lógica de Negocio)
+
+    /**
+     * Gestiona el flujo de registro: Valida, Crea e Inicia Sesión automáticamente.
+     */
     public static function procesarRegistroLogin(array $datos): array {
-        $estado = Usuario::estadoFormularioLogin();
+        // 1. Inicializamos estado y modo
+        $estado = self::estadoFormularioLogin();
         $estado['modo'] = 'registro';
+        $estado['valores'] = self::cargarValoresPost($datos);
 
-        $nombre = Usuario::limpiarTexto($datos['nombre'] ?? '');
-        $telefono = Usuario::limpiarTexto($datos['telefono'] ?? '');
-        $email = Usuario::limpiarTexto($datos['email_registro'] ?? '');
-        $password = (string) ($datos['password_registro'] ?? '');
+        // Extraemos valores limpios
+        $nombre   = $estado['valores']['nombre'];
+        $telefono = $estado['valores']['telefono'];
+        $email    = $estado['valores']['email_registro'];
+        $password = (string)($datos['password_registro'] ?? '');
 
-        $estado['valores']['nombre'] = $nombre;
-        $estado['valores']['telefono'] = $telefono;
-        $estado['valores']['email_registro'] = $email;
-
-        // Misma proteccion CSRF que en login.
-        if (!Usuario::tokenLoginValido($datos['csrf_token'] ?? null)) {
-            $estado['errorRegistro'] = 'La sesión ha caducado. Recarga la página e inténtalo de nuevo.';
+        // 2. Validación de Seguridad (CSRF)
+        if (!self::tokenLoginValido($datos['csrf_token'] ?? null)) {
+            $estado['errorRegistro'] = 'Sesión caducada. Por favor, recarga.';
             return $estado;
         }
 
-        // Validaciones basicas antes de intentar guardar en la base de datos.
-        if ($nombre === '' || $telefono === '' || $email === '' || $password === '') {
-            $estado['errorRegistro'] = 'Rellena todos los campos para crear tu cuenta.';
+        // 3. Validaciones de Campos Vacíos
+        if (empty($nombre) || empty($telefono) || empty($email) || empty($password)) {
+            $estado['errorRegistro'] = 'Rellena todos los campos para tu alta VIP.';
             return $estado;
         }
 
-        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        // 4. Validación de Formato de Email (usando el método del padre)
+        if (!self::validarEmail($email)) {
             $estado['errorRegistro'] = 'Introduce un email válido.';
             return $estado;
         }
 
+        // 5. Validación de Seguridad de Contraseña
         if (strlen($password) < 6) {
             $estado['errorRegistro'] = 'La contraseña debe tener al menos 6 caracteres.';
             return $estado;
         }
 
+        // 6. Intento de Creación y Autenticación Automática
         try {
-            // Crea el cliente y lo inicia automaticamente si se puede verificar.
             self::crear($nombre, $email, $password, $telefono);
-            $estado['usuario'] = Usuario::comprobarLogin($email, $password);
-            $estado['errorRegistro'] = $estado['usuario'] instanceof Usuario ? '' : 'La cuenta se creó, pero no pudimos iniciar sesión automáticamente.';
+
+            // Si se crea con éxito, lo logueamos directamente para mejorar la UX
+            $usuario = self::comprobarLogin($email, $password);
+
+            if ($usuario instanceof Usuario) {
+                $estado['usuario'] = $usuario;
+            } else {
+                $estado['errorRegistro'] = 'Cuenta creada, pero hubo un error al entrar. Inicia sesión manualmente.';
+            }
+
+        } catch (PDOException $e) {
+            // Error 23000: Violación de restricción de integridad (email duplicado)
+            if ($e->getCode() === '23000') {
+                $estado['errorRegistro'] = 'Este email ya pertenece a un socio del Club VIP.';
+            } else {
+                $estado['errorRegistro'] = 'Error de conexión. Inténtalo más tarde.';
+            }
         } catch (Throwable $e) {
-            $estado['errorRegistro'] = 'Ese email ya está registrado o no se pudo crear la cuenta.';
+            $estado['errorRegistro'] = 'No se ha podido completar el registro.';
         }
 
         return $estado;
     }
 
-    /**
-     * Devuelve un array con todos los clientes registrados
-     * Se usa en panel admin mostrando clientes
-     */
-    public static function obtenerTodosLosClientes() {
-        $conexion = BD::obtenerConexion();
+    // 4. MÉTODOS DE CONSULTA (Lectura)
 
-        // Filtramos para que solo devuelva usuarios con rol de cliente
-        $stmt = $conexion->prepare("SELECT * FROM usuarios WHERE rol = 'cliente' ORDER BY created_at DESC");
+    /**
+     * Recupera la lista completa de clientes para el panel de administración.
+     */
+    public static function obtenerTodosLosClientes(): array {
+        $conexion = BD::obtenerConexion();
+        $stmt = $conexion->prepare("SELECT * FROM usuarios WHERE rol = 'cliente' ORDER BY id DESC");
         $stmt->execute();
 
-        $todosLosClientes = [];
-
-        // Uso de fetch_assoc y bucle while
+        $clientes = [];
         while ($fila = $stmt->fetch(PDO::FETCH_ASSOC)) {
-            $todosLosClientes[] = new Cliente(
-                $fila['id'],
-                $fila['nombre'],
-                $fila['email'],
-                $fila['password'],
-                $fila['telefono']
+            $clientes[] = new self(
+                $fila['id'], $fila['nombre'], $fila['email'],
+                $fila['password'], $fila['telefono']
             );
         }
-
-        return $todosLosClientes;
+        return $clientes;
     }
-
-
 }
-?>

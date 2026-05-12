@@ -1,8 +1,11 @@
 <?php
+
+// Obliga php a ser estricto con lo que tiene que devolver una funcion
+declare(strict_types=1);
+
 require_once 'BD.php';
 
 class Usuario {
-    // 1. Propiedades siempre privadas
     private $id;
     private $nombre;
     private $email;
@@ -10,145 +13,145 @@ class Usuario {
     private $telefono;
     private $rol;
 
-    // 2. Constructor
+    // 2. CONSTRUCTOR
     public function __construct($id, $nombre, $email, $password, $telefono, $rol) {
-        $this->id = $id;
-        $this->nombre = $nombre;
-        $this->email = $email;
+        $this->id       = $id;
+        $this->nombre   = $nombre;
+        $this->email    = $email;
         $this->password = $password;
         $this->telefono = $telefono;
-        $this->rol = $rol;
+        $this->rol      = $rol;
     }
 
-    // 3. Getters
-    public function getId() { return $this->id; }
-    public function getNombre() { return $this->nombre; }
-    public function getEmail() { return $this->email; }
+    // 3. GETTERS (Acceso a datos)
+    public function getId()       { return $this->id; }
+    public function getNombre()   { return $this->nombre; }
+    public function getEmail()    { return $this->email; }
     public function getPassword() { return $this->password; }
     public function getTelefono() { return $this->telefono; }
-    public function getRol() { return $this->rol; }
+    public function getRol()      { return $this->rol; }
 
+    // 4. MÉTODOS DE AUTENTICACIÓN (Lógica central)
 
-    // Método para comprobar el login
-    public static function comprobarLogin($email_ingresado, $password_ingresada) {
+    /**
+     * Consulta la BD para verificar credenciales.
+     */
+    public static function comprobarLogin(string $email, string $password): ?Usuario {
         $conexion = BD::obtenerConexion();
-
-        // Siempre prepare + execute para evitar inyección SQL
-        $stmt = $conexion->prepare("SELECT * FROM usuarios WHERE email = :email AND activo = 1");
-        $stmt->execute(['email' => $email_ingresado]);
-
+        $stmt = $conexion->prepare("SELECT * FROM usuarios WHERE email = :email AND activo = true");
+        $stmt->execute(['email' => $email]);
         $fila = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        // El usuario no existe o está inactivo dar null
-        if ($fila == false) {
+        if (!$fila || !password_verify($password, $fila['password'])) {
             return null;
         }
 
-        // Comprobar la contraseña encriptada
-        if (password_verify($password_ingresada, $fila['password'])) {
-            // Retornamos el objeto con los datos de la base de datos
-            return new Usuario(
-                $fila['id'],
-                $fila['nombre'],
-                $fila['email'],
-                $fila['password'],
-                $fila['telefono'],
-                $fila['rol']
-            );
-        } else {
-            return null; // Contraseña incorrecta
-        }
+        return new Usuario(
+            $fila['id'], $fila['nombre'], $fila['email'],
+            $fila['password'], $fila['telefono'], $fila['rol']
+        );
     }
 
+    /**
+     * Controlador de flujo del login: Valida seguridad, formato y credenciales.
+     */
+    public static function procesarLogin(array $datos): array {
+        $estado = self::estadoFormularioLogin();
+        $estado['valores'] = self::cargarValoresPost($datos);
 
-    // Comprueba si el usuario tiene rol de administrador.
+        $email    = $estado['valores']['login_email'];
+        $password = (string)($datos['password'] ?? '');
+
+        // Validación 1: Seguridad CSRF
+        if (!self::tokenLoginValido($datos['csrf_token'] ?? null)) {
+            $estado['errorLogin'] = 'Sesión caducada. Por favor, recarga.';
+            return $estado;
+        }
+
+        // Validación 2: Campos obligatorios
+        if (empty($email) || empty($password)) {
+            $estado['errorLogin'] = 'Por favor, rellena todos los campos.';
+            return $estado;
+        }
+
+        // Validación 3: Formato de email
+        if (!self::validarEmail($email)) {
+            $estado['errorLogin'] = 'El formato del email no es correcto.';
+            return $estado;
+        }
+
+        // Intento de acceso a base de datos
+        try {
+            $usuario = self::comprobarLogin($email, $password);
+
+            if ($usuario instanceof Usuario) {
+                $estado['usuario'] = $usuario;
+            } else {
+                $estado['errorLogin'] = 'Email o contraseña incorrectos.';
+            }
+        } catch (Throwable $e) {
+            $estado['errorLogin'] = 'Error de conexión. Inténtalo más tarde.';
+        }
+
+        return $estado;
+    }
+
+    // 5. MÉTODOS DE REDIRECCIÓN (Gestión de rutas)
+
     public function tieneRolAdmin(): bool {
         return $this->rol === 'admin';
     }
 
-    // Decide a que pagina va el usuario despues de iniciar sesion.
-    public function obtenerRutaDespuesLogin(string $directorioPublico): string {
-        if ($this->tieneRolAdmin() && file_exists($directorioPublico . '/admin/panel.php')) {
-            return 'admin/panel.php';
-        }
-
-        return 'index.php';
+    public function obtenerRutaDespuesLogin(string $directorio): string {
+        return ($this->tieneRolAdmin() && file_exists($directorio . '/admin/panel.php'))
+            ? 'admin/panel.php'
+            : 'index.php';
     }
 
-    // Ejecuta la redireccion HTTP usando la ruta calculada arriba.
-    public function redirigirDespuesLogin(string $directorioPublico): void {
-        header('Location: ' . $this->obtenerRutaDespuesLogin($directorioPublico));
+    public function redirigirDespuesLogin(string $directorio): void {
+        header('Location: ' . $this->obtenerRutaDespuesLogin($directorio));
         exit;
     }
 
-    // Quita espacios al principio y al final de textos recibidos por formulario.
-    public static function limpiarTexto(string $valor): string {
-        return trim($valor);
+    // 6. UTILIDADES DE SEGURIDAD Y LIMPIEZA
+
+    public static function validarEmail(string $email): bool {
+        return filter_var(self::limpiarTexto($email), FILTER_VALIDATE_EMAIL) !== false;
     }
 
-    // Crea o devuelve el token de seguridad del formulario de login/registro.
+    public static function limpiarTexto(string $valor): string {
+        return htmlspecialchars(trim($valor), ENT_QUOTES, 'UTF-8');
+    }
+
     public static function obtenerTokenLogin(): string {
         if (empty($_SESSION['csrf_login'])) {
             $_SESSION['csrf_login'] = bin2hex(random_bytes(32));
         }
-
         return $_SESSION['csrf_login'];
     }
 
-    // Comprueba que el token recibido coincide con el guardado en la sesion.
     public static function tokenLoginValido($token): bool {
         return isset($_SESSION['csrf_login']) && is_string($token) && hash_equals($_SESSION['csrf_login'], $token);
     }
 
-    // Estructura comun para pintar la vista sin variables sueltas.
+    // 7. GESTIÓN DE ESTADO (Para la Vista)
+
     public static function estadoFormularioLogin(): array {
         return [
             'usuario' => null,
             'errorLogin' => '',
             'errorRegistro' => '',
             'modo' => 'login',
-            'valores' => [
-                'login_email' => '',
-                'nombre' => '',
-                'telefono' => '',
-                'email_registro' => '',
-            ],
+            'valores' => ['login_email' => '', 'nombre' => '', 'telefono' => '', 'email_registro' => '']
         ];
     }
 
-    // Valida los datos del login y devuelve usuario o mensaje de error.
-    public static function procesarLogin(array $datos): array {
-        $estado = self::estadoFormularioLogin();
-        $email = self::limpiarTexto($datos['email'] ?? '');
-        $password = (string) ($datos['password'] ?? '');
-        $estado['valores']['login_email'] = $email;
-
-        // Si el token no coincide, se corta antes de consultar la base de datos.
-        if (!self::tokenLoginValido($datos['csrf_token'] ?? null)) {
-            $estado['errorLogin'] = 'La sesión ha caducado. Recarga la página e inténtalo de nuevo.';
-            return $estado;
-        }
-
-        // Validaciones simples para dar mensajes claros al usuario.
-        if ($email === '' || $password === '') {
-            $estado['errorLogin'] = 'Rellena tu email y contraseña para entrar.';
-            return $estado;
-        }
-
-        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            $estado['errorLogin'] = 'Introduce un email válido.';
-            return $estado;
-        }
-
-        try {
-            // Busca el usuario y verifica la contraseña con password_verify.
-            $estado['usuario'] = self::comprobarLogin($email, $password);
-            $estado['errorLogin'] = $estado['usuario'] instanceof Usuario ? '' : 'Email o contraseña incorrectos.';
-        } catch (Throwable $e) {
-            $estado['errorLogin'] = 'No se ha podido iniciar sesión ahora mismo.';
-        }
-
-        return $estado;
+    public static function cargarValoresPost(array $datos): array {
+        return [
+            'login_email'    => self::limpiarTexto($datos['email'] ?? ''),
+            'nombre'         => self::limpiarTexto($datos['nombre'] ?? ''),
+            'telefono'       => self::limpiarTexto($datos['telefono'] ?? ''),
+            'email_registro' => self::limpiarTexto($datos['email_registro'] ?? ''),
+        ];
     }
 }
-?>
