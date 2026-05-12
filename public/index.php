@@ -59,7 +59,7 @@ $productos = Producto::obtenerActivos(); // De Mongo
                 <a href="#sobre"       class="font-montserrat text-[0.72rem] uppercase tracking-[0.2rem] text-white/50 transition-colors duration-300 hover:text-[var(--gold)]">Nosotros</a>
                 <a href="#servicios"   class="font-montserrat text-[0.72rem] uppercase tracking-[0.2rem] text-white/50 transition-colors duration-300 hover:text-[var(--gold)]">Servicios</a>
                 <a href="#contacto"    class="font-montserrat text-[0.72rem] uppercase tracking-[0.2rem] text-white/50 transition-colors duration-300 hover:text-[var(--gold)]">Encuéntranos</a>
-                <a href="#reservas" class="border border-[var(--gold)]/50 px-6 py-2 font-montserrat text-[0.72rem] uppercase tracking-[0.2rem] text-[var(--gold)] transition-all duration-300 hover:bg-[var(--gold)] hover:text-[var(--obsidian)]">
+                <a href="login.php" class="border border-[var(--gold)]/50 px-6 py-2 font-montserrat text-[0.72rem] uppercase tracking-[0.2rem] text-[var(--gold)] transition-all duration-300 hover:bg-[var(--gold)] hover:text-[var(--obsidian)]">
                     Reservar Cita
                 </a>
             </div>

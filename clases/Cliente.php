@@ -35,6 +35,54 @@ class Cliente extends Usuario {
         return $conexion->lastInsertId();
     }
 
+    // Valida el formulario de registro y crea el cliente si todo es correcto.
+    public static function procesarRegistroLogin(array $datos): array {
+        $estado = Usuario::estadoFormularioLogin();
+        $estado['modo'] = 'registro';
+
+        $nombre = Usuario::limpiarTexto($datos['nombre'] ?? '');
+        $telefono = Usuario::limpiarTexto($datos['telefono'] ?? '');
+        $email = Usuario::limpiarTexto($datos['email_registro'] ?? '');
+        $password = (string) ($datos['password_registro'] ?? '');
+
+        $estado['valores']['nombre'] = $nombre;
+        $estado['valores']['telefono'] = $telefono;
+        $estado['valores']['email_registro'] = $email;
+
+        // Misma proteccion CSRF que en login.
+        if (!Usuario::tokenLoginValido($datos['csrf_token'] ?? null)) {
+            $estado['errorRegistro'] = 'La sesión ha caducado. Recarga la página e inténtalo de nuevo.';
+            return $estado;
+        }
+
+        // Validaciones basicas antes de intentar guardar en la base de datos.
+        if ($nombre === '' || $telefono === '' || $email === '' || $password === '') {
+            $estado['errorRegistro'] = 'Rellena todos los campos para crear tu cuenta.';
+            return $estado;
+        }
+
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            $estado['errorRegistro'] = 'Introduce un email válido.';
+            return $estado;
+        }
+
+        if (strlen($password) < 6) {
+            $estado['errorRegistro'] = 'La contraseña debe tener al menos 6 caracteres.';
+            return $estado;
+        }
+
+        try {
+            // Crea el cliente y lo inicia automaticamente si se puede verificar.
+            self::crear($nombre, $email, $password, $telefono);
+            $estado['usuario'] = Usuario::comprobarLogin($email, $password);
+            $estado['errorRegistro'] = $estado['usuario'] instanceof Usuario ? '' : 'La cuenta se creó, pero no pudimos iniciar sesión automáticamente.';
+        } catch (Throwable $e) {
+            $estado['errorRegistro'] = 'Ese email ya está registrado o no se pudo crear la cuenta.';
+        }
+
+        return $estado;
+    }
+
     /**
      * Devuelve un array con todos los clientes registrados
      * Se usa en panel admin mostrando clientes
