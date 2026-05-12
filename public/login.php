@@ -133,7 +133,19 @@ $wrapperClase = "login-wrapper " . ($estado['modo'] === 'registro' ? 'es-registr
                     <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken) ?>">
 
                     <input class="mb-3 w-full rounded-md border border-[#282828] bg-[#141414] px-3.5 py-3 text-xs tracking-[0.03em] text-[#e0e0e0] outline-none transition placeholder:text-[#3a3a3a] focus:border-[var(--gold)] focus:bg-[#171717] focus:shadow-[0_0_0_2px_rgba(212,175,55,0.08)]" type="text" name="nombre" placeholder="Nombre completo" value="<?= htmlspecialchars($valores['nombre']) ?>" autocomplete="name" required>
-                    <input class="mb-3 w-full rounded-md border border-[#282828] bg-[#141414] px-3.5 py-3 text-xs tracking-[0.03em] text-[#e0e0e0] outline-none transition placeholder:text-[#3a3a3a] focus:border-[var(--gold)] focus:bg-[#171717] focus:shadow-[0_0_0_2px_rgba(212,175,55,0.08)]" type="tel" name="telefono" placeholder="Teléfono (WhatsApp)" value="<?= htmlspecialchars($valores['telefono']) ?>" autocomplete="tel" required>
+                    <div class="relative mb-3 w-full">
+                        <input class="mb-0 w-full rounded-md border border-[#282828] bg-[#141414] px-3.5 py-3 pr-10 text-xs tracking-[0.03em] text-[#e0e0e0] outline-none transition placeholder:text-[#3a3a3a] focus:border-[var(--gold)] focus:bg-[#171717] focus:shadow-[0_0_0_2px_rgba(212,175,55,0.08)]"
+                               type="tel" name="telefono" placeholder="Teléfono (WhatsApp)"
+                               value="<?= htmlspecialchars($valores['telefono']) ?>" autocomplete="tel" required>
+                        <button type="button" class="group/tip absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer border-0 bg-transparent p-0 leading-none"
+                                aria-label="¿Por qué pedimos tu teléfono?">
+                            <i class="bi bi-question-circle text-[14px] text-[#3a3a3a] transition group-hover/tip:text-[var(--gold)]"></i>
+                            <div class="pointer-events-none absolute bottom-[calc(100%+10px)] right-[-8px] w-52 rounded-lg border border-[var(--gold)]/25 bg-[#1c1c1c] px-3.5 py-2.5 text-left text-[11px] leading-relaxed tracking-[0.02em] text-white/65 opacity-0 shadow-[0_8px_28px_rgba(0,0,0,0.7)] transition group-hover/tip:opacity-100 group-focus/tip:opacity-100">
+                                <i class="bi bi-whatsapp mr-1 text-[#25d366]"></i>Solo usamos tu número para avisarte por WhatsApp cuando tu cita está confirmada. Nada más.
+                                <div class="absolute -bottom-[5px] right-3 h-[9px] w-[9px] rotate-45 border-b border-r border-[var(--gold)]/25 bg-[#1c1c1c]"></div>
+                            </div>
+                        </button>
+                    </div>
                     <input class="mb-3 w-full rounded-md border border-[#282828] bg-[#141414] px-3.5 py-3 text-xs tracking-[0.03em] text-[#e0e0e0] outline-none transition placeholder:text-[#3a3a3a] focus:border-[var(--gold)] focus:bg-[#171717] focus:shadow-[0_0_0_2px_rgba(212,175,55,0.08)]" type="email" name="email_registro" placeholder="Email" value="<?= htmlspecialchars($valores['email_registro']) ?>" autocomplete="email" required>
                     <input class="mb-3 w-full rounded-md border border-[#282828] bg-[#141414] px-3.5 py-3 text-xs tracking-[0.03em] text-[#e0e0e0] outline-none transition placeholder:text-[#3a3a3a] focus:border-[var(--gold)] focus:bg-[#171717] focus:shadow-[0_0_0_2px_rgba(212,175,55,0.08)]" type="password" name="password_registro" placeholder="Contraseña (mín. 6 caracteres)" autocomplete="new-password" required>
 
@@ -199,6 +211,64 @@ $wrapperClase = "login-wrapper " . ($estado['modo'] === 'registro' ? 'es-registr
                 this.wrapper.classList.remove("es-registro");
             }
         }
+
+        // Añadir a cada input de contraseña un botón ojo
+        document.querySelectorAll('input[type="password"]').forEach(input => {
+            const wrap = document.createElement('div');
+            wrap.className = 'relative mb-3';
+            input.parentNode.insertBefore(wrap, input);
+            wrap.appendChild(input);
+            input.classList.replace('mb-3', 'mb-0');
+            input.style.paddingRight = '38px';
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.setAttribute('aria-label', 'Mostrar contraseña');
+            btn.className = 'absolute right-3 top-1/2 -translate-y-1/2 border-0 bg-transparent p-0 leading-none cursor-pointer text-[#3a3a3a] hover:text-[var(--gold)] transition text-[15px]';
+            btn.innerHTML = '<i class="bi bi-eye"></i>';
+            btn.addEventListener('click', () => {
+                const visible = input.type === 'text';
+                input.type = visible ? 'password' : 'text';
+                btn.innerHTML = visible ? '<i class="bi bi-eye"></i>' : '<i class="bi bi-eye-slash"></i>';
+                btn.setAttribute('aria-label', visible ? 'Mostrar contraseña' : 'Ocultar contraseña');
+            });
+            wrap.appendChild(btn);
+        });
+
+        // Barra fuerza contraseña (solo en registro)
+        const pwdReg = document.querySelector('input[name="password_registro"]');
+        if (pwdReg) {
+            const bar = document.createElement('div');
+            bar.innerHTML = `<div class="mt-1.5 h-[3px] w-full rounded-full bg-[#1e1e1e] overflow-hidden"><div id="strengthBar" class="h-full rounded-full transition-all duration-300" style="width:0"></div></div><p id="strengthLabel" class="mt-1 text-[10px] tracking-[0.04em] transition-colors" style="min-height:14px;color:#444"></p>`;
+            pwdReg.closest('div').after(bar);
+            const strengthBar = document.getElementById('strengthBar');
+            const strengthLabel = document.getElementById('strengthLabel');
+            const lvls = [
+                {p:0,c:'transparent',t:''},
+                {p:20,c:'#c0392b',t:'Muy débil'},
+                {p:40,c:'#e67e22',t:'Débil'},
+                {p:60,c:'#f1c40f',t:'Aceptable'},
+                {p:80,c:'#27ae60',t:'Fuerte'},
+                {p:100,c:'#d4af37',t:'Excelente ✦'}
+            ];
+            pwdReg.addEventListener('input', () => {
+                let s = 0;
+                const v = pwdReg.value;
+                if (v.length >= 6) s++;
+                if (v.length >= 10) s++;
+                if (/[A-Z]/.test(v)) s++;
+                if (/[0-9]/.test(v)) s++;
+                if (/[^A-Za-z0-9]/.test(v)) s++;
+                const l = lvls[Math.min(s, 5)];
+                strengthBar.style.cssText = `width:${l.p}%;background:${l.c}`;
+                strengthLabel.textContent = l.t;
+                strengthLabel.style.color = l.c;
+            });
+        }
+
+        // Shake en errores PHP
+        document.querySelectorAll('[role="alert"]').forEach(el => {
+            el.style.animation = 'bh-shake 0.42s ease both';
+        });
 
         // Arranca el controlador visual sobre el contenedor principal.
         new AuthPanel(document.getElementById("loginWrapper"));
