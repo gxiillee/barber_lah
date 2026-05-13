@@ -194,22 +194,54 @@ foreach ($serviciosPorId as $id => $servicio) {
     }
 }
 
-$mesInicio = nombreMes((int)$inicioSemana->format('n'));
-$mesFin = nombreMes((int)$finSemana->format('n'));
-$tituloSemana = $mesInicio === $mesFin
-    ? $mesInicio . ' ' . $inicioSemana->format('Y')
-    : $mesInicio . ' / ' . $mesFin . ' ' . $inicioSemana->format('Y');
+function tituloSemanaReserva(DateTimeImmutable $inicioSemana): string {
+    $finSemana = $inicioSemana->modify('+6 days');
+    $mesInicio = nombreMes((int)$inicioSemana->format('n'));
+    $mesFin = nombreMes((int)$finSemana->format('n'));
 
-$prevSemana = $inicioSemana->modify('-7 days');
-$sigSemana = $inicioSemana->modify('+7 days');
-$puedeRetroceder = $prevSemana >= $semanaActual;
-$puedeAvanzar = $sigSemana <= $semanaMaxima;
+    return $mesInicio === $mesFin
+        ? $mesInicio . ' ' . $inicioSemana->format('Y')
+        : $mesInicio . ' / ' . $mesFin . ' ' . $inicioSemana->format('Y');
+}
+
+function estadoNavegacionSemana(DateTimeImmutable $inicioSemana, DateTimeImmutable $semanaActual, DateTimeImmutable $semanaMaxima): array {
+    $prevSemana = $inicioSemana->modify('-7 days');
+    $sigSemana = $inicioSemana->modify('+7 days');
+
+    return [
+        'prev' => $prevSemana->format('Y-m-d'),
+        'next' => $sigSemana->format('Y-m-d'),
+        'puede_retroceder' => $prevSemana >= $semanaActual,
+        'puede_avanzar' => $sigSemana <= $semanaMaxima,
+    ];
+}
+
+$tituloSemana = tituloSemanaReserva($inicioSemana);
+$navSemana = estadoNavegacionSemana($inicioSemana, $semanaActual, $semanaMaxima);
+$prevSemana = new DateTimeImmutable($navSemana['prev']);
+$sigSemana = new DateTimeImmutable($navSemana['next']);
+$puedeRetroceder = $navSemana['puede_retroceder'];
+$puedeAvanzar = $navSemana['puede_avanzar'];
 
 $queryBase = ['servicio' => $idServicioInicial];
 $hrefPrev = 'reserva.php?' . http_build_query(array_merge($queryBase, ['semana' => $prevSemana->format('Y-m-d')]));
 $hrefSig = 'reserva.php?' . http_build_query(array_merge($queryBase, ['semana' => $sigSemana->format('Y-m-d')]));
 
 $jsonFlags = JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT;
+
+// Respuesta ligera para navegar semanas sin recargar toda la pagina.
+if (($_GET['ajax'] ?? '') === 'semana') {
+    header('Content-Type: application/json; charset=utf-8');
+    echo json_encode([
+        'semana' => $inicioSemana->format('Y-m-d'),
+        'titulo' => $tituloSemana,
+        'dias' => array_column($diasSemana, null, 'fecha'),
+        'disponibilidad' => $disponibilidad,
+        'nav' => $navSemana,
+    ], $jsonFlags);
+    exit;
+}
+
 $csrfToken = tokenReserva();
 $usuarioConSesion = ($_SESSION['usuario'] ?? null) instanceof Usuario;
 ?>
@@ -312,32 +344,20 @@ $usuarioConSesion = ($_SESSION['usuario'] ?? null) instanceof Usuario;
                     <div class="mb-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                         <div>
                             <p class="text-[10px] font-bold uppercase tracking-[0.22em] text-[var(--gold)]">2. Fecha</p>
-                            <h2 class="mt-1 text-xl font-semibold capitalize text-white"><?= h($tituloSemana) ?></h2>
+                            <h2 class="mt-1 text-xl font-semibold capitalize text-white" id="weekTitle"><?= h($tituloSemana) ?></h2>
                         </div>
                         <div class="flex items-center gap-2">
-                            <?php if ($puedeRetroceder): ?>
-                                <a href="<?= h($hrefPrev) ?>" class="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-white/10 text-white/50 transition hover:border-[var(--gold)]/45 hover:text-[var(--gold)]" aria-label="Semana anterior">
-                                    <i class="bi bi-chevron-left text-sm"></i>
-                                </a>
-                            <?php else: ?>
-                                <span class="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-white/5 text-white/10" aria-hidden="true">
-                                    <i class="bi bi-chevron-left text-sm"></i>
-                                </span>
-                            <?php endif; ?>
-
-                            <?php if ($puedeAvanzar): ?>
-                                <a href="<?= h($hrefSig) ?>" class="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-white/10 text-white/50 transition hover:border-[var(--gold)]/45 hover:text-[var(--gold)]" aria-label="Semana siguiente">
-                                    <i class="bi bi-chevron-right text-sm"></i>
-                                </a>
-                            <?php else: ?>
-                                <span class="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-white/5 text-white/10" aria-hidden="true">
-                                    <i class="bi bi-chevron-right text-sm"></i>
-                                </span>
-                            <?php endif; ?>
+                            <!-- Navegacion semanal AJAX: evita recargar la pantalla completa al cambiar de semana. -->
+                            <button type="button" id="weekPrev" data-week="<?= h($prevSemana->format('Y-m-d')) ?>" class="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-white/10 text-white/50 transition hover:border-[var(--gold)]/45 hover:text-[var(--gold)] disabled:cursor-not-allowed disabled:border-white/5 disabled:text-white/10" aria-label="Semana anterior" <?= $puedeRetroceder ? '' : 'disabled' ?>>
+                                <i class="bi bi-chevron-left text-sm"></i>
+                            </button>
+                            <button type="button" id="weekNext" data-week="<?= h($sigSemana->format('Y-m-d')) ?>" class="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-white/10 text-white/50 transition hover:border-[var(--gold)]/45 hover:text-[var(--gold)] disabled:cursor-not-allowed disabled:border-white/5 disabled:text-white/10" aria-label="Semana siguiente" <?= $puedeAvanzar ? '' : 'disabled' ?>>
+                                <i class="bi bi-chevron-right text-sm"></i>
+                            </button>
                         </div>
                     </div>
 
-                    <div class="grid grid-cols-7 gap-2">
+                    <div class="grid grid-cols-7 gap-2" id="weekDays">
                         <?php foreach ($diasSemana as $dia): ?>
                             <?php
                             $slotsDia = $disponibilidad[$idServicioInicial][$dia['fecha']] ?? [];
@@ -423,8 +443,8 @@ $usuarioConSesion = ($_SESSION['usuario'] ?? null) instanceof Usuario;
 
     <script>
         const reservaServicios = <?= json_encode($serviciosJson, $jsonFlags) ?>;
-        const reservaDisponibilidad = <?= json_encode($disponibilidad, $jsonFlags) ?>;
-        const reservaDias = <?= json_encode(array_column($diasSemana, null, 'fecha'), $jsonFlags) ?>;
+        let reservaDisponibilidad = <?= json_encode($disponibilidad, $jsonFlags) ?>;
+        let reservaDias = <?= json_encode(array_column($diasSemana, null, 'fecha'), $jsonFlags) ?>;
 
         const state = {
             serviceId: String(<?= (int)$idServicioInicial ?>),
@@ -436,7 +456,11 @@ $usuarioConSesion = ($_SESSION['usuario'] ?? null) instanceof Usuario;
         const serviceChoices = document.getElementById("serviceChoices");
         const serviceCompact = document.getElementById("serviceCompact");
         const changeServiceButton = document.getElementById("changeServiceButton");
-        const dayButtons = document.querySelectorAll(".day-option");
+        let dayButtons = document.querySelectorAll(".day-option");
+        const weekDays = document.getElementById("weekDays");
+        const weekTitle = document.getElementById("weekTitle");
+        const weekPrev = document.getElementById("weekPrev");
+        const weekNext = document.getElementById("weekNext");
         const slotsGrid = document.getElementById("slotsGrid");
         const slotsEmpty = document.getElementById("slotsEmpty");
         const selectedDayPill = document.getElementById("selectedDayPill");
@@ -496,6 +520,79 @@ $usuarioConSesion = ($_SESSION['usuario'] ?? null) instanceof Usuario;
             elements.forEach((element) => {
                 element.setAttribute("aria-selected", element.dataset[attr] === value ? "true" : "false");
             });
+        }
+
+        function bindDayButtons() {
+            dayButtons = document.querySelectorAll(".day-option");
+            dayButtons.forEach((button) => {
+                button.addEventListener("click", () => selectDate(button.dataset.date));
+            });
+        }
+
+        function renderWeekDays() {
+            weekDays.innerHTML = "";
+
+            Object.values(reservaDias).forEach((dia) => {
+                const count = slotsFor(state.serviceId, dia.fecha).length;
+                const button = document.createElement("button");
+                button.type = "button";
+                button.className = "day-option rounded-lg border border-white/10 bg-white/[0.025] px-1 py-3 text-center transition duration-300 hover:border-[var(--gold)]/45 hover:bg-white/[0.055] disabled:cursor-not-allowed disabled:opacity-35 aria-selected:border-[var(--gold)] aria-selected:bg-[var(--gold)]/[0.10]";
+                button.dataset.date = dia.fecha;
+                button.dataset.past = dia.pasado ? "1" : "0";
+                button.disabled = count === 0;
+                button.setAttribute("aria-selected", dia.fecha === state.date ? "true" : "false");
+                button.innerHTML = `
+                    <span class="block text-[10px] font-bold uppercase tracking-[0.12em] text-white/38">${dia.dia_corto}</span>
+                    <span class="mt-1 block text-lg font-semibold text-white">${dia.numero}</span>
+                    <span class="mt-1 block text-[10px] text-[var(--gold)]/65" data-day-count>${count === 1 ? "1 hueco" : `${count} huecos`}</span>
+                `;
+                weekDays.appendChild(button);
+            });
+
+            bindDayButtons();
+        }
+
+        function updateWeekControls(nav) {
+            weekPrev.dataset.week = nav.prev;
+            weekNext.dataset.week = nav.next;
+            weekPrev.disabled = !nav.puede_retroceder;
+            weekNext.disabled = !nav.puede_avanzar;
+        }
+
+        async function loadWeek(week) {
+            const url = new URL(window.location.href);
+            url.searchParams.set("ajax", "semana");
+            url.searchParams.set("semana", week);
+            url.searchParams.set("servicio", state.serviceId);
+
+            const response = await fetch(url.toString(), {
+                headers: { "X-Requested-With": "fetch" },
+            });
+
+            if (!response.ok) return;
+
+            const data = await response.json();
+            reservaDisponibilidad = data.disponibilidad;
+            reservaDias = data.dias;
+            weekTitle.textContent = data.titulo;
+            updateWeekControls(data.nav);
+
+            if (!reservaDias[state.date] || slotsFor(state.serviceId, state.date).length === 0) {
+                const firstAvailable = Object.keys(reservaDias).find((date) => slotsFor(state.serviceId, date).length > 0);
+                state.date = firstAvailable ?? Object.keys(reservaDias)[0] ?? state.date;
+                state.hour = "";
+            }
+
+            renderWeekDays();
+            renderSlots();
+            updateSummary();
+
+            const cleanUrl = new URL(window.location.href);
+            cleanUrl.searchParams.delete("ajax");
+            cleanUrl.searchParams.set("semana", data.semana);
+            cleanUrl.searchParams.set("servicio", state.serviceId);
+            cleanUrl.searchParams.set("fecha", state.date);
+            window.history.replaceState({}, "", cleanUrl.toString());
         }
 
         function updateDayAvailability() {
@@ -614,8 +711,14 @@ $usuarioConSesion = ($_SESSION['usuario'] ?? null) instanceof Usuario;
             changeServiceButton.addEventListener("click", () => setServicePicker(true));
         }
 
-        dayButtons.forEach((button) => {
-            button.addEventListener("click", () => selectDate(button.dataset.date));
+        bindDayButtons();
+
+        weekPrev.addEventListener("click", () => {
+            if (!weekPrev.disabled) loadWeek(weekPrev.dataset.week);
+        });
+
+        weekNext.addEventListener("click", () => {
+            if (!weekNext.disabled) loadWeek(weekNext.dataset.week);
         });
 
         document.getElementById("bookingForm").addEventListener("submit", (event) => {
