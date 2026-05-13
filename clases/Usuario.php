@@ -106,6 +106,10 @@ class Usuario {
         if (isset($_SESSION['reserva_pendiente'])) {
             return 'confirmar_reserva.php';
         }
+        // Nueva puerta de "Mi cuenta": si el login venia del area cliente, volvemos ahi.
+        if (($_POST['source'] ?? $_GET['source'] ?? '') === 'panel') {
+            return 'mi-cuenta.php';
+        }
         return ($this->tieneRolAdmin() && file_exists($directorio . '/admin/panel.php'))
             ? 'admin/panel.php'
             : 'index.php';

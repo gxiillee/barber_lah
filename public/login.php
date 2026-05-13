@@ -13,6 +13,7 @@ $reservaPendiente = (isset($_SESSION['reserva_pendiente']) && is_array($_SESSION
         ? $_SESSION['reserva_pendiente']
         : null;
 $mensajeReserva = '';
+$sourceLogin = $_GET['source'] ?? ($_POST['source'] ?? '');
 
 if ($usuarioSesion instanceof Usuario) {
     $usuarioSesion->redirigirDespuesLogin(__DIR__);
@@ -23,6 +24,9 @@ if ($reservaPendiente !== null) {
     $fechaReserva = $reservaPendiente['fecha_label'] ?? ($reservaPendiente['fecha'] ?? 'la fecha elegida');
     $horaReserva = isset($reservaPendiente['hora']) ? substr((string)$reservaPendiente['hora'], 0, 5) : '';
     $mensajeReserva = "Para confirmar tu cita de {$servicioReserva} el {$fechaReserva}" . ($horaReserva !== '' ? " a las {$horaReserva}" : '') . ", accede a tu cuenta o crea una nueva. Solo tardas 30 segundos.";
+} elseif ($sourceLogin === 'panel') {
+    // Nuevo contexto para "Mi cuenta": este login no viene de reservar, sino del futuro area cliente.
+    $mensajeReserva = 'Accede a tu cuenta para entrar en tu area cliente. Aqui podras consultar tus citas, historial e imagenes guardadas cuando el panel este disponible.';
 }
 
 // 2. Inicialización del estado
@@ -109,6 +113,8 @@ $wrapperClase = "login-wrapper " . ($estado['modo'] === 'registro' ? 'es-registr
                     <input type="hidden" name="accion" value="login">
                     <!-- Se envia el token junto al formulario para validar que viene de esta pagina. -->
                     <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken) ?>">
+                    <!-- Mantiene el contexto si el usuario llego desde Mi cuenta o desde una reserva pendiente. -->
+                    <input type="hidden" name="source" value="<?= htmlspecialchars((string)$sourceLogin) ?>">
 
                     <input class="mb-3 w-full rounded-md border border-[#282828] bg-[#141414] px-3.5 py-[13px] text-[13px] tracking-[0.03em] text-[#e0e0e0] outline-none transition placeholder:text-[#3a3a3a] focus:border-[var(--gold)] focus:bg-[#171717] focus:shadow-[0_0_0_2px_rgba(212,175,55,0.15)]" type="email" name="email" placeholder="Email" value="<?= htmlspecialchars($valores['login_email']) ?>" autocomplete="email" required>
                     <input class="mb-2 w-full rounded-md border border-[#282828] bg-[#141414] px-3.5 py-[13px] text-[13px] tracking-[0.03em] text-[#e0e0e0] outline-none transition placeholder:text-[#3a3a3a] focus:border-[var(--gold)] focus:bg-[#171717] focus:shadow-[0_0_0_2px_rgba(212,175,55,0.15)]" type="password" name="password" placeholder="Contraseña" autocomplete="current-password" required>
@@ -164,6 +170,8 @@ $wrapperClase = "login-wrapper " . ($estado['modo'] === 'registro' ? 'es-registr
                     <input type="hidden" name="accion" value="registro">
                     <!-- Mismo token de seguridad, pero para el formulario de registro. -->
                     <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken) ?>">
+                    <!-- Mantiene el contexto si el usuario llego desde Mi cuenta o desde una reserva pendiente. -->
+                    <input type="hidden" name="source" value="<?= htmlspecialchars((string)$sourceLogin) ?>">
 
                     <input class="mb-3 w-full rounded-md border border-[#282828] bg-[#141414] px-3.5 py-[13px] text-[13px] tracking-[0.03em] text-[#e0e0e0] outline-none transition placeholder:text-[#3a3a3a] focus:border-[var(--gold)] focus:bg-[#171717] focus:shadow-[0_0_0_2px_rgba(212,175,55,0.15)]" type="text" name="nombre" placeholder="Nombre completo" value="<?= htmlspecialchars($valores['nombre']) ?>" autocomplete="name" required>
                     <div class="relative mb-3 w-full">

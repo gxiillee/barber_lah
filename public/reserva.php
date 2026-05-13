@@ -262,7 +262,7 @@ $usuarioConSesion = ($_SESSION['usuario'] ?? null) instanceof Usuario;
 
         <div class="grid gap-6 lg:grid-cols-[1fr_360px] lg:items-start">
             <div class="space-y-6">
-                <section class="reserve-stagger rounded-lg border border-white/10 bg-[#0d0d0d]/95 p-5 shadow-[0_18px_60px_rgba(0,0,0,0.45)] sm:p-6">
+                <section class="reserve-stagger rounded-lg border border-white/10 bg-[#0d0d0d]/95 p-5 shadow-[0_18px_60px_rgba(0,0,0,0.45)] sm:p-6" id="serviceSection">
                     <div class="mb-5 flex items-center justify-between gap-4">
                         <div>
                             <p class="text-[10px] font-bold uppercase tracking-[0.22em] text-[var(--gold)]">1. Servicio</p>
@@ -271,10 +271,25 @@ $usuarioConSesion = ($_SESSION['usuario'] ?? null) instanceof Usuario;
                         <i class="bi bi-scissors text-2xl text-[var(--gold)]/55"></i>
                     </div>
 
+                    <!-- Nuevo estado compacto: despues de elegir servicio, libera espacio para ver calendario y horas. -->
+                    <div id="serviceCompact" class="mb-1 hidden rounded-lg border border-[var(--gold)]/25 bg-[var(--gold)]/[0.07] p-4">
+                        <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                            <div class="min-w-0">
+                                <p class="text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--gold)]">Servicio seleccionado</p>
+                                <p class="mt-1 truncate text-base font-semibold text-white" id="compactServiceName">-</p>
+                                <p class="mt-1 text-xs text-white/42" id="compactServiceMeta">-</p>
+                            </div>
+                            <button type="button" id="changeServiceButton" class="inline-flex items-center justify-center gap-2 rounded-lg border border-white/10 px-4 py-3 text-[11px] font-bold uppercase tracking-[0.14em] text-white/55 transition hover:border-[var(--gold)]/40 hover:text-[var(--gold)]">
+                                <i class="bi bi-arrow-repeat"></i>
+                                Cambiar
+                            </button>
+                        </div>
+                    </div>
+
                     <?php if ($servicios === []): ?>
                         <div class="rounded-lg border border-white/10 bg-white/[0.03] px-4 py-8 text-center text-sm text-white/45">No hay servicios activos ahora mismo.</div>
                     <?php else: ?>
-                        <div class="grid gap-3 sm:grid-cols-2">
+                        <div class="grid gap-3 sm:grid-cols-2" id="serviceChoices">
                             <?php foreach ($servicios as $servicio): ?>
                                 <button type="button"
                                         class="service-option group rounded-lg border border-white/10 bg-white/[0.025] p-4 text-left transition duration-300 hover:-translate-y-0.5 hover:border-[var(--gold)]/45 hover:bg-white/[0.055] aria-selected:border-[var(--gold)] aria-selected:bg-[var(--gold)]/[0.08]"
@@ -351,7 +366,8 @@ $usuarioConSesion = ($_SESSION['usuario'] ?? null) instanceof Usuario;
                         <span class="rounded-full border border-[var(--gold)]/20 bg-[var(--gold)]/[0.08] px-3 py-1 text-[11px] font-semibold text-[var(--gold)]" id="selectedDayPill"></span>
                     </div>
 
-                    <div id="slotsGrid" class="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-5"></div>
+                    <!-- Las horas se agrupan por franja para evitar una parrilla larga y dificil de escanear. -->
+                    <div id="slotsGrid" class="grid gap-4 lg:grid-cols-3"></div>
 
                     <div id="slotsEmpty" class="hidden rounded-lg border border-dashed border-white/10 bg-white/[0.02] px-4 py-10 text-center">
                         <i class="bi bi-calendar-x reserve-live-pulse block text-3xl text-white/15"></i>
@@ -417,6 +433,9 @@ $usuarioConSesion = ($_SESSION['usuario'] ?? null) instanceof Usuario;
         };
 
         const serviceButtons = document.querySelectorAll(".service-option");
+        const serviceChoices = document.getElementById("serviceChoices");
+        const serviceCompact = document.getElementById("serviceCompact");
+        const changeServiceButton = document.getElementById("changeServiceButton");
         const dayButtons = document.querySelectorAll(".day-option");
         const slotsGrid = document.getElementById("slotsGrid");
         const slotsEmpty = document.getElementById("slotsEmpty");
@@ -432,6 +451,45 @@ $usuarioConSesion = ($_SESSION['usuario'] ?? null) instanceof Usuario;
 
         function serviceData() {
             return reservaServicios[state.serviceId] ?? null;
+        }
+
+        // Divide los huecos en franjas visuales tipo Booksy: mañana, mediodia y tarde.
+        function groupSlotsByMoment(slots) {
+            const groups = [
+                { key: "morning", label: "Mañana", icon: "bi-sunrise", slots: [] },
+                { key: "midday", label: "Mediodía", icon: "bi-brightness-high", slots: [] },
+                { key: "afternoon", label: "Tarde", icon: "bi-sunset", slots: [] },
+            ];
+
+            slots.forEach((slot) => {
+                const [hour] = slot.split(":").map(Number);
+
+                if (hour < 12) {
+                    groups[0].slots.push(slot);
+                } else if (hour < 16) {
+                    groups[1].slots.push(slot);
+                } else {
+                    groups[2].slots.push(slot);
+                }
+            });
+
+            return groups;
+        }
+
+        // Nuevo comportamiento: el selector se contrae cuando ya hay servicio elegido.
+        function setServicePicker(open) {
+            if (!serviceChoices || !serviceCompact) return;
+
+            serviceChoices.classList.toggle("hidden", !open);
+            serviceCompact.classList.toggle("hidden", open);
+        }
+
+        function updateCompactService() {
+            const service = serviceData();
+            if (!service) return;
+
+            document.getElementById("compactServiceName").textContent = service.nombre;
+            document.getElementById("compactServiceMeta").textContent = `${service.duracion} min · ${service.precio_formateado}`;
         }
 
         function setSelected(elements, attr, value) {
@@ -459,19 +517,49 @@ $usuarioConSesion = ($_SESSION['usuario'] ?? null) instanceof Usuario;
                 state.hour = "";
             }
 
-            slots.forEach((slot) => {
-                const button = document.createElement("button");
-                button.type = "button";
-                button.className = "reserve-slot-appear rounded-lg border border-white/10 bg-white/[0.03] px-3 py-3 text-sm font-bold text-[#ede4d2] transition duration-300 hover:-translate-y-0.5 hover:border-[var(--gold)]/50 hover:text-[var(--gold)] aria-selected:border-[var(--gold)] aria-selected:bg-[var(--gold)]/[0.10] aria-selected:text-[var(--gold)]";
-                button.textContent = slot;
-                button.dataset.hour = slot;
-                button.setAttribute("aria-selected", slot === state.hour ? "true" : "false");
-                button.addEventListener("click", () => {
-                    state.hour = slot;
-                    renderSlots();
-                    updateSummary();
-                });
-                slotsGrid.appendChild(button);
+            groupSlotsByMoment(slots).forEach((group) => {
+                const section = document.createElement("section");
+                section.className = "reserve-slot-appear rounded-lg border border-white/10 bg-white/[0.025] p-3";
+
+                const header = document.createElement("div");
+                header.className = "mb-3 flex items-center justify-between gap-3";
+                header.innerHTML = `
+                    <span class="inline-flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--gold)]">
+                        <i class="bi ${group.icon}"></i>
+                        ${group.label}
+                    </span>
+                    <span class="text-[10px] text-white/28">${group.slots.length} huecos</span>
+                `;
+                section.appendChild(header);
+
+                const grid = document.createElement("div");
+                grid.className = "grid grid-cols-3 gap-2 lg:grid-cols-2 xl:grid-cols-3";
+
+                if (group.slots.length === 0) {
+                    const empty = document.createElement("p");
+                    empty.className = "rounded-lg border border-dashed border-white/10 px-3 py-4 text-center text-xs text-white/25";
+                    empty.textContent = "Sin huecos";
+                    section.appendChild(empty);
+                } else {
+                    group.slots.forEach((slot) => {
+                        const button = document.createElement("button");
+                        button.type = "button";
+                        button.className = "rounded-lg border border-white/10 bg-white/[0.03] px-2 py-3 text-sm font-bold text-[#ede4d2] transition duration-300 hover:-translate-y-0.5 hover:border-[var(--gold)]/50 hover:text-[var(--gold)] aria-selected:border-[var(--gold)] aria-selected:bg-[var(--gold)]/[0.10] aria-selected:text-[var(--gold)]";
+                        button.textContent = slot;
+                        button.dataset.hour = slot;
+                        button.setAttribute("aria-selected", slot === state.hour ? "true" : "false");
+                        button.addEventListener("click", () => {
+                            state.hour = slot;
+                            renderSlots();
+                            updateSummary();
+                        });
+                        grid.appendChild(button);
+                    });
+
+                    section.appendChild(grid);
+                }
+
+                slotsGrid.appendChild(section);
             });
         }
 
@@ -489,10 +577,12 @@ $usuarioConSesion = ($_SESSION['usuario'] ?? null) instanceof Usuario;
             continueButton.disabled = !(state.serviceId && state.date && state.hour);
         }
 
-        function selectService(serviceId) {
+        function selectService(serviceId, collapsePicker = true) {
             state.serviceId = String(serviceId);
             state.hour = "";
             setSelected(serviceButtons, "serviceId", state.serviceId);
+            updateCompactService();
+            setServicePicker(!collapsePicker);
             updateDayAvailability();
 
             if (slotsFor(state.serviceId, state.date).length === 0) {
@@ -517,8 +607,12 @@ $usuarioConSesion = ($_SESSION['usuario'] ?? null) instanceof Usuario;
         }
 
         serviceButtons.forEach((button) => {
-            button.addEventListener("click", () => selectService(button.dataset.serviceId));
+            button.addEventListener("click", () => selectService(button.dataset.serviceId, true));
         });
+
+        if (changeServiceButton) {
+            changeServiceButton.addEventListener("click", () => setServicePicker(true));
+        }
 
         dayButtons.forEach((button) => {
             button.addEventListener("click", () => selectDate(button.dataset.date));
@@ -531,7 +625,7 @@ $usuarioConSesion = ($_SESSION['usuario'] ?? null) instanceof Usuario;
             }
         });
 
-        selectService(state.serviceId);
+        selectService(state.serviceId, <?= isset($_GET['servicio']) ? 'true' : 'false' ?>);
     </script>
 </body>
 </html>
