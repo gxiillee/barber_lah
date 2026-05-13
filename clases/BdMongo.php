@@ -8,7 +8,7 @@ class ConexionMongo {
     public static function conectar() {
         if (!isset(self::$cliente)) {
             // Pon AQUÍ tu IP fija de clase o casa
-            $ip_bd = "192.168.4.17";
+            $ip_bd = "localhost";
 
             // Usamos la IP en lugar de localhost para que todos apunten al mismo sitio
             try {

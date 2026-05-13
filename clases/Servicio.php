@@ -19,10 +19,10 @@ class Servicio {
     }
 
     // Getters
-    public function getId(): int          { return $this->id; }
+    public function getIdServicio(): int          { return $this->id; }
     public function getNombre(): string   { return $this->nombre; }
     public function getPrecio(): float    { return $this->precio; }
-    public function getDuracionMin(): int { return $this->duracionMin; }
+    public function getDuracion(): int { return $this->duracionMin; }
     public function getDescripcion(): ?string { return $this->descripcion; }
     public function isActivo(): bool      { return $this->activo; }
 
@@ -31,19 +31,19 @@ class Servicio {
      * se usa para no mostrar los inactivos pero
      * seguir teniendolos en bd para historicos
      */
-    public static function ObtenerActivos(): array {
+    public static function obtenerTodos(): array {
         $conexion = BD::obtenerConexion();
-        $stmt = $conexion->query("SELECT * FROM servicios WHERE activo = TRUE ORDER BY nombre");
+        // Usamos tu query con el filtro de activos
+        $stmt = $conexion->query("SELECT * FROM servicios WHERE activo = TRUE ORDER BY nombre ASC");
 
         $servicios = [];
         while ($fila = $stmt->fetch()) {
-            // "Mapeamos" los datos de la BD al constructor de tu clase
-            $servicios[] = new Servicio(
-                $fila['id'],
+            $servicios[] = new self(
+                (int)$fila['id'],
                 $fila['nombre'],
                 (float)$fila['precio'],
-                (int)$fila['duracion_min'], // Ojo: en la BD es duracion_min
-                $fila['descripcion'],
+                (int)$fila['duracion_min'], // Mapeamos duracion_min de la BD a duracion de la clase
+                $fila['descripcion'] ?? null,
                 (bool)$fila['activo']
             );
         }

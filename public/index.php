@@ -6,7 +6,7 @@ require_once '../clases/Galeria_corte.php';
 require_once '../clases/Producto.php';
 require_once '../clases/Servicio.php';
 
-$servicios = Servicio::obtenerActivos(); // De Postgres
+$servicios = Servicio::obtenerTodos(); // De Postgres
 $galeriaCortes   = Corte::obtenerTodos();      // De Mongo
 $productos = Producto::obtenerActivos(); // De Mongo
 ?>
@@ -59,7 +59,7 @@ $productos = Producto::obtenerActivos(); // De Mongo
                 <a href="#sobre"       class="font-montserrat text-[0.72rem] uppercase tracking-[0.2rem] text-white/50 transition-colors duration-300 hover:text-[var(--gold)]">Nosotros</a>
                 <a href="#servicios"   class="font-montserrat text-[0.72rem] uppercase tracking-[0.2rem] text-white/50 transition-colors duration-300 hover:text-[var(--gold)]">Servicios</a>
                 <a href="#contacto"    class="font-montserrat text-[0.72rem] uppercase tracking-[0.2rem] text-white/50 transition-colors duration-300 hover:text-[var(--gold)]">Encuéntranos</a>
-                <a href="login.php" class="border border-[var(--gold)]/50 px-6 py-2 font-montserrat text-[0.72rem] uppercase tracking-[0.2rem] text-[var(--gold)] transition-all duration-300 hover:bg-[var(--gold)] hover:text-[var(--obsidian)]">
+                <a href="reserva.php" class="border border-[var(--gold)]/50 px-6 py-2 font-montserrat text-[0.72rem] uppercase tracking-[0.2rem] text-[var(--gold)] transition-all duration-300 hover:bg-[var(--gold)] hover:text-[var(--obsidian)]">
                     Reservar Cita
                 </a>
             </div>
@@ -77,7 +77,7 @@ $productos = Producto::obtenerActivos(); // De Mongo
         <a href="#sobre"     onclick="document.getElementById('mobileMenu').style.display='none'" class="font-montserrat text-sm uppercase tracking-[0.3rem] text-white/60 hover:text-[var(--gold)]">Nosotros</a>
         <a href="#servicios" onclick="document.getElementById('mobileMenu').style.display='none'" class="font-montserrat text-sm uppercase tracking-[0.3rem] text-white/60 hover:text-[var(--gold)]">Servicios</a>
         <a href="#contacto"  onclick="document.getElementById('mobileMenu').style.display='none'" class="font-montserrat text-sm uppercase tracking-[0.3rem] text-white/60 hover:text-[var(--gold)]">Encuéntranos</a>
-        <a href="#reservas"  onclick="document.getElementById('mobileMenu').style.display='none'" class="border border-[var(--gold)]/50 px-8 py-3 font-montserrat text-sm uppercase tracking-[0.2rem] text-[var(--gold)]">Reservar Cita</a>
+        <a href="login.php"  onclick="document.getElementById('mobileMenu').style.display='none'" class="border border-[var(--gold)]/50 px-8 py-3 font-montserrat text-sm uppercase tracking-[0.2rem] text-[var(--gold)]">Reservar Cita</a>
     </div>
 
 
@@ -231,7 +231,7 @@ $productos = Producto::obtenerActivos(); // De Mongo
                     </div>
 
                     <div class="mb-12 flex flex-wrap items-center gap-6">
-                        <a href="#reservas" class="bg-[var(--gold)] px-8 py-4 font-montserrat text-[0.72rem] font-bold uppercase tracking-[0.2rem] text-black transition-all hover:bg-white hover:-translate-y-1">
+                        <a href="login.php" class="bg-[var(--gold)] px-8 py-4 font-montserrat text-[0.72rem] font-bold uppercase tracking-[0.2rem] text-black transition-all hover:bg-white hover:-translate-y-1">
                             Reservar Cita
                         </a>
                         <a href="https://instagram.com/barbershop_la_h" target="_blank" rel="noopener"
@@ -334,7 +334,7 @@ $productos = Producto::obtenerActivos(); // De Mongo
                                     <?= number_format($servicio->getPrecio(), 0) ?>€
                                 </span>
                                 </div>
-                                <a href="#reservas"
+                                <a href="login.php"
                                    class="font-montserrat text-[0.6rem] uppercase tracking-[0.2rem] text-white/25
                                       border-b border-transparent transition-all duration-300
                                       group-hover:text-[var(--gold)] group-hover:border-[var(--gold)]/40">
@@ -656,7 +656,7 @@ $productos = Producto::obtenerActivos(); // De Mongo
 
                 <!-- CTA reserva -->
                 <div class="reveal-text">
-                    <a href="#reservas" class="bg-[var(--gold)] px-8 py-4 font-montserrat text-[0.72rem] font-bold uppercase tracking-[0.2rem] text-black transition-all hover:bg-white hover:-translate-y-1">
+                    <a href="login" class="bg-[var(--gold)] px-8 py-4 font-montserrat text-[0.72rem] font-bold uppercase tracking-[0.2rem] text-black transition-all hover:bg-white hover:-translate-y-1">
                         Reservar Cita
                     </a>
                 </div>

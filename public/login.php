@@ -67,14 +67,14 @@ $wrapperClase = "login-wrapper " . ($estado['modo'] === 'registro' ? 'es-registr
         ← Inicio
     </a>
 
-    <main class="<?= htmlspecialchars($wrapperClase) ?> group/auth relative z-10 h-[560px] w-full max-w-[820px] overflow-hidden rounded-[14px] border border-[#1e1e1e] bg-[var(--obsidian)] shadow-[0_0_0_0.5px_rgba(212,175,55,0.08),0_40px_80px_rgba(0,0,0,0.8),0_8px_20px_rgba(0,0,0,0.5)] max-sm:min-h-dvh max-sm:h-auto max-sm:max-w-full max-sm:rounded-none max-sm:border-0" id="loginWrapper" aria-label="Formulario de acceso">
+    <main class="<?= htmlspecialchars($wrapperClase) ?> group/auth relative z-10 h-[640px] w-full max-w-[960px] overflow-hidden rounded-[14px] border border-[#1e1e1e] bg-[var(--obsidian)] shadow-[0_0_0_0.5px_rgba(212,175,55,0.08),0_40px_80px_rgba(0,0,0,0.8),0_8px_20px_rgba(0,0,0,0.5)] max-sm:min-h-dvh max-sm:h-auto max-sm:max-w-full max-sm:rounded-none max-sm:border-0" id="loginWrapper" aria-label="Formulario de acceso">
         <div class="flex h-full w-full max-sm:block max-sm:h-auto">
-            <section class="flex h-full w-1/2 flex-col items-center justify-center bg-[#0d0d0d] px-9 py-11 max-sm:min-h-dvh max-sm:w-full max-sm:px-7 max-sm:pb-9 max-sm:pt-[72px] max-sm:group-[.es-registro]/auth:hidden" aria-labelledby="loginTitle">
+            <section class="flex h-full w-1/2 flex-col items-center justify-center bg-[#0d0d0d] px-12 py-14 max-sm:min-h-dvh max-sm:w-full max-sm:px-7 max-sm:pb-9 max-sm:pt-[72px] max-sm:group-[.es-registro]/auth:hidden" aria-labelledby="loginTitle">
                 <div class="mb-5 text-center" aria-label="Barbershop La H">
                     <div class="font-[var(--font-playfair)] text-xs uppercase tracking-[0.22em] text-[var(--gold)]">✦ La H ✦</div>
-                    <img src="assets/img/logo.jpg" alt="Logo Barbershop La H" class="mx-auto mt-4 h-14 w-14 rounded-full border border-[var(--gold)]/25 object-cover shadow-[0_0_22px_rgba(212,175,55,0.12)] max-sm:h-12 max-sm:w-12">
+                    <img src="assets/img/logo.jpg" alt="Logo Barbershop La H" class="mx-auto mt-4 h-[72px] w-[72px] rounded-full border border-[var(--gold)]/25 object-cover shadow-[0_0_22px_rgba(212,175,55,0.12)] max-sm:h-12 max-sm:w-12">
                 </div>
-                <h1 class="mb-1.5 text-center font-[var(--font-playfair)] text-[23px] font-bold text-[#f5f0e8]" id="loginTitle">Bienvenido</h1>
+                <h1 class="mb-1.5 text-center font-[var(--font-playfair)] text-[28px] font-bold text-[#f5f0e8]" id="loginTitle">Bienvenido</h1>
                 <p class="mb-6 text-center text-[11px] tracking-[0.06em] text-white/40">Accede a tu cuenta</p>
 
                 <?php if ($errorLogin !== ''): ?>
@@ -89,16 +89,18 @@ $wrapperClase = "login-wrapper " . ($estado['modo'] === 'registro' ? 'es-registr
                     <!-- Se envia el token junto al formulario para validar que viene de esta pagina. -->
                     <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken) ?>">
 
-                    <input class="mb-3 w-full rounded-md border border-[#282828] bg-[#141414] px-3.5 py-3 text-xs tracking-[0.03em] text-[#e0e0e0] outline-none transition placeholder:text-[#3a3a3a] focus:border-[var(--gold)] focus:bg-[#171717] focus:shadow-[0_0_0_2px_rgba(212,175,55,0.08)]" type="email" name="email" placeholder="Email" value="<?= htmlspecialchars($valores['login_email']) ?>" autocomplete="email" required>
-                    <input class="mb-2 w-full rounded-md border border-[#282828] bg-[#141414] px-3.5 py-3 text-xs tracking-[0.03em] text-[#e0e0e0] outline-none transition placeholder:text-[#3a3a3a] focus:border-[var(--gold)] focus:bg-[#171717] focus:shadow-[0_0_0_2px_rgba(212,175,55,0.08)]" type="password" name="password" placeholder="Contraseña" autocomplete="current-password" required>
+                    <input class="mb-3 w-full rounded-md border border-[#282828] bg-[#141414] px-3.5 py-[13px] text-[13px] tracking-[0.03em] text-[#e0e0e0] outline-none transition placeholder:text-[#3a3a3a] focus:border-[var(--gold)] focus:bg-[#171717] focus:shadow-[0_0_0_2px_rgba(212,175,55,0.15)]" type="email" name="email" placeholder="Email" value="<?= htmlspecialchars($valores['login_email']) ?>" autocomplete="email" required>
+                    <input class="mb-2 w-full rounded-md border border-[#282828] bg-[#141414] px-3.5 py-[13px] text-[13px] tracking-[0.03em] text-[#e0e0e0] outline-none transition placeholder:text-[#3a3a3a] focus:border-[var(--gold)] focus:bg-[#171717] focus:shadow-[0_0_0_2px_rgba(212,175,55,0.15)]" type="password" name="password" placeholder="Contraseña" autocomplete="current-password" required>
 
                     <a href="recuperar.php" class="mb-4 block w-full text-right text-[10px] tracking-[0.04em] text-white/35 no-underline transition hover:text-[var(--gold)]">¿Olvidaste tu contraseña?</a>
                     <button type="submit" class="w-full rounded-md bg-[var(--gold)] px-3 py-3 text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--obsidian)] transition hover:-translate-y-0.5 hover:bg-[var(--gold-light)] hover:shadow-[0_6px_20px_rgba(212,175,55,0.25)]">Entrar</button>
                 </form>
 
-                <div class="my-5 flex w-full items-center gap-3">
+                <div class="my-6 flex w-full items-center gap-2.5">
                     <div class="h-px flex-1 bg-white/10"></div>
-                    <span class="text-[9px] uppercase tracking-[0.22em] text-white/25">o continuar con</span>
+                    <span class="text-[var(--gold)] opacity-40 text-[8px]">◆</span>
+                    <span class="text-[9px] uppercase tracking-[0.22em] text-white/20">o continuar con</span>
+                    <span class="text-[var(--gold)] opacity-40 text-[8px]">◆</span>
                     <div class="h-px flex-1 bg-white/10"></div>
                 </div>
 
@@ -115,9 +117,9 @@ $wrapperClase = "login-wrapper " . ($estado['modo'] === 'registro' ? 'es-registr
                 <button class="mt-5 hidden w-full border-0 bg-transparent text-center text-[11px] tracking-[0.06em] text-[var(--gold)] underline underline-offset-4 max-sm:block" type="button" data-auth-open-register>¿No tienes cuenta? Regístrate</button>
             </section>
 
-            <section class="flex h-full w-1/2 flex-col items-center justify-center bg-[#0a0a0a] px-9 py-11 max-sm:hidden max-sm:min-h-dvh max-sm:w-full max-sm:px-7 max-sm:pb-9 max-sm:pt-[72px] max-sm:group-[.es-registro]/auth:flex" aria-labelledby="registerTitle">
+            <section class="flex h-full w-1/2 flex-col items-center justify-center bg-[#0a0a0a] px-12 py-14 max-sm:hidden max-sm:min-h-dvh max-sm:w-full max-sm:px-7 max-sm:pb-9 max-sm:pt-[72px] max-sm:group-[.es-registro]/auth:flex" aria-labelledby="registerTitle">
                 <div class="mb-6 font-[var(--font-playfair)] text-xs uppercase tracking-[0.22em] text-[var(--gold)]" aria-label="Barbershop La H">✦ La H ✦</div>
-                <h2 class="mb-1.5 text-center font-[var(--font-playfair)] text-[23px] font-bold text-[#f5f0e8]" id="registerTitle">Únete al club</h2>
+                <h2 class="mb-1.5 text-center font-[var(--font-playfair)] text-[28px] font-bold text-[#f5f0e8]" id="registerTitle">Únete al club</h2>
                 <p class="mb-6 text-center text-[11px] tracking-[0.06em] text-white/40">Crea tu cuenta VIP</p>
 
                 <?php if ($errorReg !== ''): ?>
@@ -132,7 +134,7 @@ $wrapperClase = "login-wrapper " . ($estado['modo'] === 'registro' ? 'es-registr
                     <!-- Mismo token de seguridad, pero para el formulario de registro. -->
                     <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken) ?>">
 
-                    <input class="mb-3 w-full rounded-md border border-[#282828] bg-[#141414] px-3.5 py-3 text-xs tracking-[0.03em] text-[#e0e0e0] outline-none transition placeholder:text-[#3a3a3a] focus:border-[var(--gold)] focus:bg-[#171717] focus:shadow-[0_0_0_2px_rgba(212,175,55,0.08)]" type="text" name="nombre" placeholder="Nombre completo" value="<?= htmlspecialchars($valores['nombre']) ?>" autocomplete="name" required>
+                    <input class="mb-3 w-full rounded-md border border-[#282828] bg-[#141414] px-3.5 py-[13px] text-[13px] tracking-[0.03em] text-[#e0e0e0] outline-none transition placeholder:text-[#3a3a3a] focus:border-[var(--gold)] focus:bg-[#171717] focus:shadow-[0_0_0_2px_rgba(212,175,55,0.15)]" type="text" name="nombre" placeholder="Nombre completo" value="<?= htmlspecialchars($valores['nombre']) ?>" autocomplete="name" required>
                     <div class="relative mb-3 w-full">
                         <input class="mb-0 w-full rounded-md border border-[#282828] bg-[#141414] px-3.5 py-3 pr-10 text-xs tracking-[0.03em] text-[#e0e0e0] outline-none transition placeholder:text-[#3a3a3a] focus:border-[var(--gold)] focus:bg-[#171717] focus:shadow-[0_0_0_2px_rgba(212,175,55,0.08)]"
                                type="tel" name="telefono" placeholder="Teléfono (WhatsApp)"
@@ -146,8 +148,8 @@ $wrapperClase = "login-wrapper " . ($estado['modo'] === 'registro' ? 'es-registr
                             </div>
                         </button>
                     </div>
-                    <input class="mb-3 w-full rounded-md border border-[#282828] bg-[#141414] px-3.5 py-3 text-xs tracking-[0.03em] text-[#e0e0e0] outline-none transition placeholder:text-[#3a3a3a] focus:border-[var(--gold)] focus:bg-[#171717] focus:shadow-[0_0_0_2px_rgba(212,175,55,0.08)]" type="email" name="email_registro" placeholder="Email" value="<?= htmlspecialchars($valores['email_registro']) ?>" autocomplete="email" required>
-                    <input class="mb-3 w-full rounded-md border border-[#282828] bg-[#141414] px-3.5 py-3 text-xs tracking-[0.03em] text-[#e0e0e0] outline-none transition placeholder:text-[#3a3a3a] focus:border-[var(--gold)] focus:bg-[#171717] focus:shadow-[0_0_0_2px_rgba(212,175,55,0.08)]" type="password" name="password_registro" placeholder="Contraseña (mín. 6 caracteres)" autocomplete="new-password" required>
+                    <input class="mb-3 w-full rounded-md border border-[#282828] bg-[#141414] px-3.5 py-[13px] text-[13px] tracking-[0.03em] text-[#e0e0e0] outline-none transition placeholder:text-[#3a3a3a] focus:border-[var(--gold)] focus:bg-[#171717] focus:shadow-[0_0_0_2px_rgba(212,175,55,0.15)]" type="email" name="email_registro" placeholder="Email" value="<?= htmlspecialchars($valores['email_registro']) ?>" autocomplete="email" required>
+                    <input class="mb-3 w-full rounded-md border border-[#282828] bg-[#141414] px-3.5 py-[13px] text-[13px] tracking-[0.03em] text-[#e0e0e0] outline-none transition placeholder:text-[#3a3a3a] focus:border-[var(--gold)] focus:bg-[#171717] focus:shadow-[0_0_0_2px_rgba(212,175,55,0.15)]" type="password" name="password_registro" placeholder="Contraseña (mín. 6 caracteres)" autocomplete="new-password" required>
 
                     <button type="submit" class="w-full rounded-md bg-[var(--gold)] px-3 py-3 text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--obsidian)] transition hover:-translate-y-0.5 hover:bg-[var(--gold-light)] hover:shadow-[0_6px_20px_rgba(212,175,55,0.25)]">Crear cuenta</button>
                 </form>
@@ -163,16 +165,16 @@ $wrapperClase = "login-wrapper " . ($estado['modo'] === 'registro' ? 'es-registr
                 <p class="mb-6 text-center text-[11px] leading-relaxed tracking-[0.03em] text-black/60">Regístrate y accede a<br>tu espacio VIP</p>
 
                 <ul class="mb-8 w-full list-none">
-                    <li class="flex items-center gap-2.5 border-b border-black/10 py-2.5 text-left text-[11px] tracking-[0.03em] text-black/75"><i class="bi bi-calendar-check w-[17px] text-center text-[15px] text-black/50"></i><span>Reserva tus citas online</span></li>
+                    <li class="flex items-center gap-2.5 border-b border-black/10 py-3.5 text-left text-[11px] tracking-[0.03em] text-black/75"><i class="bi bi-calendar-check w-[17px] text-center text-[15px] text-black/50"></i><span>Reserva tus citas online</span></li>
                     <li class="flex items-center gap-2.5 border-b border-black/10 py-2.5 text-left text-[11px] tracking-[0.03em] text-black/75"><i class="bi bi-clock-history w-[17px] text-center text-[15px] text-black/50"></i><span>Historial de cortes</span></li>
                     <li class="flex items-center gap-2.5 border-b border-black/10 py-2.5 text-left text-[11px] tracking-[0.03em] text-black/75"><i class="bi bi-whatsapp w-[17px] text-center text-[15px] text-black/50"></i><span>Avisos por WhatsApp</span></li>
-                    <li class="flex items-center gap-2.5 py-2.5 text-left text-[11px] tracking-[0.03em] text-black/75"><i class="bi bi-star w-[17px] text-center text-[15px] text-black/50"></i><span>Puntos y valoraciones</span></li>
+                    <li class="flex items-center gap-2.5 py-3.5 text-left text-[11px] tracking-[0.03em] text-black/75"><i class="bi bi-star w-[17px] text-center text-[15px] text-black/50"></i><span>Puntos y valoraciones</span></li>
                 </ul>
 
-                <button class="relative z-[1] rounded-md border border-black/35 bg-transparent px-7 py-3 text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--obsidian)] transition hover:border-black/60 hover:bg-black/10" type="button" data-auth-open-register>Crear cuenta</button>
+                <button class="relative z-[1] rounded-md border border-black/35 bg-transparent px-7 py-3 text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--obsidian)] transition hover:border-black/60 hover:bg-black/10" type="button" data-auth-open-register>Hazte VIP</button>
             </div>
 
-            <div class="login-overlay-card login-overlay-return absolute inset-0 flex flex-col items-center justify-center px-9 py-11 text-center after:pointer-events-none after:absolute after:inset-4 after:border after:border-black/10">
+            <div class="login-overlay-card login-overlay-return absolute inset-0 flex flex-col items-center justify-center px-12 py-14 text-center after:pointer-events-none after:absolute after:inset-4 after:border after:border-black/10">
                 <p class="mb-6 text-[9px] font-bold uppercase tracking-[0.22em] text-black/50">Ya tienes cuenta</p>
                 <h2 class="mb-3 text-center font-[var(--font-montserrat)] text-2xl font-black uppercase leading-tight tracking-[0.08em] text-[var(--obsidian)]">Bienvenido<br><span class="font-[var(--font-playfair)] text-[1.65rem] normal-case italic tracking-normal">de nuevo</span></h2>
                 <p class="mb-8 text-center text-[11px] leading-relaxed tracking-[0.03em] text-black/60">Vuelve a iniciar sesión<br>para ver tus citas</p>

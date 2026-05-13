@@ -43,10 +43,22 @@ class Bloqueo {
     }
 
     // Devuelve los bloqueos de un barbero en una fecha concreta
-    public static function getByBarberoYFecha(int $idBarbero, string $fecha): array {
-        $pdo  = BD::obtenerConexion();
-        $stmt = $pdo->prepare("SELECT * FROM bloqueos WHERE id_barbero = :id AND fecha = :fecha");
-        $stmt->execute([':id' => $idBarbero, ':fecha' => $fecha]);
-        return $stmt->fetchAll();
+    public static function obtenerPorFecha(int $idBarbero, string $fecha): array {
+
+        $conexion = BD::obtenerConexion();
+
+        $stmt = $conexion->prepare("
+            SELECT hora_inicio, hora_fin
+            FROM bloqueos
+            WHERE id_barbero = :id
+              AND fecha = :fecha
+        ");
+
+        $stmt->execute([
+            ':id' => $idBarbero,
+            ':fecha' => $fecha
+        ]);
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 }

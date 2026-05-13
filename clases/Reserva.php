@@ -89,6 +89,40 @@ class Reserva {
         ]);
         return (int) $conexion->lastInsertId();
     }
+    public static function obtenerOcupadasPorMes(int $idBarbero, int $mes, int $anyo): array {
+        $conexion = BD::obtenerConexion();
+
+        // Calculamos el primer y último día del mes para la consulta
+        $inicioMes = sprintf('%04d-%02d-01', $anyo, $mes);
+        $finMes    = date('Y-m-t', strtotime($inicioMes));
+
+        $stmt = $conexion->prepare("
+            SELECT fecha, hora 
+            FROM reservas 
+            WHERE id_barbero = :barbero 
+              AND fecha BETWEEN :inicio AND :fin
+        ");
+
+        $stmt->execute([
+            ':barbero' => $idBarbero,
+            ':inicio'  => $inicioMes,
+            ':fin'     => $finMes
+        ]);
+
+        $ocupadas = [];
+        while ($fila = $stmt->fetch()) {
+            $fecha = $fila['fecha'];
+            // Formateamos la hora a HH:MM por si la base de datos devuelve segundos (HH:MM:SS)
+            $hora  = substr($fila['hora'], 0, 5);
+
+            if (!isset($ocupadas[$fecha])) {
+                $ocupadas[$fecha] = [];
+            }
+            $ocupadas[$fecha][] = $hora;
+        }
+
+        return $ocupadas;
+    }
 
     /**
      * Cambia el estado de una reserva
