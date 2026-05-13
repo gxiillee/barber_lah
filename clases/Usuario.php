@@ -3,7 +3,7 @@
 // Obliga php a ser estricto con lo que tiene que devolver una funcion
 declare(strict_types=1);
 
-require_once 'BD.php';
+require_once __DIR__ . '/BD.php';
 
 class Usuario {
     private $id;
@@ -103,6 +103,9 @@ class Usuario {
     }
 
     public function obtenerRutaDespuesLogin(string $directorio): string {
+        if (isset($_SESSION['reserva_pendiente'])) {
+            return 'confirmar_reserva.php';
+        }
         return ($this->tieneRolAdmin() && file_exists($directorio . '/admin/panel.php'))
             ? 'admin/panel.php'
             : 'index.php';

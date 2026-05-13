@@ -409,3 +409,86 @@
 .animate-fade-in-up {
     animation: fadeInUp 0.8s var(--ease-out) forwards;
 }
+
+/* ================================================================
+   RESERVA PUBLICA
+   Animaciones criticas del flujo de reserva diferida.
+   ================================================================ */
+
+@keyframes reserveShellEnter {
+    from {
+        opacity: 0;
+        transform: translateY(22px) scale(0.985);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+@keyframes reserveStaggerEnter {
+    from {
+        opacity: 0;
+        transform: translateY(18px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes reserveSlotAppear {
+    from {
+        opacity: 0;
+        transform: translateY(8px) scale(0.98);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+@keyframes reservePulse {
+    0%, 100% {
+        opacity: 0.2;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.45;
+        transform: scale(1.06);
+    }
+}
+
+.reserve-shell {
+    animation: reserveShellEnter 0.72s var(--ease-slider) both;
+}
+
+.reserve-stagger {
+    animation: reserveStaggerEnter 0.7s var(--ease-out) both;
+}
+
+.reserve-stagger:nth-of-type(2) {
+    animation-delay: 0.06s;
+}
+
+.reserve-stagger:nth-of-type(3) {
+    animation-delay: 0.12s;
+}
+
+.reserve-slot-appear {
+    animation: reserveSlotAppear 0.28s var(--ease-out) both;
+}
+
+.reserve-live-pulse {
+    animation: reservePulse 2.4s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .reserve-shell,
+    .reserve-stagger,
+    .reserve-slot-appear,
+    .reserve-live-pulse {
+        animation-duration: 1ms !important;
+        animation-iteration-count: 1 !important;
+    }
+}

@@ -42,28 +42,23 @@ const DOM = {
    PRELOADER
    Oculta la pantalla de carga al terminar de cargar la página.
    ──────────────────────────────────────────────────────────────── */
+function quitarCarga() {
+  const p = document.getElementById("preloader");
+  if (p) {
+    p.style.opacity = "0";
+    setTimeout(() => {
+      p.classList.add("hidden");
+      document.body.style.overflow = "auto";
+    }, 500);
+  }
+}
+
 window.addEventListener("load", () => {
-  const minDelay = 1600;
-  const startTime = performance.now();
-
-  const hidePreloader = () => {
-    const elapsed = performance.now() - startTime;
-    const remaining = Math.max(0, minDelay - elapsed);
-
-    // Buscamos el elemento directamente por ID para evitar errores
-    const preloader = document.getElementById("preloader");
-
-    if (preloader) {
-      setTimeout(() => {
-        preloader.classList.add("hidden");
-        // Opcional: habilitamos el scroll del cuerpo una vez quitado
-        document.body.style.overflow = "auto";
-      }, remaining);
-    }
-  };
-
-  hidePreloader();
+  setTimeout(quitarCarga, 1000);
 });
+
+// Failsafe 5s
+setTimeout(quitarCarga, 5000);
 
 /* ────────────────────────────────────────────────────────────────
    NAVEGACIÓN — clase "scrolled" al bajar del viewport

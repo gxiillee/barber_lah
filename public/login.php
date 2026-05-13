@@ -9,9 +9,20 @@ session_start();
 
 // 1. Obtener usuario de sesión una sola vez para mejorar legibilidad
 $usuarioSesion = $_SESSION['usuario'] ?? null;
+$reservaPendiente = (isset($_SESSION['reserva_pendiente']) && is_array($_SESSION['reserva_pendiente']))
+        ? $_SESSION['reserva_pendiente']
+        : null;
+$mensajeReserva = '';
 
 if ($usuarioSesion instanceof Usuario) {
     $usuarioSesion->redirigirDespuesLogin(__DIR__);
+}
+
+if ($reservaPendiente !== null) {
+    $servicioReserva = $reservaPendiente['servicio_nombre'] ?? 'tu servicio';
+    $fechaReserva = $reservaPendiente['fecha_label'] ?? ($reservaPendiente['fecha'] ?? 'la fecha elegida');
+    $horaReserva = isset($reservaPendiente['hora']) ? substr((string)$reservaPendiente['hora'], 0, 5) : '';
+    $mensajeReserva = "Para confirmar tu cita de {$servicioReserva} el {$fechaReserva}" . ($horaReserva !== '' ? " a las {$horaReserva}" : '') . ", accede a tu cuenta o crea una nueva. Solo tardas 30 segundos.";
 }
 
 // 2. Inicialización del estado
@@ -77,6 +88,16 @@ $wrapperClase = "login-wrapper " . ($estado['modo'] === 'registro' ? 'es-registr
                 <h1 class="mb-1.5 text-center font-[var(--font-playfair)] text-[28px] font-bold text-[#f5f0e8]" id="loginTitle">Bienvenido</h1>
                 <p class="mb-6 text-center text-[11px] tracking-[0.06em] text-white/40">Accede a tu cuenta</p>
 
+                <?php if ($mensajeReserva !== ''): ?>
+                    <div class="mb-4 w-full rounded-lg border border-[var(--gold)]/30 bg-[var(--gold)]/[0.08] px-4 py-3 text-left text-[11px] leading-relaxed text-[#eadfbf]">
+                        <div class="mb-1 flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--gold)]">
+                            <i class="bi bi-calendar-check"></i>
+                            Cita pendiente
+                        </div>
+                        <?= htmlspecialchars($mensajeReserva) ?>
+                    </div>
+                <?php endif; ?>
+
                 <?php if ($errorLogin !== ''): ?>
                     <div class="mb-3.5 flex w-full items-center gap-2 rounded-md border border-red-500/35 bg-red-500/10 px-3.5 py-2.5 text-[11px] leading-snug tracking-[0.03em] text-[#ff6b6b]" role="alert">
                         <i class="bi bi-exclamation-circle shrink-0 text-[13px]"></i>
@@ -121,6 +142,16 @@ $wrapperClase = "login-wrapper " . ($estado['modo'] === 'registro' ? 'es-registr
                 <div class="mb-6 font-[var(--font-playfair)] text-xs uppercase tracking-[0.22em] text-[var(--gold)]" aria-label="Barbershop La H">✦ La H ✦</div>
                 <h2 class="mb-1.5 text-center font-[var(--font-playfair)] text-[28px] font-bold text-[#f5f0e8]" id="registerTitle">Únete al club</h2>
                 <p class="mb-6 text-center text-[11px] tracking-[0.06em] text-white/40">Crea tu cuenta VIP</p>
+
+                <?php if ($mensajeReserva !== ''): ?>
+                    <div class="mb-4 w-full rounded-lg border border-[var(--gold)]/30 bg-[var(--gold)]/[0.08] px-4 py-3 text-left text-[11px] leading-relaxed text-[#eadfbf]">
+                        <div class="mb-1 flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--gold)]">
+                            <i class="bi bi-calendar-check"></i>
+                            Cita pendiente
+                        </div>
+                        <?= htmlspecialchars($mensajeReserva) ?>
+                    </div>
+                <?php endif; ?>
 
                 <?php if ($errorReg !== ''): ?>
                     <div class="mb-3.5 flex w-full items-center gap-2 rounded-md border border-red-500/35 bg-red-500/10 px-3.5 py-2.5 text-[11px] leading-snug tracking-[0.03em] text-[#ff6b6b]" role="alert">

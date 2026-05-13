@@ -1,6 +1,6 @@
 <?php
 // Horario.php
-require_once 'BD.php';
+require_once __DIR__ . '/BD.php';
 
 class Horario {
     private int $id;
@@ -45,14 +45,59 @@ class Horario {
     }
 
     /**
+     * Devuelve el nombre del dia usado por el enum de la base de datos.
+     * DateTime::format('N') usa 1=lunes ... 7=domingo.
+     */
+    public static function nombreDiaDesdeFecha(string $fecha): string {
+        $diaNumero = (int)(new DateTimeImmutable($fecha))->format('N');
+        $mapa = [
+            1 => 'lunes',
+            2 => 'martes',
+            3 => 'miercoles',
+            4 => 'jueves',
+            5 => 'viernes',
+            6 => 'sabado',
+            7 => 'domingo',
+        ];
+
+        return $mapa[$diaNumero];
+    }
+
+    /**
+     * Devuelve los tramos de trabajo de un barbero para una fecha concreta.
+     * Se usa para comprobar que un servicio cabe completo antes de cerrar.
+     */
+    public static function obtenerTramosPorFecha(int $idBarbero, string $fecha): array {
+        $conexion = BD::obtenerConexion();
+        $dia = self::nombreDiaDesdeFecha($fecha);
+
+        $stmt = $conexion->prepare("
+            SELECT hora_inicio, hora_fin
+            FROM horarios
+            WHERE id_barbero = :id
+              AND dia_semana = :dia
+            ORDER BY hora_inicio
+        ");
+
+        $stmt->execute([':id' => $idBarbero, ':dia' => $dia]);
+
+        return array_map(static function (array $fila): array {
+            return [
+                'hora_inicio' => substr((string)$fila['hora_inicio'], 0, 5),
+                'hora_fin' => substr((string)$fila['hora_fin'], 0, 5),
+            ];
+        }, $stmt->fetchAll(PDO::FETCH_ASSOC));
+    }
+
+    /**
      * Define la estructura semanal de trabajo.
      * Por ahora la dejamos fija, pero ya preparada para recibir un ID de barbero.
      */
     public static function obtenerPorBarbero(int $idBarbero): array {
 
-        $pdo = BD::obtenerConexion();
+        $conexion = BD::obtenerConexion();
 
-        $stmt = $pdo->prepare("
+        $stmt = $conexion->prepare("
         SELECT dia_semana, hora_inicio, hora_fin
         FROM horarios
         WHERE id_barbero = :id
@@ -109,8 +154,8 @@ class Horario {
 
     // Devuelve el horario de un barbero en un día concreto
     public static function getByBarberoYDia(int $idBarbero, string $dia): ?array {
-        $pdo  = BD::obtenerConexion();
-        $stmt = $pdo->prepare("SELECT * FROM horarios WHERE id_barbero = :id AND dia_semana = :dia");
+        $conexion  = BD::obtenerConexion();
+        $stmt = $conexion->prepare("SELECT * FROM horarios WHERE id_barbero = :id AND dia_semana = :dia");
         $stmt->execute([':id' => $idBarbero, ':dia' => $dia]);
         $resultado = $stmt->fetch();
         return $resultado ?: null;
@@ -118,9 +163,18 @@ class Horario {
 
     // Devuelve todos los horarios de un barbero
     public static function getByBarbero(int $idBarbero): array {
-        $pdo  = BD::obtenerConexion();
-        $stmt = $pdo->prepare("SELECT * FROM horarios WHERE id_barbero = :id ORDER BY id");
+        $conexion  = BD::obtenerConexion();
+        $stmt = $conexion->prepare("SELECT * FROM horarios WHERE id_barbero = :id ORDER BY id");
         $stmt->execute([':id' => $idBarbero]);
         return $stmt->fetchAll();
+    }
+
+    // Para saber si hassan trabaja ese dia
+    public static function trabajaEseDia(int $idBarbero, string $fecha): bool {
+        $conexion = BD::obtenerConexion();
+        $diaSemana = self::nombreDiaDesdeFecha($fecha);
+        $stmt = $conexion->prepare("SELECT COUNT(*) FROM horarios WHERE id_barbero = :id AND dia_semana = :dia");
+        $stmt->execute([':id' => $idBarbero, ':dia' => $diaSemana]);
+        return (int)$stmt->fetchColumn() > 0;
     }
 }

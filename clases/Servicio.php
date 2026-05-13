@@ -1,5 +1,5 @@
 <?php
-require_once 'BD.php';
+require_once __DIR__ . '/BD.php';
 
 class Servicio {
     private int $id;
@@ -55,7 +55,7 @@ class Servicio {
      * se usaria en editar servicio y
      * al darle resumen al cliente de su reserva con su servicio
      */
-    public static function ObtenerById(int $id): ?Servicio {
+    public static function obtenerPorId(int $id): ?Servicio {
         $conexion = BD::obtenerConexion();
         $stmt = $conexion->prepare("SELECT * FROM servicios WHERE id = :id");
         $stmt->execute([':id' => $id]);

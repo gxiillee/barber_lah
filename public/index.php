@@ -77,7 +77,7 @@ $productos = Producto::obtenerActivos(); // De Mongo
         <a href="#sobre"     onclick="document.getElementById('mobileMenu').style.display='none'" class="font-montserrat text-sm uppercase tracking-[0.3rem] text-white/60 hover:text-[var(--gold)]">Nosotros</a>
         <a href="#servicios" onclick="document.getElementById('mobileMenu').style.display='none'" class="font-montserrat text-sm uppercase tracking-[0.3rem] text-white/60 hover:text-[var(--gold)]">Servicios</a>
         <a href="#contacto"  onclick="document.getElementById('mobileMenu').style.display='none'" class="font-montserrat text-sm uppercase tracking-[0.3rem] text-white/60 hover:text-[var(--gold)]">Encuéntranos</a>
-        <a href="login.php"  onclick="document.getElementById('mobileMenu').style.display='none'" class="border border-[var(--gold)]/50 px-8 py-3 font-montserrat text-sm uppercase tracking-[0.2rem] text-[var(--gold)]">Reservar Cita</a>
+        <a href="reserva.php"  onclick="document.getElementById('mobileMenu').style.display='none'" class="border border-[var(--gold)]/50 px-8 py-3 font-montserrat text-sm uppercase tracking-[0.2rem] text-[var(--gold)]">Reservar Cita</a>
     </div>
 
 
@@ -231,7 +231,7 @@ $productos = Producto::obtenerActivos(); // De Mongo
                     </div>
 
                     <div class="mb-12 flex flex-wrap items-center gap-6">
-                        <a href="login.php" class="bg-[var(--gold)] px-8 py-4 font-montserrat text-[0.72rem] font-bold uppercase tracking-[0.2rem] text-black transition-all hover:bg-white hover:-translate-y-1">
+                        <a href="reserva.php" class="bg-[var(--gold)] px-8 py-4 font-montserrat text-[0.72rem] font-bold uppercase tracking-[0.2rem] text-black transition-all hover:bg-white hover:-translate-y-1">
                             Reservar Cita
                         </a>
                         <a href="https://instagram.com/barbershop_la_h" target="_blank" rel="noopener"
@@ -312,7 +312,7 @@ $productos = Producto::obtenerActivos(); // De Mongo
                                 <div class="mb-6 flex items-center gap-3">
                                     <div class="h-px w-6 bg-[var(--gold)] opacity-50"></div>
                                     <span class="font-montserrat text-[0.55rem] uppercase tracking-[0.3rem] text-[var(--gold)]/50">
-                                    <?= htmlspecialchars($servicio->getDuracionMin()) ?>
+                                    <?= htmlspecialchars($servicio->getDuracion()) ?>
                                 </span>
                                 </div>
 
@@ -334,7 +334,7 @@ $productos = Producto::obtenerActivos(); // De Mongo
                                     <?= number_format($servicio->getPrecio(), 0) ?>€
                                 </span>
                                 </div>
-                                <a href="login.php"
+                                <a href="reserva.php?servicio=<?= $servicio->getIdServicio() ?>"
                                    class="font-montserrat text-[0.6rem] uppercase tracking-[0.2rem] text-white/25
                                       border-b border-transparent transition-all duration-300
                                       group-hover:text-[var(--gold)] group-hover:border-[var(--gold)]/40">
@@ -656,7 +656,7 @@ $productos = Producto::obtenerActivos(); // De Mongo
 
                 <!-- CTA reserva -->
                 <div class="reveal-text">
-                    <a href="login" class="bg-[var(--gold)] px-8 py-4 font-montserrat text-[0.72rem] font-bold uppercase tracking-[0.2rem] text-black transition-all hover:bg-white hover:-translate-y-1">
+                    <a href="reserva.php" class="bg-[var(--gold)] px-8 py-4 font-montserrat text-[0.72rem] font-bold uppercase tracking-[0.2rem] text-black transition-all hover:bg-white hover:-translate-y-1">
                         Reservar Cita
                     </a>
                 </div>

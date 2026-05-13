@@ -1,127 +1,217 @@
 <?php
 declare(strict_types=1);
 
-require_once __DIR__ . '/../clases/BD.php';
+date_default_timezone_set('Europe/Madrid');
+
+require_once __DIR__ . '/../clases/Usuario.php';
 require_once __DIR__ . '/../clases/Servicio.php';
 require_once __DIR__ . '/../clases/Barbero.php';
-require_once __DIR__ . '/../clases/Bloqueo.php';
-require_once __DIR__ . '/../clases/Horario.php';
 require_once __DIR__ . '/../clases/Reserva.php';
 
 session_start();
 
-// ─── Barbero activo ───────────────────────────────────────────────────────────
 const ID_BARBERO_ACTIVO = 1;
 
-// ─── Horario base dinámico (30 min) ───────────────────────────────────────────
-$horarioSemanal = Horario::obtenerPorBarbero(ID_BARBERO_ACTIVO);
-
-// ─── Navegación del calendario ────────────────────────────────────────────────
-$mesActual  = isset($_GET['mes'])  ? (int)$_GET['mes']  : (int)date('n');
-$anyoActual = isset($_GET['anyo']) ? (int)$_GET['anyo'] : (int)date('Y');
-
-$primerDiaMes = new DateTime(sprintf('%04d-%02d-01', $anyoActual, $mesActual));
-$mesMinimo    = new DateTime(date('Y-m-01'));
-$mesMaximo    = (clone $mesMinimo)->modify('+3 months');
-
-if ($primerDiaMes < $mesMinimo) { $primerDiaMes = clone $mesMinimo; }
-if ($primerDiaMes > $mesMaximo) { $primerDiaMes = clone $mesMaximo; }
-
-$mesActual  = (int)$primerDiaMes->format('n');
-$anyoActual = (int)$primerDiaMes->format('Y');
-
-// ─── Calcular disponibilidad del mes ─────────────────────────────────────────
-$hoyStr      = date('Y-m-d');
-$diasEnMes   = (int)date('t', mktime(0, 0, 0, $mesActual, 1, $anyoActual));
-$ocupadasMes = Reserva::obtenerOcupadasPorMes(ID_BARBERO_ACTIVO, $mesActual, $anyoActual);
-
-$diasCalendario = [];
-for ($d = 1; $d <= $diasEnMes; $d++) {
-    $fechaStr    = sprintf('%04d-%02d-%02d', $anyoActual, $mesActual, $d);
-    $diaSemana   = (int)(new DateTime($fechaStr))->format('w');
-    $horasBase   = $horarioSemanal[$diaSemana] ?? [];
-    $ocupadas    = $ocupadasMes[$fechaStr] ?? [];
-    $bloqueos = Bloqueo::obtenerPorFecha(ID_BARBERO_ACTIVO, $fechaStr);
-    $disponibles = array_values(array_diff($horasBase, $ocupadas));
-    $esPasado    = $fechaStr < $hoyStr;
-
-    $diasCalendario[] = [
-            'num'         => $d,
-            'fecha'       => $fechaStr,
-            'diaSemana'   => $diaSemana,
-            'disponibles' => $disponibles,
-            'esPasado'    => $esPasado,
-            'tieneHueco'  => !$esPasado && count($disponibles) > 0,
-    ];
+function h(mixed $valor): string {
+    return htmlspecialchars((string)$valor, ENT_QUOTES, 'UTF-8');
 }
 
-// ─── Servicios y barbero ──────────────────────────────────────────────────────
-$servicios = Servicio::obtenerTodos();
-$barbero   = Barbero::obtenerPorId(ID_BARBERO_ACTIVO);
-
-// ─── Procesar "Continuar" (Fase 2) ─────────────────────────────────────────────
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['accion'] ?? '') === 'continuar') {
-    $idServicio = (int)($_POST['id_servicio'] ?? 0);
-    $fecha      = $_POST['fecha'] ?? '';
-    $hora       = $_POST['hora']  ?? '';
-
-    $servicioSel = null;
-    foreach ($servicios as $s) {
-        if ($s->getIdServicio() === $idServicio) {
-            $servicioSel = $s;
-            break;
-        }
+function tokenReserva(): string {
+    if (empty($_SESSION['csrf_reserva'])) {
+        $_SESSION['csrf_reserva'] = bin2hex(random_bytes(32));
     }
 
-    if ($servicioSel !== null && $fecha !== '' && $hora !== '') {
+    return $_SESSION['csrf_reserva'];
+}
+
+function tokenReservaValido(?string $token): bool {
+    return isset($_SESSION['csrf_reserva']) && is_string($token) && hash_equals($_SESSION['csrf_reserva'], $token);
+}
+
+function inicioSemana(DateTimeImmutable $fecha): DateTimeImmutable {
+    return $fecha->modify('-' . ((int)$fecha->format('N') - 1) . ' days');
+}
+
+function fechaValida(string $fecha): bool {
+    $dt = DateTimeImmutable::createFromFormat('!Y-m-d', $fecha);
+    return $dt instanceof DateTimeImmutable && $dt->format('Y-m-d') === $fecha;
+}
+
+function nombreMes(int $mes): string {
+    $meses = [
+        1 => 'enero',
+        2 => 'febrero',
+        3 => 'marzo',
+        4 => 'abril',
+        5 => 'mayo',
+        6 => 'junio',
+        7 => 'julio',
+        8 => 'agosto',
+        9 => 'septiembre',
+        10 => 'octubre',
+        11 => 'noviembre',
+        12 => 'diciembre',
+    ];
+
+    return $meses[$mes] ?? '';
+}
+
+function nombreDia(int $dia): string {
+    $dias = [
+        1 => 'lunes',
+        2 => 'martes',
+        3 => 'miercoles',
+        4 => 'jueves',
+        5 => 'viernes',
+        6 => 'sabado',
+        7 => 'domingo',
+    ];
+
+    return $dias[$dia] ?? '';
+}
+
+function fechaHumana(string $fecha): string {
+    $dt = new DateTimeImmutable($fecha);
+    return nombreDia((int)$dt->format('N')) . ' ' . $dt->format('j') . ' de ' . nombreMes((int)$dt->format('n'));
+}
+
+$servicios = Servicio::obtenerTodos();
+$serviciosPorId = [];
+foreach ($servicios as $servicio) {
+    $serviciosPorId[$servicio->getIdServicio()] = $servicio;
+}
+
+$barbero = Barbero::obtenerPorId(ID_BARBERO_ACTIVO);
+$hoy = new DateTimeImmutable('today');
+$semanaActual = inicioSemana($hoy);
+$semanaMaxima = inicioSemana($hoy->modify('+12 weeks'));
+
+$semanaParam = $_GET['semana'] ?? ($_GET['inicio'] ?? $hoy->format('Y-m-d'));
+try {
+    $semanaSolicitada = new DateTimeImmutable((string)$semanaParam);
+} catch (Throwable) {
+    $semanaSolicitada = $hoy;
+}
+
+$inicioSemana = inicioSemana($semanaSolicitada);
+if ($inicioSemana < $semanaActual) {
+    $inicioSemana = $semanaActual;
+}
+if ($inicioSemana > $semanaMaxima) {
+    $inicioSemana = $semanaMaxima;
+}
+
+$idServicioInicial = isset($_GET['servicio']) ? (int)$_GET['servicio'] : 0;
+if (!isset($serviciosPorId[$idServicioInicial]) && $servicios !== []) {
+    $idServicioInicial = $servicios[0]->getIdServicio();
+}
+
+$fechaInicial = isset($_GET['fecha']) && fechaValida((string)$_GET['fecha']) ? (string)$_GET['fecha'] : '';
+if ($fechaInicial === '') {
+    $fechaInicial = ($inicioSemana->format('Y-m-d') === $semanaActual->format('Y-m-d'))
+        ? $hoy->format('Y-m-d')
+        : $inicioSemana->format('Y-m-d');
+}
+
+$fechaInicialDt = new DateTimeImmutable($fechaInicial);
+$finSemana = $inicioSemana->modify('+6 days');
+if ($fechaInicialDt < $inicioSemana || $fechaInicialDt > $finSemana) {
+    $fechaInicial = ($inicioSemana->format('Y-m-d') === $semanaActual->format('Y-m-d'))
+        ? $hoy->format('Y-m-d')
+        : $inicioSemana->format('Y-m-d');
+}
+
+$horaInicial = '';
+$errorReserva = $_SESSION['reserva_error'] ?? '';
+unset($_SESSION['reserva_error']);
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['accion'] ?? '') === 'continuar') {
+    $idServicioInicial = (int)($_POST['id_servicio'] ?? 0);
+    $fechaInicial = (string)($_POST['fecha'] ?? '');
+    $horaInicial = substr((string)($_POST['hora'] ?? ''), 0, 5);
+    $servicioSeleccionado = $serviciosPorId[$idServicioInicial] ?? null;
+
+    if (!tokenReservaValido($_POST['csrf_token'] ?? null)) {
+        $errorReserva = 'La sesion ha caducado. Recarga la pagina y vuelve a elegir el hueco.';
+    } elseif (!$barbero || !$servicioSeleccionado) {
+        $errorReserva = 'Selecciona un servicio valido para continuar.';
+    } elseif (!fechaValida($fechaInicial) || !preg_match('/^\d{2}:\d{2}$/', $horaInicial)) {
+        $errorReserva = 'Selecciona un dia y una hora disponibles antes de continuar.';
+    } elseif (!Reserva::estaDisponible(ID_BARBERO_ACTIVO, $fechaInicial, $horaInicial, $servicioSeleccionado->getDuracion())) {
+        $errorReserva = 'Ese hueco acaba de dejar de estar disponible. Elige otra hora.';
+    } else {
         $_SESSION['reserva_pendiente'] = [
-                'id_barbero'      => ID_BARBERO_ACTIVO,
-                'id_servicio'     => $idServicio,
-                'nombre_servicio' => $servicioSel->getNombre(),
-                'fecha'           => $fecha,
-                'hora'            => $hora,
-                'precio'          => $servicioSel->getPrecio(),
-                'duracion'        => $servicioSel->getDuracion(),
+            'id_barbero' => ID_BARBERO_ACTIVO,
+            'barbero_nombre' => $barbero->getNombre(),
+            'id_servicio' => $servicioSeleccionado->getIdServicio(),
+            'servicio_nombre' => $servicioSeleccionado->getNombre(),
+            'fecha' => $fechaInicial,
+            'fecha_label' => fechaHumana($fechaInicial),
+            'hora' => $horaInicial,
+            'precio' => $servicioSeleccionado->getPrecio(),
+            'duracion' => $servicioSeleccionado->getDuracion(),
+            'guardada_en' => time(),
         ];
 
-        if (isset($_SESSION['usuario'])) {
-            header('Location: confirmar_reserva.php');
-        } else {
-            header('Location: login.php?source=reserva');
-        }
+        $destino = (($_SESSION['usuario'] ?? null) instanceof Usuario)
+            ? 'confirmar_reserva.php'
+            : 'login.php?source=reserva';
+
+        header('Location: ' . $destino);
         exit;
     }
 }
-$disponibles = [];
 
-foreach ($horasBase as $hora) {
+$diasSemana = [];
+for ($i = 0; $i < 7; $i++) {
+    $fecha = $inicioSemana->modify('+' . $i . ' days');
+    $fechaIso = $fecha->format('Y-m-d');
+    $diasSemana[] = [
+        'fecha' => $fechaIso,
+        'dia_corto' => ucfirst(substr(nombreDia((int)$fecha->format('N')), 0, 3)),
+        'dia_largo' => fechaHumana($fechaIso),
+        'numero' => $fecha->format('j'),
+        'mes' => nombreMes((int)$fecha->format('n')),
+        'es_hoy' => $fechaIso === $hoy->format('Y-m-d'),
+        'pasado' => $fecha < $hoy,
+    ];
+}
 
-    $ocupada = in_array($hora, $ocupadas);
+$disponibilidad = [];
+$serviciosJson = [];
+foreach ($serviciosPorId as $id => $servicio) {
+    $serviciosJson[$id] = [
+        'id' => $servicio->getIdServicio(),
+        'nombre' => $servicio->getNombre(),
+        'precio' => $servicio->getPrecio(),
+        'precio_formateado' => number_format($servicio->getPrecio(), 2, ',', '.') . ' €',
+        'duracion' => $servicio->getDuracion(),
+        'descripcion' => $servicio->getDescripcion() ?? '',
+    ];
 
-    $bloqueada = false;
-
-    foreach ($bloqueos as $b) {
-
-        $inicio = substr($b['hora_inicio'], 0, 5);
-        $fin    = substr($b['hora_fin'], 0, 5);
-
-        if ($hora >= $inicio && $hora < $fin) {
-            $bloqueada = true;
-            break;
-        }
-    }
-
-    if (!$ocupada && !$bloqueada) {
-        $disponibles[] = $hora;
+    foreach ($diasSemana as $dia) {
+        $disponibilidad[$id][$dia['fecha']] = Reserva::obtenerSlotsDisponibles(ID_BARBERO_ACTIVO, $dia['fecha'], $servicio->getDuracion());
     }
 }
-$nombresMeses = ['', 'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
-$nombresDias  = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
 
-$prevFecha = (clone $primerDiaMes)->modify('-1 month');
-$sigFecha  = (clone $primerDiaMes)->modify('+1 month');
-$puedeRetroceder = $prevFecha >= $mesMinimo;
-$puedeAvanzar    = $sigFecha  <= $mesMaximo;
+$mesInicio = nombreMes((int)$inicioSemana->format('n'));
+$mesFin = nombreMes((int)$finSemana->format('n'));
+$tituloSemana = $mesInicio === $mesFin
+    ? $mesInicio . ' ' . $inicioSemana->format('Y')
+    : $mesInicio . ' / ' . $mesFin . ' ' . $inicioSemana->format('Y');
+
+$prevSemana = $inicioSemana->modify('-7 days');
+$sigSemana = $inicioSemana->modify('+7 days');
+$puedeRetroceder = $prevSemana >= $semanaActual;
+$puedeAvanzar = $sigSemana <= $semanaMaxima;
+
+$queryBase = ['servicio' => $idServicioInicial];
+$hrefPrev = 'reserva.php?' . http_build_query(array_merge($queryBase, ['semana' => $prevSemana->format('Y-m-d')]));
+$hrefSig = 'reserva.php?' . http_build_query(array_merge($queryBase, ['semana' => $sigSemana->format('Y-m-d')]));
+
+$jsonFlags = JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT;
+$csrfToken = tokenReserva();
+$usuarioConSesion = ($_SESSION['usuario'] ?? null) instanceof Usuario;
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -129,226 +219,319 @@ $puedeAvanzar    = $sigFecha  <= $mesMaximo;
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Reservar cita · Barbershop La H</title>
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Montserrat:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Montserrat:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
     <link rel="stylesheet" href="assets/css/estilos.css">
 </head>
+<body class="min-h-screen overflow-x-hidden bg-[var(--obsidian)] font-[var(--font-montserrat)] text-[#f5f0e8]">
+    <div class="pointer-events-none fixed inset-0 z-0 bg-[radial-gradient(ellipse_70%_50%_at_15%_0%,rgba(212,175,55,0.075)_0%,transparent_65%),linear-gradient(180deg,rgba(255,255,255,0.035),transparent_24%)]"></div>
 
-<body class="min-h-screen bg-[var(--obsidian)] font-[var(--font-montserrat)] text-[#f5f0e8] overflow-x-hidden">
+    <a href="index.php" class="fixed left-5 top-5 z-40 inline-flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.16em] text-white/45 no-underline transition hover:-translate-x-0.5 hover:text-[var(--gold)]">
+        <i class="bi bi-arrow-left"></i>
+        Inicio
+    </a>
 
-<div class="pointer-events-none fixed inset-0 z-0 bg-[radial-gradient(ellipse_70%_50%_at_15%_40%,rgba(212,175,55,0.04)_0%,transparent_70%),radial-gradient(ellipse_50%_40%_at_85%_60%,rgba(212,175,55,0.025)_0%,transparent_70%)]"></div>
-
-<a href="index.php" class="fixed left-6 top-6 z-40 text-[10px] font-bold uppercase tracking-[0.16em] text-white/40 no-underline transition hover:-translate-x-0.5 hover:text-[var(--gold)] max-sm:left-4 max-sm:top-4">
-    ← Inicio
-</a>
-
-<main class="reserva-panel relative z-10 mx-auto max-w-[1020px] px-6 pb-16 pt-14 max-sm:px-4 max-sm:pt-16">
-
-    <div class="mb-9 text-center">
-        <p class="mb-2 font-[var(--font-playfair)] text-[10px] uppercase tracking-[0.28em] text-[var(--gold)]">✦ Barbershop La H ✦</p>
-        <h1 class="font-[var(--font-playfair)] text-[32px] font-bold leading-none text-[#f5f0e8] max-sm:text-[26px]">Reserva tu cita</h1>
-        <p class="mt-2 text-[11px] tracking-[0.06em] text-white/35">Selecciona servicio, día y hora — sin necesidad de cuenta</p>
-    </div>
-
-    <div class="flex items-start gap-6 max-sm:flex-col">
-        <div class="min-w-0 flex-1 space-y-6">
-
-            <div class="reserva-step" id="pasoServicio">
-                <div class="mb-4 flex items-center gap-3">
-                    <span class="paso-num flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-[var(--gold)]/40 font-[var(--font-playfair)] text-[11px] font-bold text-[var(--gold)]">1</span>
-                    <p class="text-[10px] font-bold uppercase tracking-[0.18em] text-white/50">Servicio</p>
-                </div>
-                <div class="grid grid-cols-1 gap-2 sm:grid-cols-2" id="serviciosGrid">
-                    <?php foreach ($servicios as $s): ?>
-                        <button type="button"
-                                class="servicio-chip group flex items-center gap-4 rounded-xl border border-[#252525] bg-[#0f0f0f] px-5 py-4 text-left transition"
-                                data-id="<?= $s->getIdServicio() ?>"
-                                data-nombre="<?= htmlspecialchars($s->getNombre()) ?>"
-                                data-precio="<?= $s->getPrecio() ?>"
-                                data-precio-fmt="<?= number_format($s->getPrecio(), 2, ',', '.') ?>"
-                                data-duracion="<?= $s->getDuracion() ?>">
-                            <div class="min-w-0 flex-1">
-                                <p class="truncate text-[13px] font-semibold text-[#ddd5c4] group-hover:text-[#f5f0e8]"><?= htmlspecialchars($s->getNombre()) ?></p>
-                                <p class="mt-0.5 text-[11px] text-white/35"><?= $s->getDuracion() ?> min</p>
-                            </div>
-                            <span class="shrink-0 font-[var(--font-playfair)] text-[17px] font-bold text-[var(--gold)]"><?= number_format($s->getPrecio(), 2, ',', '.') ?> €</span>
-                        </button>
-                    <?php endforeach; ?>
-                </div>
+    <main class="reserve-shell relative z-10 mx-auto w-full max-w-7xl px-5 pb-16 pt-20 sm:px-8 lg:px-10">
+        <header class="mb-9 grid gap-6 lg:grid-cols-[1fr_360px] lg:items-end">
+            <div>
+                <p class="mb-3 font-[var(--font-playfair)] text-[11px] uppercase tracking-[0.32em] text-[var(--gold)]">Barbershop La H</p>
+                <h1 class="font-[var(--font-playfair)] text-[42px] font-bold leading-none text-[#f5f0e8] sm:text-[56px]">Reserva tu cita</h1>
+                <p class="mt-4 max-w-2xl text-sm leading-7 text-white/45">Explora servicios, dias y horas disponibles sin crear cuenta. Te pediremos login solo cuando ya tengas claro el hueco.</p>
             </div>
-
-            <div class="reserva-step reserva-step-oculto" id="pasoFecha">
-                <div class="mb-4 flex items-center gap-3">
-                    <span class="paso-num flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-[#2e2e2e] font-[var(--font-playfair)] text-[11px] font-bold text-white/25">2</span>
-                    <p class="text-[10px] font-bold uppercase tracking-[0.18em] text-white/50">Fecha</p>
-                </div>
-
-                <div class="mb-5 flex items-center justify-between">
-                    <h2 class="font-[var(--font-playfair)] text-[16px] capitalize tracking-wide text-[#e8e0d0]"><?= $nombresMeses[$mesActual] ?> <?= $anyoActual ?></h2>
-                    <div class="flex gap-1.5">
-                        <a href="?mes=<?= $prevFecha->format('n') ?>&anyo=<?= $prevFecha->format('Y') ?>" class="flex h-8 w-8 items-center justify-center rounded-lg border border-[#282828] <?= $puedeRetroceder ? 'text-white/40 hover:border-[var(--gold)]/40' : 'opacity-20 cursor-not-allowed' ?>"><i class="bi bi-chevron-left"></i></a>
-                        <a href="?mes=<?= $sigFecha->format('n') ?>&anyo=<?= $sigFecha->format('Y') ?>" class="flex h-8 w-8 items-center justify-center rounded-lg border border-[#282828] <?= $puedeAvanzar ? 'text-white/40 hover:border-[var(--gold)]/40' : 'opacity-20 cursor-not-allowed' ?>"><i class="bi bi-chevron-right"></i></a>
+            <div class="rounded-lg border border-white/10 bg-white/[0.035] p-4">
+                <div class="flex items-center gap-3">
+                    <img src="assets/img/logo.jpg" alt="Hassan" class="h-14 w-14 rounded-full border border-[var(--gold)]/30 object-cover">
+                    <div>
+                        <p class="text-[10px] font-bold uppercase tracking-[0.18em] text-white/35">Tu barbero</p>
+                        <p class="mt-1 text-base font-semibold text-white"><?= h($barbero?->getNombre() ?? 'Hassan') ?></p>
+                        <p class="text-xs text-white/40"><?= h($barbero?->getEspecialidad() ?? 'Corte, barba y diseño') ?></p>
                     </div>
                 </div>
-
-                <div class="dias-scroll flex gap-2 overflow-x-auto pb-2" id="diasScroll">
-                    <?php foreach ($diasCalendario as $dia): ?>
-                        <button type="button"
-                                class="dia-btn flex min-w-[54px] flex-col items-center rounded-xl border py-3 transition <?= ($dia['esPasado'] || !$dia['tieneHueco']) ? 'dia-disabled border-[#181818] bg-[#090909] opacity-40 cursor-not-allowed' : 'border-[#252525] bg-[#0f0f0f] hover:border-[var(--gold)]/45' ?>"
-                                data-fecha="<?= $dia['fecha'] ?>"
-                                data-horas='<?= json_encode($dia['disponibles']) ?>'
-                                data-num="<?= $dia['num'] ?>"
-                                data-diasemana="<?= $dia['diaSemana'] ?>"
-                                <?= ($dia['esPasado'] || !$dia['tieneHueco']) ? 'disabled' : '' ?>>
-                            <span class="mb-1 text-[9px] uppercase tracking-[0.1em] text-white/40"><?= $nombresDias[$dia['diaSemana']] ?></span>
-                            <span class="text-[15px] font-semibold text-[#ddd5c4]"><?= $dia['num'] ?></span>
-                            <span class="mt-1.5 text-[9px] text-[var(--gold)]/50"><?= $dia['esPasado'] ? '—' : (count($dia['disponibles']) . ' h') ?></span>
-                        </button>
-                    <?php endforeach; ?>
-                </div>
             </div>
+        </header>
 
-            <div class="reserva-step reserva-step-oculto" id="pasoHora">
-                <div class="mb-4 flex items-center justify-between">
-                    <div class="flex items-center gap-3">
-                        <span class="paso-num flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-[#2e2e2e] font-[var(--font-playfair)] text-[11px] font-bold text-white/25">3</span>
-                        <p class="text-[10px] font-bold uppercase tracking-[0.18em] text-white/50">Hora disponible</p>
+        <?php if ($errorReserva !== ''): ?>
+            <div class="reserve-stagger mb-6 flex items-start gap-3 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-100" role="alert">
+                <i class="bi bi-exclamation-circle mt-0.5 text-red-300"></i>
+                <span><?= h($errorReserva) ?></span>
+            </div>
+        <?php endif; ?>
+
+        <div class="grid gap-6 lg:grid-cols-[1fr_360px] lg:items-start">
+            <div class="space-y-6">
+                <section class="reserve-stagger rounded-lg border border-white/10 bg-[#0d0d0d]/95 p-5 shadow-[0_18px_60px_rgba(0,0,0,0.45)] sm:p-6">
+                    <div class="mb-5 flex items-center justify-between gap-4">
+                        <div>
+                            <p class="text-[10px] font-bold uppercase tracking-[0.22em] text-[var(--gold)]">1. Servicio</p>
+                            <h2 class="mt-1 text-xl font-semibold text-white">Elige que quieres reservar</h2>
+                        </div>
+                        <i class="bi bi-scissors text-2xl text-[var(--gold)]/55"></i>
                     </div>
-                    <p class="text-[11px] capitalize text-white/35" id="labelDiaSeleccionado"></p>
-                </div>
-                <div class="grid grid-cols-4 gap-2 max-sm:grid-cols-3" id="slotsGrid"></div>
+
+                    <?php if ($servicios === []): ?>
+                        <div class="rounded-lg border border-white/10 bg-white/[0.03] px-4 py-8 text-center text-sm text-white/45">No hay servicios activos ahora mismo.</div>
+                    <?php else: ?>
+                        <div class="grid gap-3 sm:grid-cols-2">
+                            <?php foreach ($servicios as $servicio): ?>
+                                <button type="button"
+                                        class="service-option group rounded-lg border border-white/10 bg-white/[0.025] p-4 text-left transition duration-300 hover:-translate-y-0.5 hover:border-[var(--gold)]/45 hover:bg-white/[0.055] aria-selected:border-[var(--gold)] aria-selected:bg-[var(--gold)]/[0.08]"
+                                        data-service-id="<?= $servicio->getIdServicio() ?>"
+                                        aria-selected="<?= $servicio->getIdServicio() === $idServicioInicial ? 'true' : 'false' ?>">
+                                    <span class="flex items-start justify-between gap-4">
+                                        <span class="min-w-0">
+                                            <span class="block truncate text-[15px] font-semibold text-[#f1eadb]"><?= h($servicio->getNombre()) ?></span>
+                                            <span class="mt-1 block text-xs text-white/40"><?= $servicio->getDuracion() ?> min<?= $servicio->getDescripcion() ? ' · ' . h($servicio->getDescripcion()) : '' ?></span>
+                                        </span>
+                                        <span class="shrink-0 font-[var(--font-playfair)] text-xl font-bold text-[var(--gold)]"><?= number_format($servicio->getPrecio(), 2, ',', '.') ?> €</span>
+                                    </span>
+                                </button>
+                            <?php endforeach; ?>
+                        </div>
+                    <?php endif; ?>
+                </section>
+
+                <section class="reserve-stagger rounded-lg border border-white/10 bg-[#0d0d0d]/95 p-5 shadow-[0_18px_60px_rgba(0,0,0,0.45)] sm:p-6">
+                    <div class="mb-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                        <div>
+                            <p class="text-[10px] font-bold uppercase tracking-[0.22em] text-[var(--gold)]">2. Fecha</p>
+                            <h2 class="mt-1 text-xl font-semibold capitalize text-white"><?= h($tituloSemana) ?></h2>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <?php if ($puedeRetroceder): ?>
+                                <a href="<?= h($hrefPrev) ?>" class="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-white/10 text-white/50 transition hover:border-[var(--gold)]/45 hover:text-[var(--gold)]" aria-label="Semana anterior">
+                                    <i class="bi bi-chevron-left text-sm"></i>
+                                </a>
+                            <?php else: ?>
+                                <span class="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-white/5 text-white/10" aria-hidden="true">
+                                    <i class="bi bi-chevron-left text-sm"></i>
+                                </span>
+                            <?php endif; ?>
+
+                            <?php if ($puedeAvanzar): ?>
+                                <a href="<?= h($hrefSig) ?>" class="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-white/10 text-white/50 transition hover:border-[var(--gold)]/45 hover:text-[var(--gold)]" aria-label="Semana siguiente">
+                                    <i class="bi bi-chevron-right text-sm"></i>
+                                </a>
+                            <?php else: ?>
+                                <span class="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-white/5 text-white/10" aria-hidden="true">
+                                    <i class="bi bi-chevron-right text-sm"></i>
+                                </span>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-7 gap-2">
+                        <?php foreach ($diasSemana as $dia): ?>
+                            <?php
+                            $slotsDia = $disponibilidad[$idServicioInicial][$dia['fecha']] ?? [];
+                            $sinHuecos = count($slotsDia) === 0;
+                            ?>
+                            <button type="button"
+                                    class="day-option rounded-lg border border-white/10 bg-white/[0.025] px-1 py-3 text-center transition duration-300 hover:border-[var(--gold)]/45 hover:bg-white/[0.055] disabled:cursor-not-allowed disabled:opacity-35 aria-selected:border-[var(--gold)] aria-selected:bg-[var(--gold)]/[0.10]"
+                                    data-date="<?= h($dia['fecha']) ?>"
+                                    data-past="<?= $dia['pasado'] ? '1' : '0' ?>"
+                                    aria-selected="<?= $dia['fecha'] === $fechaInicial ? 'true' : 'false' ?>"
+                                    <?= $sinHuecos ? 'disabled' : '' ?>>
+                                <span class="block text-[10px] font-bold uppercase tracking-[0.12em] text-white/38"><?= h($dia['dia_corto']) ?></span>
+                                <span class="mt-1 block text-lg font-semibold text-white"><?= h($dia['numero']) ?></span>
+                                <span class="mt-1 block text-[10px] text-[var(--gold)]/65" data-day-count><?= count($slotsDia) ?> huecos</span>
+                            </button>
+                        <?php endforeach; ?>
+                    </div>
+                </section>
+
+                <section class="reserve-stagger rounded-lg border border-white/10 bg-[#0d0d0d]/95 p-5 shadow-[0_18px_60px_rgba(0,0,0,0.45)] sm:p-6">
+                    <div class="mb-5 flex items-center justify-between gap-4">
+                        <div>
+                            <p class="text-[10px] font-bold uppercase tracking-[0.22em] text-[var(--gold)]">3. Hora</p>
+                            <h2 class="mt-1 text-xl font-semibold text-white" id="slotsTitle">Huecos disponibles</h2>
+                        </div>
+                        <span class="rounded-full border border-[var(--gold)]/20 bg-[var(--gold)]/[0.08] px-3 py-1 text-[11px] font-semibold text-[var(--gold)]" id="selectedDayPill"></span>
+                    </div>
+
+                    <div id="slotsGrid" class="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-5"></div>
+
+                    <div id="slotsEmpty" class="hidden rounded-lg border border-dashed border-white/10 bg-white/[0.02] px-4 py-10 text-center">
+                        <i class="bi bi-calendar-x reserve-live-pulse block text-3xl text-white/15"></i>
+                        <p class="mt-3 text-sm text-white/45">No quedan huecos para este dia con el servicio seleccionado.</p>
+                    </div>
+                </section>
             </div>
+
+            <aside class="reserve-stagger lg:sticky lg:top-6">
+                <div class="rounded-lg border border-[var(--gold)]/18 bg-[#101010] p-5 shadow-[0_24px_70px_rgba(0,0,0,0.55)]">
+                    <div class="mb-5 flex items-center justify-between">
+                        <p class="text-[10px] font-bold uppercase tracking-[0.22em] text-white/35">Resumen</p>
+                        <span class="rounded-full bg-[var(--gold)] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--obsidian)]">Sin cuenta aun</span>
+                    </div>
+
+                    <div class="space-y-4">
+                        <div class="rounded-lg border border-white/8 bg-white/[0.025] p-4">
+                            <p class="text-[10px] font-bold uppercase tracking-[0.18em] text-white/30">Servicio</p>
+                            <p class="mt-1 text-base font-semibold text-white" id="summaryService">-</p>
+                            <p class="mt-1 text-xs text-white/38" id="summaryDuration">-</p>
+                        </div>
+
+                        <div class="rounded-lg border border-white/8 bg-white/[0.025] p-4">
+                            <p class="text-[10px] font-bold uppercase tracking-[0.18em] text-white/30">Fecha y hora</p>
+                            <p class="mt-1 text-base font-semibold text-white" id="summaryDate">-</p>
+                            <p class="mt-1 text-xs text-white/38" id="summaryHour">Selecciona una hora</p>
+                        </div>
+
+                        <div class="flex items-center justify-between border-t border-white/10 pt-4">
+                            <span class="text-sm text-white/45">Total</span>
+                            <span class="font-[var(--font-playfair)] text-3xl font-bold text-[var(--gold)]" id="summaryPrice">-</span>
+                        </div>
+                    </div>
+
+                    <form method="post" class="mt-6" id="bookingForm">
+                        <input type="hidden" name="accion" value="continuar">
+                        <input type="hidden" name="csrf_token" value="<?= h($csrfToken) ?>">
+                        <input type="hidden" name="id_servicio" id="inputService" value="<?= $idServicioInicial ?>">
+                        <input type="hidden" name="fecha" id="inputDate" value="<?= h($fechaInicial) ?>">
+                        <input type="hidden" name="hora" id="inputHour" value="<?= h($horaInicial) ?>">
+                        <button type="submit" id="continueButton" class="w-full rounded-lg bg-white/10 px-4 py-4 text-[12px] font-extrabold uppercase tracking-[0.18em] text-white/30 transition duration-300 disabled:cursor-not-allowed disabled:opacity-60 enabled:bg-[var(--gold)] enabled:text-[var(--obsidian)] enabled:hover:-translate-y-0.5 enabled:hover:bg-[var(--gold-light)]" disabled>
+                            <?= $usuarioConSesion ? 'Ir a confirmar' : 'Continuar' ?>
+                        </button>
+                    </form>
+
+                    <p class="mt-4 text-center text-[11px] leading-5 text-white/30">
+                        <?= $usuarioConSesion ? 'Tu sesion esta iniciada. Pasaras directo al resumen final.' : 'Al continuar guardamos tu seleccion y te pedimos acceso solo para confirmar.' ?>
+                    </p>
+                </div>
+            </aside>
         </div>
+    </main>
 
-        <aside class="w-[300px] shrink-0 max-sm:w-full">
-            <div class="sticky top-6 rounded-[16px] border border-[#1e1e1e] bg-[#0d0d0d] p-6 shadow-xl">
-                <p class="mb-4 text-[10px] font-bold uppercase tracking-[0.2em] text-white/40">Tu pedido</p>
+    <script>
+        const reservaServicios = <?= json_encode($serviciosJson, $jsonFlags) ?>;
+        const reservaDisponibilidad = <?= json_encode($disponibilidad, $jsonFlags) ?>;
+        const reservaDias = <?= json_encode(array_column($diasSemana, null, 'fecha'), $jsonFlags) ?>;
 
-                <div id="pedidoVacio" class="flex flex-col items-center gap-2 rounded-xl border border-dashed border-[#1f1f1f] py-7 text-center">
-                    <i class="bi bi-scissors text-white/12 text-2xl"></i>
-                    <p class="text-[11px] text-white/22">Selecciona un servicio</p>
-                </div>
+        const state = {
+            serviceId: String(<?= (int)$idServicioInicial ?>),
+            date: "<?= h($fechaInicial) ?>",
+            hour: "<?= h($horaInicial) ?>",
+        };
 
-                <div id="pedidoInfo" class="hidden space-y-4">
-                    <div class="flex justify-between items-start">
-                        <div>
-                            <p id="pedidoNombre" class="text-[13px] font-semibold text-[#e8e0d0]">—</p>
-                            <p id="pedidoDuracion" class="text-[10px] text-white/35">—</p>
-                        </div>
-                        <p id="pedidoPrecio" class="font-[var(--font-playfair)] text-[15px] font-bold text-[var(--gold)]">—</p>
-                    </div>
-                    <div class="border-t border-[#181818] pt-4 flex items-center gap-3">
-                        <img src="assets/img/logo.jpg" class="h-9 w-9 rounded-full border border-[var(--gold)]/20 object-cover">
-                        <div>
-                            <p class="text-[12px] font-semibold text-white/65"><?= htmlspecialchars($barbero->getNombre()) ?></p>
-                            <p id="pedidoFechaHora" class="text-[10px] text-white/30">Sin fecha</p>
-                        </div>
-                    </div>
-                </div>
+        const serviceButtons = document.querySelectorAll(".service-option");
+        const dayButtons = document.querySelectorAll(".day-option");
+        const slotsGrid = document.getElementById("slotsGrid");
+        const slotsEmpty = document.getElementById("slotsEmpty");
+        const selectedDayPill = document.getElementById("selectedDayPill");
+        const inputService = document.getElementById("inputService");
+        const inputDate = document.getElementById("inputDate");
+        const inputHour = document.getElementById("inputHour");
+        const continueButton = document.getElementById("continueButton");
 
-                <form method="post" id="formReserva" class="mt-6">
-                    <input type="hidden" name="accion" value="continuar">
-                    <input type="hidden" name="id_servicio" id="inputServicio">
-                    <input type="hidden" name="fecha" id="inputFecha">
-                    <input type="hidden" name="hora" id="inputHora">
-                    <button type="submit" id="btnContinuar" disabled class="w-full rounded-xl bg-[#181818] py-3.5 text-[11px] font-bold uppercase tracking-[0.14em] text-white/20 transition-all">Continuar</button>
-                </form>
-                <p id="msgLogin" class="mt-3 hidden text-center text-[10px] text-white/22">Se te pedirá cuenta al confirmar</p>
-            </div>
-        </aside>
-    </div>
-</main>
-
-<script>
-    const DIAS_DISPONIBLES = <?= json_encode($diasCalendario) ?>;
-    const MESES_LARGO = ['', 'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
-    const DIAS_LARGO = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
-    const HOY = "<?= $hoyStr ?>";
-
-    let selS = null, selF = null, selH = null;
-
-    // Lógica Paso 1
-    document.querySelectorAll('.servicio-chip').forEach(chip => {
-        chip.addEventListener('click', () => {
-            document.querySelectorAll('.servicio-chip').forEach(c => c.classList.remove('border-[var(--gold)]/60', 'bg-white/5'));
-            chip.classList.add('border-[var(--gold)]/60', 'bg-white/5');
-            selS = { id: chip.dataset.id, nombre: chip.dataset.nombre, precio: chip.dataset.precioFmt, duracion: chip.dataset.duracion };
-            selF = null; selH = null;
-            actualizarUI();
-            revelarPaso('pasoFecha');
-        });
-    });
-
-    // Lógica Paso 2
-    document.querySelectorAll('.dia-btn:not(.dia-disabled)').forEach(btn => {
-        btn.addEventListener('click', () => {
-            document.querySelectorAll('.dia-btn').forEach(b => b.classList.remove('border-[var(--gold)]', 'bg-[#141414]'));
-            btn.classList.add('border-[var(--gold)]', 'bg-[#141414]');
-            selF = btn.dataset.fecha;
-            selH = null;
-
-            const [y, m, d] = selF.split('-');
-            document.getElementById('labelDiaSeleccionado').textContent = `${DIAS_LARGO[btn.dataset.diasemana]} ${parseInt(d)} de ${MESES_LARGO[parseInt(m)]}`;
-
-            renderHoras(JSON.parse(btn.dataset.horas));
-            actualizarUI();
-            revelarPaso('pasoHora');
-        });
-    });
-
-    function renderHoras(horas) {
-        const grid = document.getElementById('slotsGrid');
-        grid.innerHTML = '';
-        horas.forEach(h => {
-            const b = document.createElement('button');
-            b.className = 'py-3 rounded-xl border border-[#252525] bg-[#0f0f0f] text-[13px] font-semibold text-[#ccc4b0] hover:border-[var(--gold)]/50 transition-all';
-            b.textContent = h;
-            b.onclick = () => {
-                document.querySelectorAll('.hora-btn-active').forEach(x => x.classList.remove('hora-btn-active', 'border-[var(--gold)]', 'text-[var(--gold)]'));
-                b.classList.add('hora-btn-active', 'border-[var(--gold)]', 'text-[var(--gold)]');
-                selH = h;
-                actualizarUI();
-            };
-            grid.appendChild(b);
-        });
-    }
-
-    function actualizarUI() {
-        if(selS) {
-            document.getElementById('pedidoVacio').classList.add('hidden');
-            document.getElementById('pedidoInfo').classList.remove('hidden');
-            document.getElementById('pedidoNombre').textContent = selS.nombre;
-            document.getElementById('pedidoDuracion').textContent = selS.duracion + ' min';
-            document.getElementById('pedidoPrecio').textContent = selS.precio + ' €';
-            document.getElementById('inputServicio').value = selS.id;
+        function slotsFor(serviceId, date) {
+            return reservaDisponibilidad[serviceId]?.[date] ?? [];
         }
-        if(selF) {
-            const [y, m, d] = selF.split('-');
-            document.getElementById('pedidoFechaHora').textContent = `${d} de ${MESES_LARGO[parseInt(m)]}${selH ? ' · ' + selH : ''}`;
-            document.getElementById('inputFecha').value = selF;
+
+        function serviceData() {
+            return reservaServicios[state.serviceId] ?? null;
         }
-        if(selH) {
-            document.getElementById('inputHora').value = selH;
-            const btn = document.getElementById('btnContinuar');
-            btn.disabled = false;
-            btn.className = 'w-full rounded-xl bg-[var(--gold)] py-3.5 text-[11px] font-bold uppercase tracking-[0.14em] text-[var(--obsidian)] shadow-lg cursor-pointer';
-            document.getElementById('msgLogin').classList.remove('hidden');
+
+        function setSelected(elements, attr, value) {
+            elements.forEach((element) => {
+                element.setAttribute("aria-selected", element.dataset[attr] === value ? "true" : "false");
+            });
         }
-    }
 
-    function revelarPaso(id) {
-        const el = document.getElementById(id);
-        el.classList.remove('reserva-step-oculto');
-        el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    }
-</script>
+        function updateDayAvailability() {
+            dayButtons.forEach((button) => {
+                const count = slotsFor(state.serviceId, button.dataset.date).length;
+                const label = button.querySelector("[data-day-count]");
+                label.textContent = count === 1 ? "1 hueco" : `${count} huecos`;
+                button.disabled = count === 0;
+            });
+        }
 
-<style>
-    .reserva-step-oculto { opacity: 0.2; pointer-events: none; filter: grayscale(1); }
-    .dia-scroll::-webkit-scrollbar { height: 4px; }
-    .dia-scroll::-webkit-scrollbar-thumb { background: rgba(212,175,55,0.2); border-radius: 10px; }
-</style>
+        function renderSlots() {
+            const slots = slotsFor(state.serviceId, state.date);
+            slotsGrid.innerHTML = "";
+            slotsEmpty.classList.toggle("hidden", slots.length > 0);
+            selectedDayPill.textContent = reservaDias[state.date]?.dia_largo ?? "";
 
+            if (!slots.includes(state.hour)) {
+                state.hour = "";
+            }
+
+            slots.forEach((slot) => {
+                const button = document.createElement("button");
+                button.type = "button";
+                button.className = "reserve-slot-appear rounded-lg border border-white/10 bg-white/[0.03] px-3 py-3 text-sm font-bold text-[#ede4d2] transition duration-300 hover:-translate-y-0.5 hover:border-[var(--gold)]/50 hover:text-[var(--gold)] aria-selected:border-[var(--gold)] aria-selected:bg-[var(--gold)]/[0.10] aria-selected:text-[var(--gold)]";
+                button.textContent = slot;
+                button.dataset.hour = slot;
+                button.setAttribute("aria-selected", slot === state.hour ? "true" : "false");
+                button.addEventListener("click", () => {
+                    state.hour = slot;
+                    renderSlots();
+                    updateSummary();
+                });
+                slotsGrid.appendChild(button);
+            });
+        }
+
+        function updateSummary() {
+            const service = serviceData();
+            document.getElementById("summaryService").textContent = service?.nombre ?? "-";
+            document.getElementById("summaryDuration").textContent = service ? `${service.duracion} min con Hassan` : "-";
+            document.getElementById("summaryPrice").textContent = service?.precio_formateado ?? "-";
+            document.getElementById("summaryDate").textContent = reservaDias[state.date]?.dia_largo ?? "-";
+            document.getElementById("summaryHour").textContent = state.hour || "Selecciona una hora";
+
+            inputService.value = state.serviceId;
+            inputDate.value = state.date;
+            inputHour.value = state.hour;
+            continueButton.disabled = !(state.serviceId && state.date && state.hour);
+        }
+
+        function selectService(serviceId) {
+            state.serviceId = String(serviceId);
+            state.hour = "";
+            setSelected(serviceButtons, "serviceId", state.serviceId);
+            updateDayAvailability();
+
+            if (slotsFor(state.serviceId, state.date).length === 0) {
+                const firstAvailable = Array.from(dayButtons).find((button) => slotsFor(state.serviceId, button.dataset.date).length > 0);
+                if (firstAvailable) {
+                    state.date = firstAvailable.dataset.date;
+                }
+            }
+
+            setSelected(dayButtons, "date", state.date);
+            renderSlots();
+            updateSummary();
+        }
+
+        function selectDate(date) {
+            if (slotsFor(state.serviceId, date).length === 0) return;
+            state.date = date;
+            state.hour = "";
+            setSelected(dayButtons, "date", state.date);
+            renderSlots();
+            updateSummary();
+        }
+
+        serviceButtons.forEach((button) => {
+            button.addEventListener("click", () => selectService(button.dataset.serviceId));
+        });
+
+        dayButtons.forEach((button) => {
+            button.addEventListener("click", () => selectDate(button.dataset.date));
+        });
+
+        document.getElementById("bookingForm").addEventListener("submit", (event) => {
+            updateSummary();
+            if (continueButton.disabled) {
+                event.preventDefault();
+            }
+        });
+
+        selectService(state.serviceId);
+    </script>
 </body>
 </html>
