@@ -3,7 +3,7 @@
 // Obliga php a ser estricto con lo que tiene que devolver una funcion
 declare(strict_types=1);
 
-require_once __DIR__ . '/BD.php';
+require_once __DIR__ . '/conexiones/BD.php';
 
 class Usuario {
     private $id;

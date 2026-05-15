@@ -1,6 +1,6 @@
 <?php
 // Reserva.php
-require_once __DIR__ . '/BD.php';
+require_once __DIR__ . '/conexiones/BD.php';
 require_once __DIR__ . '/Horario.php';
 require_once __DIR__ . '/Bloqueo.php';
 
