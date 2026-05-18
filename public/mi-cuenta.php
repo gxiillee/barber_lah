@@ -3,6 +3,8 @@
 // os dejo este archivo simulando si fuese el panel del cliente donde puede ver
 // las funciones susyas de ver sus cortes y tal.
 //en un futuro sera su panel, es para que las rutas me funcionen al 100%
+
+//Evita calculos raro scon datos que suban a la bd mal, como en vez de un int, un string o ""
 declare(strict_types=1);
 
 require_once __DIR__ . '/../clases/Usuario.php';

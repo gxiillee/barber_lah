@@ -1,6 +1,8 @@
 <?php
+//Evita calculos raro scon datos que suban a la bd mal, como en vez de un int, un string o ""
 declare(strict_types=1);
 
+// sincroniza los horarios con los de España
 date_default_timezone_set('Europe/Madrid');
 
 $autoload = __DIR__ . '/../vendor/autoload.php';
