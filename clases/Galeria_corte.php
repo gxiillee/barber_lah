@@ -1,6 +1,9 @@
 <?php
-// clases/Corte.php
 class Corte {
+    /**
+     * SACA TODAS LAS FOTOS DE LOS CORTES PARA CARRUSEL INDEX
+     * GENERA UN array con las FOTOS
+     */
     public static function obtenerTodos() {
         try {
             $db = ConexionMongo::conectar();

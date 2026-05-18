@@ -1,5 +1,7 @@
 # 💈 Barbershop La H — Sistema de Gestión Web
+
 ### TFG · Ciclo Superior DAW (Desarrollo de Aplicaciones Web)
+
 <p align="center">
   <img src="/public/assets/img/banner.jpg" alt="Banner de Introducción" width="100%">
 </p>
@@ -26,14 +28,14 @@ El negocio actualmente utiliza **Booksy** para la gestión de reservas. Este pro
 
 ## ⚙️ Stack tecnológico
 
-| Capa | Tecnología |
-|---|---|
-| Backend | PHP 8+ — Orientación a Objetos (POO), sin frameworks |
-| Base de datos | MySQL + PDO |
-| Frontend | HTML5, CSS3, Bootstrap 5, JavaScript (fetch) |
-| Email | PHPMailer + cuenta Gmail |
-| Control de versiones | Git + GitHub |
-| Servidor local | XAMPP |
+| Capa                 | Tecnología                                           |
+| -------------------- | ---------------------------------------------------- |
+| Backend              | PHP 8+ — Orientación a Objetos (POO), sin frameworks |
+| Base de datos        | MySQL + PDO                                          |
+| Frontend             | HTML5, CSS3, Bootstrap 5, JavaScript (fetch)         |
+| Email                | PHPMailer + cuenta Gmail                             |
+| Control de versiones | Git + GitHub                                         |
+| Servidor local       | XAMPP                                                |
 
 ---
 
@@ -68,6 +70,7 @@ Persona (clase base)
 ## 🛠️ Funcionalidades principales
 
 ### Parte pública (cualquier visitante)
+
 - Página de inicio con presentación, servicios destacados y reseñas
 - Listado completo de servicios con precio y duración
 - Formulario de reserva online (servicio → fecha → hora disponible)
@@ -75,6 +78,7 @@ Persona (clase base)
 - Página de contacto con mapa incrustado (C/ Miguel Servet 24)
 
 ### Panel de administración (solo Hassan)
+
 - Login seguro con sesiones PHP
 - Dashboard con citas del día y resumen semanal
 - Gestión de citas: ver, confirmar, completar, cancelar
@@ -82,6 +86,7 @@ Persona (clase base)
 - Gestión de reseñas: aprobar o eliminar antes de publicar
 
 ### Sistema de notificaciones y reseñas verificadas
+
 1. Hassan marca una cita como **completada** desde el panel
 2. El sistema genera un **token único** y lo guarda en la BBDD
 3. Se envía un **email automático** al cliente (PHPMailer) con enlace a la reseña
@@ -90,6 +95,7 @@ Persona (clase base)
 6. El token queda marcado como usado → nadie más puede usarlo
 
 ### Endpoints JSON (futura API REST)
+
 - `api/servicios.php` → devuelve todos los servicios activos
 - `api/disponibilidad.php?fecha=YYYY-MM-DD` → devuelve huecos libres
 - `api/reservas.php` → devuelve citas del día (autenticado)
@@ -98,14 +104,14 @@ Persona (clase base)
 
 ## ✂️ Servicios reales de la barbería
 
-| Servicio | Precio | Duración |
-|---|---|---|
-| Corte caballero | 14 € | 30 min |
-| Corte + barba | 20 € | 30 min |
-| Corte niños (hasta 10 años) | 12 € | 30 min |
-| Recorte de barba | 7 € | 30 min |
-| Perfilar cejas | 5 € | 30 min |
-| Diseño | 5 € | 30 min |
+| Servicio                    | Precio | Duración |
+| --------------------------- | ------ | -------- |
+| Corte caballero             | 14 €   | 30 min   |
+| Corte + barba               | 20 €   | 30 min   |
+| Corte niños (hasta 10 años) | 12 €   | 30 min   |
+| Recorte de barba            | 7 €    | 30 min   |
+| Perfilar cejas              | 5 €    | 30 min   |
+| Diseño                      | 5 €    | 30 min   |
 
 ---
 
@@ -180,6 +186,7 @@ barberlah/
 ## ✅ Estado del proyecto
 
 ### Fase 1 — Análisis y documentación
+
 - [ ] Documento de análisis de la oportunidad
 - [ ] Casos de uso
 - [ ] Diagrama UML de clases
@@ -187,10 +194,12 @@ barberlah/
 - [ ] Wireframes de las páginas
 
 ### Fase 2 — Base de datos
+
 - [ ] Script SQL de creación de tablas
 - [ ] Datos de prueba (seed)
 
 ### Fase 3 — Backend PHP
+
 - [ ] Clases base y herencia (Usuario, Cliente, Administrador, Persona, Barbero)
 - [ ] Conexión a BBDD con PDO
 - [ ] Lógica de reservas y disponibilidad
@@ -199,6 +208,7 @@ barberlah/
 - [ ] Endpoints JSON (api/)
 
 ### Fase 4 — Frontend público
+
 - [ ] Página de inicio
 - [ ] Página de servicios
 - [ ] Formulario de reserva
@@ -206,6 +216,7 @@ barberlah/
 - [ ] Página de contacto
 
 ### Fase 5 — Panel de administración
+
 - [ ] Login y control de sesión
 - [ ] Dashboard
 - [ ] Gestión de citas
@@ -213,11 +224,13 @@ barberlah/
 - [ ] Gestión de reseñas
 
 ### Fase 6 — Pruebas y despliegue
+
 - [ ] Pruebas funcionales
 - [ ] Corrección de errores
 - [ ] Despliegue en hosting
 
 ### Fase 7 — Documentación final
+
 - [ ] Memoria del proyecto
 - [ ] Preparación de la defensa
 
@@ -225,9 +238,9 @@ barberlah/
 
 ## 📝 Historial de cambios
 
-| Fecha | Descripción |
-|---|---|
-| — | *Pendiente de primera entrada* |
+| Fecha | Descripción                    |
+| ----- | ------------------------------ |
+| —     | _Pendiente de primera entrada_ |
 
 ---
 

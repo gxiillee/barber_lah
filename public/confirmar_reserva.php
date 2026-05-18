@@ -8,6 +8,8 @@ if (file_exists($autoload)) {
     require_once $autoload;
 }
 
+require_once __DIR__ . '/../clases/helpers.php';
+require_once __DIR__ . '/../clases/Csrf.php';
 require_once __DIR__ . '/../clases/Usuario.php';
 require_once __DIR__ . '/../clases/Servicio.php';
 require_once __DIR__ . '/../clases/Barbero.php';
@@ -16,26 +18,9 @@ require_once __DIR__ . '/../clases/NotificadorReserva.php';
 
 session_start();
 
-function h(mixed $valor): string {
-    return htmlspecialchars((string)$valor, ENT_QUOTES, 'UTF-8');
-}
-
-function tokenConfirmacion(): string {
-    if (empty($_SESSION['csrf_confirmar_reserva'])) {
-        $_SESSION['csrf_confirmar_reserva'] = bin2hex(random_bytes(32));
-    }
-
-    return $_SESSION['csrf_confirmar_reserva'];
-}
-
-function tokenConfirmacionValido(?string $token): bool {
-    return isset($_SESSION['csrf_confirmar_reserva']) && is_string($token) && hash_equals($_SESSION['csrf_confirmar_reserva'], $token);
-}
-
-function inicioSemanaConfirmacion(string $fecha): string {
-    $dt = new DateTimeImmutable($fecha);
-    return $dt->modify('-' . ((int)$dt->format('N') - 1) . ' days')->format('Y-m-d');
-}
+// ---------------------------------------------------------------
+// Comprobacion de sesion de usuario
+// ---------------------------------------------------------------
 
 $usuario = $_SESSION['usuario'] ?? null;
 if (!$usuario instanceof Usuario) {
@@ -43,22 +28,26 @@ if (!$usuario instanceof Usuario) {
     exit;
 }
 
+// ---------------------------------------------------------------
+// Recuperar la reserva pendiente de la sesion
+// ---------------------------------------------------------------
+
 $pendiente = (isset($_SESSION['reserva_pendiente']) && is_array($_SESSION['reserva_pendiente']))
-        ? $_SESSION['reserva_pendiente']
-        : null;
+    ? $_SESSION['reserva_pendiente']
+    : null;
 
 if ($pendiente === null) {
     header('Location: reserva.php');
     exit;
 }
 
-$idBarbero = (int)($pendiente['id_barbero'] ?? 1);
+$idBarbero  = (int)($pendiente['id_barbero']  ?? 1);
 $idServicio = (int)($pendiente['id_servicio'] ?? 0);
-$fecha = (string)($pendiente['fecha'] ?? '');
-$hora = substr((string)($pendiente['hora'] ?? ''), 0, 5);
+$fecha      = (string)($pendiente['fecha']    ?? '');
+$hora       = substr((string)($pendiente['hora'] ?? ''), 0, 5);
 
 $servicio = Servicio::obtenerPorId($idServicio);
-$barbero = Barbero::obtenerPorId($idBarbero);
+$barbero  = Barbero::obtenerPorId($idBarbero);
 
 if (!$servicio || !$barbero || $fecha === '' || $hora === '') {
     unset($_SESSION['reserva_pendiente']);
@@ -66,28 +55,33 @@ if (!$servicio || !$barbero || $fecha === '' || $hora === '') {
     exit;
 }
 
-$precio = (float)($pendiente['precio'] ?? $servicio->getPrecio());
-$duracion = (int)($pendiente['duracion'] ?? $servicio->getDuracion());
-$fechaLabel = (string)($pendiente['fecha_label'] ?? $fecha);
+$precio          = (float)($pendiente['precio']      ?? $servicio->getPrecio());
+$duracion        = (int)($pendiente['duracion']       ?? $servicio->getDuracion());
+$fechaLabel      = (string)($pendiente['fecha_label'] ?? $fecha);
 $precioFormateado = number_format($precio, 2, ',', '.') . ' €';
-$disponibleAhora = Reserva::estaDisponible($idBarbero, $fecha, $hora, $duracion);
+$disponibleAhora  = Reserva::estaDisponible($idBarbero, $fecha, $hora, $duracion);
 $errorConfirmacion = '';
 
+// Array con todos los datos de la cita para pasar al notificador y a la sesion
 $detalle = [
-    'id_barbero' => $idBarbero,
-    'barbero_nombre' => $barbero->getNombre(),
-    'id_servicio' => $idServicio,
-    'servicio_nombre' => $servicio->getNombre(),
-    'fecha' => $fecha,
-    'fecha_label' => $fechaLabel,
-    'hora' => $hora,
-    'precio' => $precio,
-    'precio_formateado' => $precioFormateado,
-    'duracion' => $duracion,
+    'id_barbero'       => $idBarbero,
+    'barbero_nombre'   => $barbero->getNombre(),
+    'id_servicio'      => $idServicio,
+    'servicio_nombre'  => $servicio->getNombre(),
+    'fecha'            => $fecha,
+    'fecha_label'      => $fechaLabel,
+    'hora'             => $hora,
+    'precio'           => $precio,
+    'precio_formateado'=> $precioFormateado,
+    'duracion'         => $duracion,
 ];
 
+// ---------------------------------------------------------------
+// Procesar POST: confirmar la reserva
+// ---------------------------------------------------------------
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['accion'] ?? '') === 'confirmar') {
-    if (!tokenConfirmacionValido($_POST['csrf_token'] ?? null)) {
+    if (!Csrf::validarToken('csrf_confirmar_reserva', $_POST['csrf_token'] ?? null)) {
         $errorConfirmacion = 'La sesion ha caducado. Vuelve a intentarlo.';
     } else {
         $idReserva = Reserva::crearConfirmadaSiDisponible(
@@ -101,18 +95,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['accion'] ?? '') === 'confi
             null
         );
 
+        // Si el hueco ya no esta disponible, volver al selector con mensaje de error
         if ($idReserva === null) {
             $_SESSION['reserva_error'] = 'Ese hueco ya no esta disponible. Elige otra hora y lo dejamos listo.';
             header('Location: reserva.php?' . http_build_query([
                 'servicio' => $idServicio,
-                'semana' => inicioSemanaConfirmacion($fecha),
-                'fecha' => $fecha,
+                'semana'   => Reserva::inicioSemanaStr($fecha),
+                'fecha'    => $fecha,
             ]));
             exit;
         }
 
-        $detalle['id_reserva'] = $idReserva;
-        $detalle['email'] = $usuario->getEmail();
+        $detalle['id_reserva']    = $idReserva;
+        $detalle['email']         = $usuario->getEmail();
         $detalle['email_enviado'] = NotificadorReserva::enviarConfirmacion($usuario, $detalle);
         $_SESSION['reserva_confirmada'] = $detalle;
         unset($_SESSION['reserva_pendiente']);
@@ -122,11 +117,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['accion'] ?? '') === 'confi
     }
 }
 
-$csrfToken = tokenConfirmacion();
+$csrfToken   = Csrf::generarToken('csrf_confirmar_reserva');
 $urlModificar = 'reserva.php?' . http_build_query([
     'servicio' => $idServicio,
-    'semana' => inicioSemanaConfirmacion($fecha),
-    'fecha' => $fecha,
+    'semana'   => Reserva::inicioSemanaStr($fecha),
+    'fecha'    => $fecha,
 ]);
 ?>
 <!DOCTYPE html>
