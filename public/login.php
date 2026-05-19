@@ -25,9 +25,6 @@ if ($reservaPendiente !== null) {
     $fechaReserva = $reservaPendiente['fecha_label'] ?? ($reservaPendiente['fecha'] ?? 'la fecha elegida');
     $horaReserva = isset($reservaPendiente['hora']) ? substr((string)$reservaPendiente['hora'], 0, 5) : '';
     $mensajeReserva = "Para confirmar tu cita de {$servicioReserva} el {$fechaReserva}" . ($horaReserva !== '' ? " a las {$horaReserva}" : '') . ", accede a tu cuenta o crea una nueva. Solo tardas 30 segundos.";
-} elseif ($sourceLogin === 'panel') {
-    // Nuevo contexto para "Mi cuenta": este login no viene de reservar, sino del futuro area cliente.
-    $mensajeReserva = 'Accede a tu cuenta para entrar en tu area cliente. Aqui podras consultar tus citas, historial e imagenes guardadas cuando el panel este disponible.';
 }
 
 // 2. Inicialización del estado
