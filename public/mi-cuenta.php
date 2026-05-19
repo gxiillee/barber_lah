@@ -49,6 +49,7 @@ function h(mixed $valor): string {
         <section class="w-full rounded-lg border border-white/10 bg-[#0d0d0d] p-8 text-center shadow-[0_28px_90px_rgba(0,0,0,0.65)]">
             <p class="text-[10px] font-bold uppercase tracking-[0.28em] text-[var(--gold)]">Area cliente</p>
             <h1 class="mt-3 font-[var(--font-playfair)] text-[44px] font-bold leading-none text-white">Hola, <?= h($usuario->getNombre()) ?></h1>
+            <h1 class="mt-3 font-[var(--font-playfair)] text-[44px] font-bold leading-none text-white">Hola, <?= h($usuario->getEmail()) ?></h1>
             <p class="mx-auto mt-4 max-w-xl text-sm leading-7 text-white/45">
                 Tu cuenta ya tiene una puerta propia. El panel completo llegara aqui: citas, historial e imagenes guardadas.
             </p>

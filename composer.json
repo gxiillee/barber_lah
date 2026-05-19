@@ -1,5 +1,9 @@
 {
   "require": {
-    "mongodb/mongodb": "^1.19"
+    "mongodb/mongodb": "^1.19",
+    "php": ">=8.0",
+    "ext-curl": "*",
+    "ext-pdo": "*",
+    "ext-pdo_pgsql": "*"
   }
 }
