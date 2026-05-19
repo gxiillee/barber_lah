@@ -8,8 +8,8 @@ require_once __DIR__ . '/../clases/Usuario.php';
 require_once __DIR__ . '/../clases/Helpers.php';
 
 // Credenciales inalteradas de tu API de Google
-$clientId = $_ENV['GOOGLE_CLIENT_ID'];
-$clientSecret = $_ENV['GOOGLE_CLIENT_SECRET'];
+define('GOOGLE_CLIENT_ID',     '107886896236-hg74nkhc5qvh64v0h32j7kgp0is7psrs.apps.googleusercontent.com');
+define('GOOGLE_CLIENT_SECRET', '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');
 define('GOOGLE_REDIRECT_URI',  'http://localhost/barberlah/auth/google.php');
 
 try {
