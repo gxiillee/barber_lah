@@ -2,6 +2,11 @@
 declare(strict_types=1);
 
 /**
+ * Funciones auxiliares compartidas utilizadas en todo el proyecto.
+ * Mantener este archivo mínimo y enfocado en utilidades esenciales.
+ */
+
+/**
  * Escapa el valor para mostrarlo de forma segura en HTML.
  * Evita XSS convirtiendo caracteres especiales en entidades HTML.
  * Se usa en TODAS las vistas al imprimir datos de la BD o del usuario.

@@ -2,6 +2,11 @@
 declare(strict_types=1);
 
 /**
+ * Clase para gestionar tokens CSRF y proteger formularios contra peticiones falsificadas.
+ * Cada formulario tiene su propia clave de sesion para validacion independiente.
+ */
+
+/**
  * Gestiona los tokens CSRF para proteger los formularios contra peticiones falsificadas.
  * Cada formulario tiene su propia clave de sesion para poder validarlos de forma independiente.
  *
