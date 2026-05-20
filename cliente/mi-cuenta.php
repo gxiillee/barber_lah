@@ -42,7 +42,7 @@ function h(mixed $valor): string {
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Montserrat:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
-    <link rel="stylesheet" href="assets/css/estilos.css">
+    <link rel="stylesheet" href="../public/assets/css/estilos.css">
 </head>
 <body class="min-h-screen bg-[var(--obsidian)] font-[var(--font-montserrat)] text-[#f5f0e8]">
     <main class="reserve-shell mx-auto flex min-h-screen w-full max-w-3xl items-center px-6 py-16">
@@ -55,13 +55,13 @@ function h(mixed $valor): string {
             </p>
 
             <div class="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
-                <a href="reserva.php" class="inline-flex items-center justify-center rounded-lg bg-[var(--gold)] px-6 py-3 text-[11px] font-extrabold uppercase tracking-[0.16em] text-[var(--obsidian)] no-underline transition hover:-translate-y-0.5 hover:bg-[var(--gold-light)]">
+                <a href="../public/reserva.php" class="inline-flex items-center justify-center rounded-lg bg-[var(--gold)] px-6 py-3 text-[11px] font-extrabold uppercase tracking-[0.16em] text-[var(--obsidian)] no-underline transition hover:-translate-y-0.5 hover:bg-[var(--gold-light)]">
                     Reservar cita
                 </a>
-                <a href="index.php" class="inline-flex items-center justify-center rounded-lg border border-white/10 px-6 py-3 text-[11px] font-bold uppercase tracking-[0.16em] text-white/45 no-underline transition hover:border-[var(--gold)]/35 hover:text-[var(--gold)]">
+                <a href="../public/index.php" class="inline-flex items-center justify-center rounded-lg border border-white/10 px-6 py-3 text-[11px] font-bold uppercase tracking-[0.16em] text-white/45 no-underline transition hover:border-[var(--gold)]/35 hover:text-[var(--gold)]">
                     Volver al inicio
                 </a>
-                <a href="cierrases.php" class="inline-flex items-center justify-center rounded-lg border border-red/10 px-6 py-3 text-[11px] font-bold uppercase tracking-[0.16em] text-white/45 no-underline transition hover:border-[var(--gold)]/35 hover:text-[var(--gold)]">
+                <a href="../public/cierrases.php" class="inline-flex items-center justify-center rounded-lg border border-red/10 px-6 py-3 text-[11px] font-bold uppercase tracking-[0.16em] text-white/45 no-underline transition hover:border-[var(--gold)]/35 hover:text-[var(--gold)]">
                     Cierra sesion
                 </a>
 

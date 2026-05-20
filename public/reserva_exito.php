@@ -89,7 +89,7 @@ $emailEnviado = (bool)($detalle['email_enviado'] ?? false);
             </div>
 
             <div class="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
-                <a href="mi-cuenta.php" class="inline-flex items-center justify-center rounded-lg bg-[var(--gold)] px-6 py-3 text-[11px] font-extrabold uppercase tracking-[0.16em] text-[var(--obsidian)] no-underline transition hover:-translate-y-0.5 hover:bg-[var(--gold-light)]">
+                <a href="../cliente/mi-cuenta.php" class="inline-flex items-center justify-center rounded-lg bg-[var(--gold)] px-6 py-3 text-[11px] font-extrabold uppercase tracking-[0.16em] text-[var(--obsidian)] no-underline transition hover:-translate-y-0.5 hover:bg-[var(--gold-light)]">
                     Ver mi cuenta
                 </a>
                 <a href="reserva.php" class="inline-flex items-center justify-center rounded-lg border border-white/10 px-6 py-3 text-[11px] font-bold uppercase tracking-[0.16em] text-white/45 no-underline transition hover:border-[var(--gold)]/35 hover:text-[var(--gold)]">
