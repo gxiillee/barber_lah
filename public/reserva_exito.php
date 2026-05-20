@@ -1,24 +1,43 @@
 <?php
-//Evita calculos raro scon datos que suban a la bd mal, como en vez de un int, un string o ""
+// Evita cálculos raros con datos que suban a la BD mal (Modo Estricto)
 declare(strict_types=1);
 
-// sincroniza los horarios con los de España
+// Sincroniza los horarios con los de España
 date_default_timezone_set('Europe/Madrid');
 
+// Carga de utilidades globales y modelos esenciales requeridos
 require_once __DIR__ . '/../clases/helpers.php';
 require_once __DIR__ . '/../clases/Usuario.php';
 
 session_start();
 
-// Si no hay reserva confirmada en sesion no hay nada que mostrar
+// ---------------------------------------------------------------
+// FASE 1: Configuración e Inicialización
+// ---------------------------------------------------------------
+// Entorno inicializado correctamente mediante las inclusiones superiores.
+
+// ---------------------------------------------------------------
+// FASE 2: Control de Flujo y Seguridad Perimetral
+// ---------------------------------------------------------------
+// Si no existe un recibo de confirmación válido en la sesión, se impide el acceso
+// directo forzando la redirección al inicio de la aplicación.
 $detalle = (isset($_SESSION['reserva_confirmada']) && is_array($_SESSION['reserva_confirmada']))
-    ? $_SESSION['reserva_confirmada']
-    : null;
+        ? $_SESSION['reserva_confirmada']
+        : null;
 
 if ($detalle === null) {
-    header('Location: reserva.php');
-    exit;
+    redirigir('reserva.php');
 }
+
+// ---------------------------------------------------------------
+// FASE 3: Extracción de Datos para la Pantalla (UI)
+// ---------------------------------------------------------------
+// Homologamos las claves de la sesión con lo que el HTML espera abajo para evitar que se pinte vacío
+$detalle['servicio_nombre'] = $detalle['servicio_nombre'] ?? $detalle['servicio'] ?? $detalle['nombre_servicio'] ?? 'Servicio';
+$detalle['fecha_label']     = $detalle['fecha_label'] ?? $detalle['fecha_humana'] ?? $detalle['fecha'] ?? '';
+$detalle['duracion']        = $detalle['duracion'] ?? $detalle['duracion_servicio'] ?? '0';
+$detalle['hora']            = $detalle['hora'] ?? '';
+$detalle['id_reserva']      = $detalle['id_reserva'] ?? $detalle['id'] ?? '';
 
 $emailEnviado = (bool)($detalle['email_enviado'] ?? false);
 ?>

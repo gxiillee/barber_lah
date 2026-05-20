@@ -1,5 +1,5 @@
 <?php
-//Evita calculos raro scon datos que suban a la bd mal, como en vez de un int, un string o ""
+// FASE 1: Configuración e Inicialización
 declare(strict_types=1);
 
 // sincroniza los horarios con los de España
@@ -14,16 +14,15 @@ require_once __DIR__ . '/../clases/Reserva.php';
 
 session_start();
 
-// El unico barbero activo del proyecto. Si en el futuro hay mas, esto vendrá de la BD.
-const ID_BARBERO_ACTIVO = 1;
+// FASE 2: Cargar los datos, servicio para elegir y barbero
 
-// ---------------------------------------------------------------
-// Datos base: servicios y barbero
-// ---------------------------------------------------------------
+// El único barbero activo del proyecto. Si en el futuro hay más, esto vendrá de la BD.
+const ID_BARBERO_ACTIVO = 1;
 
 $servicios = Servicio::obtenerTodos();
 
-// Indice por id para acceder rapido sin recorrer el array
+// servicio por id del array, para no recorrer todo el rato el array
+// solo llamar a getIdServicio y no hace siempre foreach
 $serviciosPorId = [];
 foreach ($servicios as $servicio) {
     $serviciosPorId[$servicio->getIdServicio()] = $servicio;
@@ -31,36 +30,41 @@ foreach ($servicios as $servicio) {
 
 $barbero = Barbero::obtenerPorId(ID_BARBERO_ACTIVO);
 
-// ---------------------------------------------------------------
-// Calculo de semanas (rango navegable: hoy hasta +12 semanas)
-// ---------------------------------------------------------------
+// FASE 3: Lógica de Calendario y Navegación
 
-$hoy          = new DateTimeImmutable('today');
-$semanaActual = Reserva::inicioSemana($hoy);
-$semanaMaxima = Reserva::inicioSemana($hoy->modify('+12 weeks'));
+//te da el dia de hoy sin poder modificarse
+$hoy = new DateTimeImmutable('today');
+//te da la semana actual para no poder reservar un dia pasado
+$semanaActual = obtenerLunesDeSemana($hoy);
+//para poder reservar desde hoy hasta 12 semanas mas
+$semanaMaxima = obtenerLunesDeSemana($hoy->modify('+12 weeks'));
 
+//recoje la peticion de semaa por las flechas, por defecto pinta la de hoy
 $semanaParam = $_GET['semana'] ?? ($_GET['inicio'] ?? $hoy->format('Y-m-d'));
+//capturar por si alguien intenta en URL poner algo falso, catch dice usa el de hoy
 try {
     $semanaSolicitada = new DateTimeImmutable((string)$semanaParam);
 } catch (Throwable) {
     $semanaSolicitada = $hoy;
 }
+//por si un gracioso quiere buscar por URL hace -o+ 6 meses etc..
+$inicioSemana = obtenerLunesDeSemana($semanaSolicitada);
+if ($inicioSemana < $semanaActual) {
+    $inicioSemana = $semanaActual;
+}
+if ($inicioSemana > $semanaMaxima) {
+    $inicioSemana = $semanaMaxima;
+}
 
-$inicioSemana = Reserva::inicioSemana($semanaSolicitada);
-if ($inicioSemana < $semanaActual) { $inicioSemana = $semanaActual; }
-if ($inicioSemana > $semanaMaxima) { $inicioSemana = $semanaMaxima; }
-
-// ---------------------------------------------------------------
-// Servicio y fecha seleccionados por defecto
-// ---------------------------------------------------------------
-
+//selecciona el servicio primero por defecto
 $idServicioInicial = isset($_GET['servicio']) ? (int)$_GET['servicio'] : 0;
+//si no existe el que pone le marca tambien el primero
 if (!isset($serviciosPorId[$idServicioInicial]) && $servicios !== []) {
     $idServicioInicial = $servicios[0]->getIdServicio();
 }
-
-$fechaInicial = isset($_GET['fecha']) && Reserva::fechaValida((string)$_GET['fecha'])
-    ? (string)$_GET['fecha']
+//pone fecha por defecto y si es falsa deja vacia
+$fechaInicial = isset($_GET['fecha']) && esFechaValida((string)$_GET['fecha'])
+        ? (string)$_GET['fecha']
     : '';
 
 if ($fechaInicial === '') {
@@ -71,33 +75,64 @@ if ($fechaInicial === '') {
 
 // Si la fecha inicial cae fuera de la semana visible, corregirla
 $fechaInicialDt = new DateTimeImmutable($fechaInicial);
-$finSemana      = $inicioSemana->modify('+6 days');
+//calculo el fin de esa semana
+$finSemana = $inicioSemana->modify('+6 days');
 if ($fechaInicialDt < $inicioSemana || $fechaInicialDt > $finSemana) {
     $fechaInicial = ($inicioSemana->format('Y-m-d') === $semanaActual->format('Y-m-d'))
         ? $hoy->format('Y-m-d')
         : $inicioSemana->format('Y-m-d');
 }
 
-$horaInicial  = '';
+$horaInicial = '';
 $errorReserva = $_SESSION['reserva_error'] ?? '';
 unset($_SESSION['reserva_error']);
 
-// ---------------------------------------------------------------
-// Procesar POST: guardar seleccion en sesion y redirigir
-// ---------------------------------------------------------------
+// FASE 4: Matriz de Disponibilidad
+
+$diasSemana = Reserva::construirDiasSemana($inicioSemana, $hoy);
+$disponibilidad = Reserva::construirDisponibilidad(ID_BARBERO_ACTIVO, $serviciosPorId, $diasSemana);
+$serviciosJson = Reserva::construirServiciosJson($serviciosPorId);
+$tituloSemana = obtenerTituloSemana($inicioSemana);
+$navSemana = calcularBotonesNavegacion($inicioSemana, $semanaActual, $semanaMaxima);
+
+$prevSemana = new DateTimeImmutable($navSemana['prev']);
+$sigSemana = new DateTimeImmutable($navSemana['next']);
+$puedeRetroceder = $navSemana['puede_retroceder'];
+$puedeAvanzar = $navSemana['puede_avanzar'];
+
+$queryBase = ['servicio' => $idServicioInicial];
+$hrefPrev = 'reserva.php?' . http_build_query(array_merge($queryBase, ['semana' => $prevSemana->format('Y-m-d')]));
+$hrefSig = 'reserva.php?' . http_build_query(array_merge($queryBase, ['semana' => $sigSemana->format('Y-m-d')]));
+
+$jsonFlags = JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT;
+
+// Respuesta ligera para navegar semanas sin recargar toda la página
+if (($_GET['ajax'] ?? '') === 'semana') {
+    header('Content-Type: application/json; charset=utf-8');
+    echo json_encode([
+        'semana'         => $inicioSemana->format('Y-m-d'),
+        'titulo'         => $tituloSemana,
+        'dias'           => array_column($diasSemana, null, 'fecha'),
+        'disponibilidad' => $disponibilidad,
+        'nav'            => $navSemana,
+    ], $jsonFlags);
+    exit;
+}
+
+// FASE 5: Procesamiento del Formulario (POST)
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['accion'] ?? '') === 'continuar') {
-    $idServicioInicial  = (int)($_POST['id_servicio'] ?? 0);
-    $fechaInicial       = (string)($_POST['fecha'] ?? '');
-    $horaInicial        = substr((string)($_POST['hora'] ?? ''), 0, 5);
+    $idServicioInicial = (int)($_POST['id_servicio'] ?? 0);
+    $fechaInicial = (string)($_POST['fecha'] ?? '');
+    $horaInicial = substr((string)($_POST['hora'] ?? ''), 0, 5);
     $servicioSeleccionado = $serviciosPorId[$idServicioInicial] ?? null;
 
     if (!Csrf::validarToken('csrf_reserva', $_POST['csrf_token'] ?? null)) {
-        $errorReserva = 'La sesion ha caducado. Recarga la pagina y vuelve a elegir el hueco.';
+        $errorReserva = 'La sesión ha caducado. Recarga la página y vuelve a elegir el hueco.';
     } elseif (!$barbero || !$servicioSeleccionado) {
-        $errorReserva = 'Selecciona un servicio valido para continuar.';
-    } elseif (!Reserva::fechaValida($fechaInicial) || !preg_match('/^\d{2}:\d{2}$/', $horaInicial)) {
-        $errorReserva = 'Selecciona un dia y una hora disponibles antes de continuar.';
+        $errorReserva = 'Selecciona un servicio válido para continuar.';
+    } elseif (!esFechaValida($fechaInicial) || !preg_match('/^\d{2}:\d{2}$/', $horaInicial)) {
+        $errorReserva = 'Selecciona un día y una hora disponibles antes de continuar.';
     } elseif (!Reserva::estaDisponible(ID_BARBERO_ACTIVO, $fechaInicial, $horaInicial, $servicioSeleccionado->getDuracion())) {
         $errorReserva = 'Ese hueco acaba de dejar de estar disponible. Elige otra hora.';
     } else {
@@ -107,7 +142,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['accion'] ?? '') === 'conti
             'id_servicio'    => $servicioSeleccionado->getIdServicio(),
             'servicio_nombre'=> $servicioSeleccionado->getNombre(),
             'fecha'          => $fechaInicial,
-            'fecha_label'    => Reserva::fechaHumana($fechaInicial),
+            'fecha_label'    => fechaHumana($fechaInicial),
             'hora'           => $horaInicial,
             'precio'         => $servicioSeleccionado->getPrecio(),
             'duracion'       => $servicioSeleccionado->getDuracion(),
@@ -123,41 +158,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['accion'] ?? '') === 'conti
     }
 }
 
-// ---------------------------------------------------------------
-// Datos para la vista: dias, disponibilidad y navegacion
-// ---------------------------------------------------------------
-
-$diasSemana     = Reserva::construirDiasSemana($inicioSemana, $hoy);
-$disponibilidad = Reserva::construirDisponibilidad(ID_BARBERO_ACTIVO, $serviciosPorId, $diasSemana);
-$serviciosJson  = Reserva::construirServiciosJson($serviciosPorId);
-$tituloSemana   = Reserva::tituloSemana($inicioSemana);
-$navSemana      = Reserva::estadoNavegacion($inicioSemana, $semanaActual, $semanaMaxima);
-
-$prevSemana      = new DateTimeImmutable($navSemana['prev']);
-$sigSemana       = new DateTimeImmutable($navSemana['next']);
-$puedeRetroceder = $navSemana['puede_retroceder'];
-$puedeAvanzar    = $navSemana['puede_avanzar'];
-
-$queryBase = ['servicio' => $idServicioInicial];
-$hrefPrev  = 'reserva.php?' . http_build_query(array_merge($queryBase, ['semana' => $prevSemana->format('Y-m-d')]));
-$hrefSig   = 'reserva.php?' . http_build_query(array_merge($queryBase, ['semana' => $sigSemana->format('Y-m-d')]));
-
-$jsonFlags = JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT;
-
-// Respuesta ligera para navegar semanas sin recargar toda la pagina
-if (($_GET['ajax'] ?? '') === 'semana') {
-    header('Content-Type: application/json; charset=utf-8');
-    echo json_encode([
-        'semana'         => $inicioSemana->format('Y-m-d'),
-        'titulo'         => $tituloSemana,
-        'dias'           => array_column($diasSemana, null, 'fecha'),
-        'disponibilidad' => $disponibilidad,
-        'nav'            => $navSemana,
-    ], $jsonFlags);
-    exit;
-}
-
-$csrfToken       = Csrf::generarToken('csrf_reserva');
+// Variables finales para la vista
+$csrfToken = Csrf::generarToken('csrf_reserva');
 $usuarioConSesion = ($_SESSION['usuario'] ?? null) instanceof Usuario;
 ?>
 <!DOCTYPE html>
