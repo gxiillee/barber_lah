@@ -60,7 +60,7 @@ $productos = Producto::obtenerActivos(); // De Mongo
                 <a href="#servicios"   class="font-montserrat text-[0.72rem] uppercase tracking-[0.2rem] text-white/50 transition-colors duration-300 hover:text-[var(--gold)]">Servicios</a>
                 <a href="#contacto"    class="font-montserrat text-[0.72rem] uppercase tracking-[0.2rem] text-white/50 transition-colors duration-300 hover:text-[var(--gold)]">Encuéntranos</a>
                 <!-- Nueva entrada independiente: el area cliente no interrumpe ni sustituye el flujo publico de reserva. -->
-                <a href="mi-cuenta.php" class="font-montserrat text-[0.72rem] uppercase tracking-[0.2rem] text-white/45 transition-colors duration-300 hover:text-[var(--gold)]">Mi cuenta</a>
+                <a href="../cliente/mi-cuenta.php" class="font-montserrat text-[0.72rem] uppercase tracking-[0.2rem] text-white/45 transition-colors duration-300 hover:text-[var(--gold)]">Mi cuenta</a>
                 <a href="reserva.php" class="border border-[var(--gold)]/50 px-6 py-2 font-montserrat text-[0.72rem] uppercase tracking-[0.2rem] text-[var(--gold)] transition-all duration-300 hover:bg-[var(--gold)] hover:text-[var(--obsidian)]">
                     Reservar Cita
                 </a>
@@ -80,7 +80,7 @@ $productos = Producto::obtenerActivos(); // De Mongo
         <a href="#servicios" onclick="document.getElementById('mobileMenu').style.display='none'" class="font-montserrat text-sm uppercase tracking-[0.3rem] text-white/60 hover:text-[var(--gold)]">Servicios</a>
         <a href="#contacto"  onclick="document.getElementById('mobileMenu').style.display='none'" class="font-montserrat text-sm uppercase tracking-[0.3rem] text-white/60 hover:text-[var(--gold)]">Encuéntranos</a>
         <!-- Nueva entrada movil para acceder al futuro panel sin pasar por reserva. -->
-        <a href="mi-cuenta.php"  onclick="document.getElementById('mobileMenu').style.display='none'" class="font-montserrat text-sm uppercase tracking-[0.3rem] text-white/60 hover:text-[var(--gold)]">Mi cuenta</a>
+        <a href="../cliente/mi-cuenta.php" onclick="document.getElementById('mobileMenu').style.display='none'" class="font-montserrat text-sm uppercase tracking-[0.3rem] text-white/60 hover:text-[var(--gold)]">Mi cuenta</a>
         <a href="reserva.php"  onclick="document.getElementById('mobileMenu').style.display='none'" class="border border-[var(--gold)]/50 px-8 py-3 font-montserrat text-sm uppercase tracking-[0.2rem] text-[var(--gold)]">Reservar Cita</a>
     </div>
 

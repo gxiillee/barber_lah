@@ -10,6 +10,7 @@ class Servicio {
     private bool $activo;
 
     public function __construct(int $id, string $nombre, float $precio, int $duracionMin, ?string $descripcion, bool $activo) {
+        // Inicializa un servicio con sus propiedades básicas
         $this->id          = $id;
         $this->nombre      = $nombre;
         $this->precio      = $precio;
@@ -28,7 +29,7 @@ class Servicio {
 
     /**
      * Devuelve todos los servicios activos
-     * se usa para no mostrar los inactivos pero
+     * Se usa para no mostrar los inactivos pero
      * seguir teniendolos en bd para historicos
      */
     public static function obtenerTodos(): array {
@@ -52,7 +53,7 @@ class Servicio {
 
     /**
      * Devuelve un servicio por ID
-     * se usaria en editar servicio y
+     * Se usaria en editar servicio y
      * al darle resumen al cliente de su reserva con su servicio
      */
     public static function obtenerPorId(int $id): ?Servicio {

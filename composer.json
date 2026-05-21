@@ -1,5 +1,10 @@
 {
-    "require": {
-        "mongodb/mongodb": "^1.19"
-    }
+  "require": {
+    "mongodb/mongodb": "^1.19",
+    "php": ">=8.0",
+    "ext-curl": "*",
+    "ext-pdo": "*",
+    "ext-pdo_pgsql": "*",
+    "vlucas/phpdotenv": "^5.6"
+  }
 }

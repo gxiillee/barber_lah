@@ -1,6 +1,10 @@
 <?php
 // clases/Producto.php
 class Producto {
+    /**
+     * SACA TODOS LOS PRODUCTOS ACTIVOS INDEX
+     * GENERA UN array con los PRODUCTOS
+     */
     public static function obtenerActivos() {
         try {
             $db = ConexionMongo::conectar();
