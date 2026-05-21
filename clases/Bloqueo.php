@@ -1,6 +1,6 @@
 <?php
-
-require_once __DIR__ . '/conexiones/BD.php';
+// Bloqueo.php
+require_once __DIR__ . '/BD.php';
 
 class Bloqueo {
     private int $id;

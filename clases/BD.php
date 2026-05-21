@@ -18,7 +18,7 @@ class BD {
             $dsn = "pgsql:host=$host;port=$puerto;dbname=$bd";
 
             try {
-                //guarda la conexiones para que no se tenga que hacer cada vez
+                //guarda la conexion para que no se tenga que hacer cada vez
                 self::$conexion = new PDO($dsn, $usuario, $contrasena);
                 //si algo falla, da una excepcion al catch
                 self::$conexion->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);

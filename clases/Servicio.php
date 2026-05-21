@@ -1,5 +1,5 @@
 <?php
-require_once __DIR__ . '/conexiones/BD.php';
+require_once __DIR__ . '/BD.php';
 
 class Servicio {
     private int $id;

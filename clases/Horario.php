@@ -1,6 +1,6 @@
 <?php
 // Horario.php
-require_once __DIR__ . '/conexiones/BD.php';
+require_once __DIR__ . '/BD.php';
 
 class Horario {
     private int $id;
