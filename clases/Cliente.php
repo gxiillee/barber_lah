@@ -99,4 +99,21 @@ class Cliente extends Usuario {
 
         return $clientes;
     }
+
+    public static function obtenerFotos(int $id_usuario): array {
+        $conexion = BD::obtenerConexion();
+        $stmt = $conexion->prepare("
+        SELECT id, ruta, fecha_subida
+        FROM fotos_cliente
+        WHERE id_usuario = :id
+        ORDER BY fecha_subida DESC
+    ");
+        $stmt->execute([':id' => $id_usuario]);
+
+        $fotos = [];
+        while ($fila = $stmt->fetch(PDO::FETCH_ASSOC)) {
+            $fotos[] = $fila;
+        }
+        return $fotos;
+    }
 }

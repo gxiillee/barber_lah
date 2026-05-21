@@ -12,6 +12,8 @@
   --gold-dark: #8a6f3d;
   --obsidian: #080808;
   --charcoal: #111111;
+  /* Tamaño aside panel */
+  --aside-w:  240px;
 
   /* Tipografías (con respaldo genérico para evitar errores del editor) */
   --font-playfair: "Playfair Display", serif;
@@ -587,3 +589,101 @@
     animation-iteration-count: 1 !important;
   }
 }
+
+/*
+ * Animaciones y transiciones del Área de Cliente — Barbershop La H
+ * Solo @keyframes y las clases que los aplican.
+ * Los estilos base (colores, layout) van en el <style> de cada página.
+ */
+
+/* ── Entrada de página: aparece suavemente al cargar ── */
+@keyframes entrada-pagina {
+  from { opacity: 0; transform: translateY(7px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.pagina-entrada {
+  animation: entrada-pagina 0.25s ease-out both;
+}
+
+/* ── Tarjeta de fidelidad: brillo que cruza al cargar ── */
+@keyframes card-brillo {
+  0%   { left: -80%; opacity: 0; }
+  15%  { opacity: 0.5; }
+  100% { left: 130%; opacity: 0; }
+}
+/* Se activa con .tarjeta-fidelidad::after en fidelidad.php */
+.tarjeta-fidelidad {
+  position: relative;
+  overflow: hidden;
+}
+.tarjeta-fidelidad::after {
+  content: '';
+  position: absolute;
+  top: 0; left: -80%;
+  width: 45%; height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,.055), transparent);
+  transform: skewX(-15deg);
+  animation: card-brillo 2s ease-in-out 0.4s both;
+  pointer-events: none;
+}
+
+/* ── Stamps de fidelidad: aparecen con "pop" escalonado ── */
+@keyframes stamp-pop {
+  0%   { transform: scale(0) rotate(-20deg); opacity: 0; }
+  65%  { transform: scale(1.2)  rotate(4deg);  opacity: 1; }
+  100% { transform: scale(1)   rotate(0deg);  opacity: 1; }
+}
+.stamp-lleno {
+  animation: stamp-pop 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+/* ── Stamp "siguiente" (el de rayas): pulso que incita a reservar ── */
+@keyframes stamp-pulso {
+  0%, 100% { opacity: 0.3; box-shadow: none; }
+  50%       { opacity: 1;   box-shadow: 0 0 10px rgba(212,175,55,.5); }
+}
+.stamp-siguiente {
+  animation: stamp-pulso 2s ease-in-out infinite;
+}
+
+/* ── Badge "¡Corte gratis!" aparece con rebote ── */
+@keyframes badge-rebote {
+  0%   { transform: scale(0.3); opacity: 0; }
+  60%  { transform: scale(1.12); opacity: 1; }
+  100% { transform: scale(1);   opacity: 1; }
+}
+.badge-gratis {
+  animation: badge-rebote 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) 0.2s both;
+}
+
+/* ── Barra de progreso de fidelidad: crece desde cero ── */
+@keyframes barra-crecer {
+  from { width: 0%; }
+  /* El 'to' lo define --progreso en el elemento inline */
+  to   { width: var(--progreso, 0%); }
+}
+.barra-progreso-fill {
+  animation: barra-crecer 0.9s cubic-bezier(0.34, 1.1, 0.64, 1) 0.3s both;
+}
+
+/* ── Foto nueva: aparece suavemente al subir ── */
+@keyframes foto-aparecer {
+  from { opacity: 0; transform: scale(0.94); }
+  to   { opacity: 1; transform: scale(1); }
+}
+.foto-item {
+  animation: foto-aparecer 0.3s ease-out both;
+}
+
+/* ── Tarjetas de servicio: se levantan levemente al hacer hover ── */
+.svc-card {
+  transition: border-color 0.18s ease, background 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
+}
+.svc-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+}
+
+/*
+ * Panel de fidelidad del cliente
+ */

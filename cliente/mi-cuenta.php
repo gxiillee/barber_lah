@@ -16,14 +16,14 @@ $usuario = $_SESSION['usuario'] ?? null;
 // Nueva puerta separada para el futuro area cliente:
 // si no hay sesion, manda al login con contexto de panel, no al flujo de reserva.
 if (!$usuario instanceof Usuario) {
-    header('Location: login.php?source=panel');
+    header('Location: ../public/login.php?source=panel');
     exit;
 }
 
 // Cuando exista el panel real, este archivo actuara como pasarela limpia.
-$panelCliente = __DIR__ . '/cliente/panel.php';
+$panelCliente = __DIR__ . '/cliente/index.php';
 if (file_exists($panelCliente)) {
-    header('Location: cliente/panel.php');
+    header('Location: cliente/index.php');
     exit;
 }
 
@@ -58,8 +58,8 @@ function h(mixed $valor): string {
                 <a href="../public/reserva.php" class="inline-flex items-center justify-center rounded-lg bg-[var(--gold)] px-6 py-3 text-[11px] font-extrabold uppercase tracking-[0.16em] text-[var(--obsidian)] no-underline transition hover:-translate-y-0.5 hover:bg-[var(--gold-light)]">
                     Reservar cita
                 </a>
-                <a href="../public/index.php" class="inline-flex items-center justify-center rounded-lg border border-white/10 px-6 py-3 text-[11px] font-bold uppercase tracking-[0.16em] text-white/45 no-underline transition hover:border-[var(--gold)]/35 hover:text-[var(--gold)]">
-                    Volver al inicio
+                <a href="../cliente/index.php" class="inline-flex items-center justify-center rounded-lg border border-white/10 px-6 py-3 text-[11px] font-bold uppercase tracking-[0.16em] text-white/45 no-underline transition hover:border-[var(--gold)]/35 hover:text-[var(--gold)]">
+                    ir al panel
                 </a>
                 <a href="../public/cierrases.php" class="inline-flex items-center justify-center rounded-lg border border-red/10 px-6 py-3 text-[11px] font-bold uppercase tracking-[0.16em] text-white/45 no-underline transition hover:border-[var(--gold)]/35 hover:text-[var(--gold)]">
                     Cierra sesion

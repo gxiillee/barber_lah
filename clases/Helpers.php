@@ -65,6 +65,28 @@ function nombreDia(int $dia): string
 }
 
 /**
+ * Convierte el número ISO del día (1=lunes…7=domingo) en su abreviatura en español.
+ * Usada en el dashboard para mostrar "Lun 28", "Mié 14", etc. en el stat card.
+ */
+function nombreDiaCorto(int $dia): string
+{
+    return ['', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'][$dia] ?? '';
+}
+
+/**
+ * Convierte el número de mes (1-12) en su abreviatura en español.
+ * Usada en el dashboard para mostrar "May", "Jun", etc. en el stat card.
+ */
+function nombreMesCorto(int $mes): string
+{
+    return [
+        1 => 'Ene', 2 => 'Feb', 3 => 'Mar', 4 => 'Abr',
+        5 => 'May', 6 => 'Jun', 7 => 'Jul', 8 => 'Ago',
+        9 => 'Sep', 10 => 'Oct', 11 => 'Nov', 12 => 'Dic',
+    ][$mes] ?? '';
+}
+
+/**
  * Convierte una fecha 'Y-m-d' en texto legible para el usuario: "lunes 3 de junio".
  * Se usa en las vistas de confirmacion (confirmar_reserva.php, reserva_exito.php)
  * y dentro de construirDiasSemana() para rellenar el campo 'dia_largo' del JSON.
