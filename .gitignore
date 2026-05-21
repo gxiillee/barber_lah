@@ -6,3 +6,4 @@ package.json
 /vendor/
 composer.lock
 .env
+auth/
