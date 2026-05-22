@@ -681,15 +681,18 @@ class Reserva {
             return [];
         }
     }
-
+    /**
+     * Pone las citas pasadas como completadas
+     * Una vez pasa media hora del corte ya es completada
+     *
+     */
     public static function actualizarCitasPasadas(): void {
         try {
             $db = BD::obtenerConexion();
-
-            // Iniciamos la transacción para asegurarnos de que si falla algo, no se cambie nada a medias
             $db->beginTransaction();
 
-            // 1. Actualizamos la cita y recuperamos qué clientes (id_cliente) acaban de terminar
+            // 1. PostgreSQL permite el RETURNING en el UPDATE.
+            // Combinamos la fecha y hora y sumamos el intervalo.
             $sqlReservas = "UPDATE reservas 
                         SET estado = 'completada' 
                         WHERE estado IN ('pendiente', 'confirmada') 
@@ -699,12 +702,11 @@ class Reserva {
             $stmtReservas = $db->prepare($sqlReservas);
             $stmtReservas->execute();
 
+            // Obtenemos los IDs directamente del resultado del update
             $clientesAfectados = $stmtReservas->fetchAll(PDO::FETCH_COLUMN);
 
-            // 2. Si hay clientes que acaban de terminar su cita, les sumamos su punto de fidelidad
+            // 2. Si hay clientes, actualizamos sus puntos
             if (!empty($clientesAfectados)) {
-
-                // Lógica: Si puntos_fidelidad + 1 llega a 10, lo ponemos a 0. Si no, le sumamos 1.
                 $sqlPuntos = "UPDATE usuarios 
                           SET puntos_fidelidad = CASE 
                               WHEN puntos_fidelidad + 1 >= 10 THEN 0 
@@ -714,17 +716,14 @@ class Reserva {
 
                 $stmtPuntos = $db->prepare($sqlPuntos);
 
-                // Ejecutamos la suma para cada cliente afectado
                 foreach ($clientesAfectados as $id_cliente) {
                     $stmtPuntos->execute(['id_cliente' => $id_cliente]);
                 }
             }
 
-            // Si todo ha ido bien, guardamos los cambios definitivamente
             $db->commit();
 
         } catch (Exception $e) {
-            // Si hay algún error, echamos todo para atrás
             if (isset($db) && $db->inTransaction()) {
                 $db->rollBack();
             }

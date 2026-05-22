@@ -186,18 +186,7 @@ $pagina_activa = 'fotos';
     </div>
 </main>
 
-<!-- Mostrar botón de eliminar al pasar el ratón sobre cada foto -->
-<style>
-    .foto-item:hover .foto-overlay-btn {
-        opacity: 1;
-    }
-    /* En móvil (sin hover real) mostramos siempre el botón para que sea accesible */
-    @media (hover: none) {
-        .foto-overlay-btn {
-            opacity: 1 !important;
-        }
-    }
-</style>
+
 
 </body>
 </html>

@@ -894,3 +894,19 @@ body.body-panel {
   border-color: var(--gold-brd);
   transform: translateY(-2px);
 }
+
+/* ==========================================================================
+    5. PANEL FOTOS (fotos.php)
+   ========================================================================== */
+
+<!-- Mostrar botón de eliminar al pasar el ratón sobre cada foto -->
+
+ .foto-item:hover .foto-overlay-btn {
+   opacity: 1;
+ }
+/* En móvil (sin hover real) mostramos siempre el botón para que sea accesible */
+@media (hover: none) {
+  .foto-overlay-btn {
+    opacity: 1 !important;
+  }
+}

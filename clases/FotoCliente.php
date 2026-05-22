@@ -133,6 +133,130 @@ class FotoCliente
     }
 
     /**
+     * Comprime y guarda una imagen en formato JPEG.
+     *
+     * @param string $archivo_tmp Ruta temporal del archivo subido.
+     * @param string $ruta_destino Ruta final donde se guardará.
+     * @return bool True si tuvo éxito, false si hubo error.
+     */
+    public static function comprimirYGuardar(string $archivo_tmp, string $destino): bool {
+        // 1. Obtener información de la imagen
+        $info = getimagesize($archivo_tmp);
+        if (!$info) return false;
+
+        $ancho = $info[0];
+        $alto = $info[1];
+        $tipo = $info['mime'];
+
+        // 2. Crear recurso de imagen según el tipo
+        switch ($tipo) {
+
+            case 'image/jpeg': $img = imagecreatefromjpeg($archivo_tmp); break;
+            case 'image/png':  $img = imagecreatefrompng($archivo_tmp); break;
+            case 'image/webp': $img = imagecreatefromwebp($archivo_tmp); break;
+            default: return false;
+        }
+
+        // 3. (Opcional) Redimensionar si es muy grande (máximo 1200px de ancho)
+        $ancho_max = 1200;
+        if ($ancho > $ancho_max) {
+            $nuevo_ancho = $ancho_max;
+            $nuevo_alto = (int)($alto * ($ancho_max / $ancho));
+
+            $lienzo = imagecreatetruecolor($nuevo_ancho, $nuevo_alto);
+
+            // Mantener transparencia si es PNG o WEBP
+            if ($tipo === 'image/png' || $tipo === 'image/webp') {
+                imagealphablending($lienzo, false);
+                imagesavealpha($lienzo, true);
+            }
+
+            imagecopyresampled($lienzo, $img, 0, 0, 0, 0, $nuevo_ancho, $nuevo_alto, $ancho, $alto);
+            imagedestroy($img);
+            $img = $lienzo;
+        }
+
+        // 4. Guardar como JPEG con calidad 85%
+        $resultado = imagejpeg($img, $destino, 85);
+        imagedestroy($img);
+
+        return $resultado;
+    }
+
+    /**
+     * Procesa la subida de múltiples fotos, validándolas y guardándolas.
+     *
+     * @param array $archivos El array $_FILES['fotos']
+     * @param int $id_usuario ID del cliente
+     * @param int $huecos_disponibles Cuántas fotos le caben aún
+     * @return array Array con ['subidas' => int, 'errores' => array]
+     */
+    public static function procesarSubidaMultiple(array $archivos, int $id_usuario, int $huecos_disponibles): array {
+        $resultado = [
+            'subidas' => 0,
+            'errores' => []
+        ];
+
+        $carpeta = __DIR__ . '/../public/assets/img/fotos_clientes/';
+        if (!is_dir($carpeta)) {
+            mkdir($carpeta, 0755, true);
+        }
+
+        $tipos_permitidos = ['image/jpeg', 'image/png', 'image/webp'];
+        $total = count($archivos['name']);
+
+        for ($i = 0; $i < $total; $i++) {
+            // Comprobar si ya no quedan huecos
+            if ($resultado['subidas'] >= $huecos_disponibles) {
+                $resultado['errores'][] = 'Límite alcanzado. Solo se subieron ' . $resultado['subidas'] . ' foto(s).';
+                break;
+            }
+
+            // Ignorar si hubo error en la carga de este archivo
+            if ($archivos['error'][$i] !== UPLOAD_ERR_OK) {
+                continue;
+            }
+
+            $tmp = $archivos['tmp_name'][$i];
+            $nombre_original = h($archivos['name'][$i]);
+
+            // Validar tipo MIME
+            if (!in_array(mime_content_type($tmp), $tipos_permitidos, true)) {
+                $resultado['errores'][] = "\"$nombre_original\": tipo no permitido (solo JPG, PNG, WEBP).";
+                continue;
+            }
+
+            // Validar tamaño máximo (10 MB)
+            if ($archivos['size'][$i] > 10 * 1024 * 1024) {
+                $resultado['errores'][] = "\"$nombre_original\": supera los 10 MB.";
+                continue;
+            }
+
+            // Generar nombre y rutas
+            $nombre   = 'foto_' . $id_usuario . '_' . time() . '_' . $i . '.jpg';
+            $destino  = $carpeta . $nombre;
+            $ruta_bd  = 'public/assets/img/fotos_clientes/' . $nombre;
+
+            // Comprimir y guardar usando tu función existente
+            if (!self::comprimirYGuardar($tmp, $destino)) {
+                $resultado['errores'][] = "\"$nombre_original\": error al procesar la imagen.";
+                continue;
+            }
+
+            // Insertar en Base de Datos
+            if (self::crear($id_usuario, $ruta_bd) === 0) {
+                @unlink($destino); // Borramos el archivo si falla la BD
+                $resultado['errores'][] = "\"$nombre_original\": error al guardar en la base de datos.";
+                continue;
+            }
+
+            $resultado['subidas']++;
+        }
+
+        return $resultado;
+    }
+
+    /**
      * Elimina una foto de la BD.
      * El filtro id_usuario garantiza que solo el dueño puede borrar.
      * La eliminación del archivo físico se hace ANTES desde la página PHP.
