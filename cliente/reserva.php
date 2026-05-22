@@ -151,7 +151,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['accion'] ?? '') === 'conti
 
         $destino = (($_SESSION['usuario'] ?? null) instanceof Usuario)
             ? 'confirmar_reserva.php'
-            : 'login.php?source=reserva';
+            : '../login.php?source=reserva';
 
         header('Location: ' . $destino);
         exit;
@@ -173,12 +173,12 @@ $usuarioConSesion = ($_SESSION['usuario'] ?? null) instanceof Usuario;
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Montserrat:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
-    <link rel="stylesheet" href="assets/css/estilos.css">
+    <link rel="stylesheet" href="../public/assets/css/estilos.css">
 </head>
 <body class="min-h-screen overflow-x-hidden bg-[var(--obsidian)] font-[var(--font-montserrat)] text-[#f5f0e8]">
     <div class="pointer-events-none fixed inset-0 z-0 bg-[radial-gradient(ellipse_70%_50%_at_15%_0%,rgba(212,175,55,0.075)_0%,transparent_65%),linear-gradient(180deg,rgba(255,255,255,0.035),transparent_24%)]"></div>
 
-    <a href="index.php" class="fixed left-5 top-5 z-40 inline-flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.16em] text-white/45 no-underline transition hover:-translate-x-0.5 hover:text-[var(--gold)]">
+    <a href="../index.php" class="fixed left-5 top-5 z-40 inline-flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.16em] text-white/45 no-underline transition hover:-translate-x-0.5 hover:text-[var(--gold)]">
         <i class="bi bi-arrow-left"></i>
         Inicio
     </a>
@@ -192,7 +192,7 @@ $usuarioConSesion = ($_SESSION['usuario'] ?? null) instanceof Usuario;
             </div>
             <div class="rounded-lg border border-white/10 bg-white/[0.035] p-4">
                 <div class="flex items-center gap-3">
-                    <img src="assets/img/logo.jpg" alt="Hassan" class="h-14 w-14 rounded-full border border-[var(--gold)]/30 object-cover">
+                    <img src="../public/assets/img/logo.jpg" alt="Hassan" class="h-14 w-14 rounded-full border border-[var(--gold)]/30 object-cover">
                     <div>
                         <p class="text-[10px] font-bold uppercase tracking-[0.18em] text-white/35">Tu barbero</p>
                         <p class="mt-1 text-base font-semibold text-white"><?= h($barbero?->getNombre() ?? 'Hassan') ?></p>

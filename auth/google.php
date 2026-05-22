@@ -1,13 +1,11 @@
 <?php
 declare(strict_types=1);
-
 session_start();
 
-// Importamos el modelo de datos y los helpers unificados
 require_once __DIR__ . '/../clases/Usuario.php';
 require_once __DIR__ . '/../clases/Helpers.php';
 
-// Credenciales inalteradas de tu API de Google
+// En la vida real, esto se carga desde un archivo oculto (.env)
 define('GOOGLE_CLIENT_ID',     '107886896236-hg74nkhc5qvh64v0h32j7kgp0is7psrs.apps.googleusercontent.com');
 define('GOOGLE_CLIENT_SECRET', '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');
 define('GOOGLE_REDIRECT_URI',  'http://localhost/barberlah/auth/google.php');
@@ -95,10 +93,10 @@ try {
     if (isset($_SESSION['reserva_pendiente']) && is_array($_SESSION['reserva_pendiente'])) {
         redirigir('../public/confirmar_reserva.php');
     } else {
-        redirigir('../cliente/mi-cuenta.php');
+        redirigir('../mi-cuenta.php');
     }
 
 } catch (Throwable $e) {
     // Si algo falla, redirige al login público con la ruta corregida hacia la carpeta public/
-    redirigir('../public/login.php?error_google=1');
+    redirigir('../login.php?error_google=1');
 }

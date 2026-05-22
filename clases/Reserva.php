@@ -647,4 +647,88 @@ class Reserva {
         $fila = $stmt->fetch(PDO::FETCH_ASSOC);
         return $fila ?: null;
     }
+
+    /**
+     * Obtiene el historial completo de citas de un cliente determinado.
+     * Trae tanto las completadas como las canceladas o ausentes.
+     *
+     * @param int $id_usuario ID único del cliente en la sesión.
+     * @return array Listado asociativo con los datos de las reservas y servicios.
+     */
+    public static function obtenerHistorialPorUsuario(int $id_usuario): array {
+        try {
+            $db = BD::obtenerConexion();
+
+            // 🌟 AGREGAMOS 'r.estado' A LA CONSULTA SQL
+            $sql = "SELECT 
+                    s.nombre AS servicio_nombre, 
+                    r.fecha, 
+                    r.hora, 
+                    r.precio_historico, 
+                    r.estado 
+                FROM reservas r
+                INNER JOIN servicios s ON r.id_servicio = s.id
+                WHERE r.id_cliente = :id_usuario
+                ORDER BY r.fecha DESC, r.hora DESC";
+
+            $stmt = $db->prepare($sql);
+            $stmt->execute(['id_usuario' => $id_usuario]);
+
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        } catch (Exception $e) {
+            error_log("Error en obtenerHistorialPorUsuario: " . $e->getMessage());
+            return [];
+        }
+    }
+
+    public static function actualizarCitasPasadas(): void {
+        try {
+            $db = BD::obtenerConexion();
+
+            // Iniciamos la transacción para asegurarnos de que si falla algo, no se cambie nada a medias
+            $db->beginTransaction();
+
+            // 1. Actualizamos la cita y recuperamos qué clientes (id_cliente) acaban de terminar
+            $sqlReservas = "UPDATE reservas 
+                        SET estado = 'completada' 
+                        WHERE estado IN ('pendiente', 'confirmada') 
+                          AND NOW() >= (fecha + hora + (duracion_historica * INTERVAL '1 minute'))
+                        RETURNING id_cliente";
+
+            $stmtReservas = $db->prepare($sqlReservas);
+            $stmtReservas->execute();
+
+            $clientesAfectados = $stmtReservas->fetchAll(PDO::FETCH_COLUMN);
+
+            // 2. Si hay clientes que acaban de terminar su cita, les sumamos su punto de fidelidad
+            if (!empty($clientesAfectados)) {
+
+                // Lógica: Si puntos_fidelidad + 1 llega a 10, lo ponemos a 0. Si no, le sumamos 1.
+                $sqlPuntos = "UPDATE usuarios 
+                          SET puntos_fidelidad = CASE 
+                              WHEN puntos_fidelidad + 1 >= 10 THEN 0 
+                              ELSE puntos_fidelidad + 1 
+                          END 
+                          WHERE id = :id_cliente";
+
+                $stmtPuntos = $db->prepare($sqlPuntos);
+
+                // Ejecutamos la suma para cada cliente afectado
+                foreach ($clientesAfectados as $id_cliente) {
+                    $stmtPuntos->execute(['id_cliente' => $id_cliente]);
+                }
+            }
+
+            // Si todo ha ido bien, guardamos los cambios definitivamente
+            $db->commit();
+
+        } catch (Exception $e) {
+            // Si hay algún error, echamos todo para atrás
+            if (isset($db) && $db->inTransaction()) {
+                $db->rollBack();
+            }
+            error_log("Error en Reserva::actualizarCitasPasadas: " . $e->getMessage());
+        }
+    }
 }

@@ -149,7 +149,7 @@ $csrfToken = Csrf::generarToken('csrf_confirmar_reserva');
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Montserrat:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
-    <link rel="stylesheet" href="assets/css/estilos.css">
+    <link rel="stylesheet" href="../public/assets/css/estilos.css">
 </head>
 <body class="min-h-screen bg-[var(--obsidian)] font-[var(--font-montserrat)] text-[#f5f0e8]">
 <div class="pointer-events-none fixed inset-0 z-0 bg-[radial-gradient(ellipse_65%_45%_at_50%_0%,rgba(212,175,55,0.085)_0%,transparent_70%)]"></div>
@@ -194,7 +194,7 @@ $csrfToken = Csrf::generarToken('csrf_confirmar_reserva');
                 <div class="rounded-lg border border-white/10 bg-white/[0.025] p-4">
                     <p class="text-[10px] font-bold uppercase tracking-[0.18em] text-white/30">Barbero</p>
                     <div class="mt-3 flex items-center gap-3">
-                        <img src="assets/img/logo.jpg" alt="Hassan" class="h-11 w-11 rounded-full border border-[var(--gold)]/25 object-cover">
+                        <img src="../public/assets/img/logo.jpg" alt="Hassan" class="h-11 w-11 rounded-full border border-[var(--gold)]/25 object-cover">
                         <p class="font-semibold text-white"><?= h($barbero->getNombre()) ?></p>
                     </div>
                 </div>

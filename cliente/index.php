@@ -78,80 +78,9 @@ $pagina_activa = 'inicio';
     <!-- Animaciones propias (keyframes y clases de animación) -->
     <link rel="stylesheet" href="../public/assets/css/estilos.css">
 
-    <style>
-        /* ── Variables de diseño del proyecto ────────────────── */
-        :root {
-            --gold:     #d4af37;
-            --gold-l:   #e8c84a;
-            --gold-dim: rgba(212,175,55,.11);
-            --gold-brd: rgba(212,175,55,.27);
-            --bg:       #0d0d0d;
-            --bg2:      #141414;
-            --bg3:      #1c1c1c;
-            --tx:       #f5f0e8;
-            --tx-m:     rgba(245,240,232,.50);
-            --tx-d:     rgba(245,240,232,.25);
-            --brd:      rgba(255,255,255,.07);
-            --brd-h:    rgba(255,255,255,.13);
-            --card:     rgba(255,255,255,.025);
-            --pf:       'Playfair Display', Georgia, serif;
-            --mt:       'Montserrat', sans-serif;
-        }
 
-        /* ── Reset y base ────────────────────────────────────── */
-        *, *::before, *::after { box-sizing: border-box; }
-
-        /* ── Layout: aside fixed → main necesita margen nativo ── */
-        @media (min-width: 1024px) {
-            .panel-main { margin-left: 16rem; /* = w-64 = 256px */ }
-        }
-        body { background: var(--bg); color: var(--tx); font-family: var(--mt); }
-        a    { text-decoration: none; color: inherit; }
-
-        /* ── Nav lateral (nav_cliente.php lo usa) ────────────── */
-        .nav-lateral-lnk {
-            display: flex; align-items: center; gap: 10px;
-            padding: 0.62rem 1.25rem;
-            font-size: 0.74rem; font-family: var(--mt);
-            color: var(--tx-m);
-            border-left: 2px solid transparent;
-            transition: background 0.15s ease, color 0.15s ease;
-        }
-        .nav-lateral-lnk:hover { background: var(--card); color: var(--tx); }
-        .nav-lateral-lnk.activo {
-            color: var(--gold); border-left-color: var(--gold);
-            background: var(--gold-dim); font-weight: 500;
-        }
-        .nav-lateral-lnk .bi { font-size: 0.9rem; width: 16px; }
-
-        /* ── Nav inferior móvil (nav_cliente.php lo usa) ──────── */
-        .nav-inf-lnk { color: var(--tx-d); }
-        .nav-inf-lnk.activo { color: var(--gold); }
-
-        /* ── Stamp mini (teaser de fidelidad) ────────────────── */
-        .stamp-mini {
-            width: 16px; height: 16px; border-radius: 50%; flex-shrink: 0;
-            transition: transform 0.2s ease;
-        }
-
-        /* ── Tarjeta de próxima cita ──────────────────────────── */
-        .card-proxima {
-            background: linear-gradient(115deg, rgba(212,175,55,.08), var(--card));
-            border: 1px solid var(--gold-brd);
-            border-radius: 12px;
-        }
-
-        /* ── Link teaser de fidelidad ─────────────────────────── */
-        .card-fidelidad-teaser {
-            background: var(--card);
-            border: 1px solid var(--brd);
-            border-radius: 12px;
-            transition: border-color 0.15s ease;
-        }
-        .card-fidelidad-teaser:hover { border-color: var(--gold-brd); }
-    </style>
 </head>
-<body class="min-h-screen">
+<body class="pagina-cliente min-h-screen body-panel">
 
 <?php
 // ── Incluimos la navegación compartida ────────────────────────────
@@ -262,7 +191,7 @@ require_once __DIR__ . '/includes/nav_cliente.php';
                 <div style="font-size:0.8rem; color:var(--tx-m); margin:8px 0 14px;">
                     No tienes ninguna cita próxima
                 </div>
-                <a href="reservar.php"
+                <a href="reserva.php"
                    class="inline-flex items-center gap-2 rounded-lg px-4 py-2"
                    style="background:var(--gold); color:var(--bg); font-size:0.72rem; font-weight:700; letter-spacing:0.05em;">
                     <i class="bi bi-calendar-plus"></i>Reservar ahora

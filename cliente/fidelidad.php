@@ -53,89 +53,9 @@ $pagina_activa = 'fidelidad';
     <!-- Animaciones propias (keyframes y clases de animación) -->
     <link rel="stylesheet" href="../public/assets/css/estilos.css">
 
-    <style>
-        /* ── Variables de diseño del proyecto ────────────────── */
-        :root {
-            --gold:     #d4af37;
-            --gold-l:   #e8c84a;
-            --gold-dim: rgba(212,175,55,.11);
-            --gold-brd: rgba(212,175,55,.27);
-            --bg:       #0d0d0d;
-            --bg2:      #141414;
-            --bg3:      #1c1c1c;
-            --tx:       #f5f0e8;
-            --tx-m:     rgba(245,240,232,.50);
-            --tx-d:     rgba(245,240,232,.25);
-            --brd:      rgba(255,255,255,.07);
-            --brd-h:    rgba(255,255,255,.13);
-            --card:     rgba(255,255,255,.025);
-            --pf:       'Playfair Display', Georgia, serif;
-            --mt:       'Montserrat', sans-serif;
-        }
 
-        /* ── Reset y base ────────────────────────────────────── */
-        *, *::before, *::after { box-sizing: border-box; }
-
-        /* ── Layout: aside fixed → main necesita margen nativo ── */
-        @media (min-width: 1024px) {
-            .panel-main { margin-left: 16rem; /* = w-64 = 256px */ }
-        }
-        body { background: var(--bg); color: var(--tx); font-family: var(--mt); }
-        a    { text-decoration: none; color: inherit; }
-
-        /* ── Nav lateral (nav_cliente.php lo usa) ────────────── */
-        .nav-lateral-lnk {
-            display: flex; align-items: center; gap: 10px;
-            padding: 0.62rem 1.25rem;
-            font-size: 0.74rem; font-family: var(--mt);
-            color: var(--tx-m);
-            border-left: 2px solid transparent;
-            transition: background 0.15s ease, color 0.15s ease;
-        }
-        .nav-lateral-lnk:hover { background: var(--card); color: var(--tx); }
-        .nav-lateral-lnk.activo {
-            color: var(--gold); border-left-color: var(--gold);
-            background: var(--gold-dim); font-weight: 500;
-        }
-        .nav-lateral-lnk .bi { font-size: 0.9rem; width: 16px; }
-
-        /* ── Nav inferior móvil ──────────────────────────────── */
-        .nav-inf-lnk { color: var(--tx-d); }
-        .nav-inf-lnk.activo { color: var(--gold); }
-
-        /* ── Member Card ─────────────────────────────────────── */
-        .member-card {
-            background: linear-gradient(145deg, var(--bg3) 0%, var(--bg2) 50%, var(--bg3) 100%);
-            border: 1px solid var(--gold-brd);
-            border-radius: 16px;
-            padding: 1.75rem;
-        }
-
-        /* ── Stamp (sello) dentro de la member card ──────────── */
-        .stamp {
-            width: 36px; height: 36px;
-            border-radius: 50%;
-            display: flex; align-items: center; justify-content: center;
-            flex-shrink: 0;
-            transition: transform 0.2s ease;
-        }
-        .stamp:hover { transform: scale(1.12); }
-
-        /* ── Tarjeta info del grid "¿Cómo funciona?" ─────────── */
-        .info-card {
-            background: var(--card);
-            border: 1px solid var(--brd);
-            border-radius: 12px;
-            padding: 1.5rem;
-            transition: border-color 0.2s ease, transform 0.2s ease;
-        }
-        .info-card:hover {
-            border-color: var(--gold-brd);
-            transform: translateY(-2px);
-        }
-    </style>
 </head>
-<body class="min-h-screen">
+<body class="pagina-cliente min-h-screen body-panel">
 
 <?php
 // ── Incluimos la navegación compartida ────────────────────────────
@@ -145,8 +65,8 @@ require_once __DIR__ . '/includes/nav_cliente.php';
 <!-- ═══════════════════════════════════════════════════════════════
      CONTENIDO PRINCIPAL — PROGRAMA DE FIDELIDAD
      ═══════════════════════════════════════════════════════════════ -->
-<main class="pt-14 pb-20 lg:pt-8 lg:pb-8 min-h-screen pagina-entrada panel-main">
-    <div class="p-4 sm:p-6 lg:p-8 w-full max-w-2xl lg:max-w-5xl mx-auto lg:mx-0">
+<main class="pt-14 pb-20 lg:pt-0 lg:pb-0 min-h-screen flex flex-col pagina-entrada panel-main">
+    <div class="flex-1 w-full max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
 
         <!-- ── Cabecera de página ─────────────────────────── -->
         <div class="mb-6 lg:mb-8">

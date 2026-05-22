@@ -1,17 +1,17 @@
 <?php
 declare(strict_types=1);
 
-require_once __DIR__ . '/../clases/Csrf.php';
-require_once __DIR__ . '/../clases/helpers.php';
-require_once __DIR__ . '/../clases/Usuario.php';
-require_once __DIR__ . '/../clases/Cliente.php';
-require_once __DIR__ . '/../clases/Administrador.php';
+require_once __DIR__ . '/clases/Csrf.php';
+require_once __DIR__ . '/clases/helpers.php';
+require_once __DIR__ . '/clases/Usuario.php';
+require_once __DIR__ . '/clases/Cliente.php';
+require_once __DIR__ . '/clases/Administrador.php';
 
 session_start();
 
 // Si ya hay sesion activa, redirigir sin mostrar el login
 if (($_SESSION['usuario'] ?? null) instanceof Usuario) {
-    $destino = isset($_SESSION['reserva_pendiente']) ? 'confirmar_reserva.php' : 'index.php';
+    $destino = isset($_SESSION['reserva_pendiente']) ? 'cliente/confirmar_reserva.php' : 'index.php';
     redirigir($destino);
 }
 
@@ -45,7 +45,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($resultado['usuario'] instanceof Usuario) {
             session_regenerate_id(true);
             $_SESSION['usuario'] = $resultado['usuario'];
-            redirigir(isset($_SESSION['reserva_pendiente']) ? 'confirmar_reserva.php' : 'index.php');
+            redirigir(isset($_SESSION['reserva_pendiente']) ? '/cliente/confirmar_reserva.php' : 'index.php');
         }
 
         // Si el registro fallo, repoblar campos y mostrar error
@@ -78,11 +78,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $_SESSION['usuario'] = $usuario;
                     // Redireccion inteligente: reserva pendiente > admin > inicio
                     if (isset($_SESSION['reserva_pendiente'])) {
-                        redirigir('confirmar_reserva.php');
+                        redirigir('/cliente/confirmar_reserva.php');
                     } elseif ($usuario->tieneRolAdmin()) {
                         redirigir('admin/panel.php');
                     } else {
-                        redirigir('index.php');
+                        redirigir('cliente/index.php');
                     }
                 }
 
@@ -108,7 +108,7 @@ $wrapperClase = 'login-wrapper ' . ($modoActivo === 'registro' ? 'es-registro' :
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&family=Montserrat:wght@300;400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
-    <link rel="stylesheet" href="assets/css/estilos.css">
+    <link rel="stylesheet" href="public/assets/css/estilos.css">
 </head>
 
 <body class="relative flex min-h-screen items-center justify-center overflow-hidden bg-[var(--obsidian)] p-5 font-[var(--font-montserrat)] text-[#f5f0e8] max-sm:items-end max-sm:overflow-auto max-sm:p-0">
@@ -124,7 +124,7 @@ $wrapperClase = 'login-wrapper ' . ($modoActivo === 'registro' ? 'es-registro' :
         <section class="flex h-full w-1/2 flex-col items-center justify-center bg-[#0d0d0d] px-12 py-14 max-sm:min-h-dvh max-sm:w-full max-sm:px-7 max-sm:pb-9 max-sm:pt-[72px] max-sm:group-[.es-registro]/auth:hidden" aria-labelledby="loginTitle">
             <div class="mb-5 text-center" aria-label="Barbershop La H">
                 <div class="font-[var(--font-playfair)] text-xs uppercase tracking-[0.22em] text-[var(--gold)]">✦ La H ✦</div>
-                <img src="assets/img/logo.jpg" alt="Logo Barbershop La H" class="mx-auto mt-4 h-[72px] w-[72px] rounded-full border border-[var(--gold)]/25 object-cover shadow-[0_0_22px_rgba(212,175,55,0.12)] max-sm:h-12 max-sm:w-12">
+                <img src="public/assets/img/logo.jpg" alt="Logo Barbershop La H" class="mx-auto mt-4 h-[72px] w-[72px] rounded-full border border-[var(--gold)]/25 object-cover shadow-[0_0_22px_rgba(212,175,55,0.12)] max-sm:h-12 max-sm:w-12">
             </div>
             <h1 class="mb-1.5 text-center font-[var(--font-playfair)] text-[28px] font-bold text-[#f5f0e8]" id="loginTitle">Bienvenido</h1>
             <p class="mb-6 text-center text-[11px] tracking-[0.06em] text-white/40">Accede a tu cuenta</p>
@@ -173,7 +173,7 @@ $wrapperClase = 'login-wrapper ' . ($modoActivo === 'registro' ? 'es-registro' :
                 <div class="h-px flex-1 bg-white/10"></div>
             </div>
 
-            <a href="../auth/google.php" class="group/google flex w-full items-center justify-center gap-3 rounded-md border border-white/10 bg-white/[0.03] px-4 py-3 text-[10px] font-bold uppercase tracking-[0.16em] text-white/55 no-underline transition hover:border-[var(--gold)]/45 hover:bg-white/[0.06] hover:text-white">
+            <a href="auth/google.php" class="group/google flex w-full items-center justify-center gap-3 rounded-md border border-white/10 bg-white/[0.03] px-4 py-3 text-[10px] font-bold uppercase tracking-[0.16em] text-white/55 no-underline transition hover:border-[var(--gold)]/45 hover:bg-white/[0.06] hover:text-white">
                 <svg class="h-4 w-4 transition group-hover/google:scale-110" viewBox="0 0 24 24" aria-hidden="true">
                     <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
                     <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
