@@ -4,6 +4,7 @@
     "php": ">=8.0",
     "ext-curl": "*",
     "ext-pdo": "*",
+    "ext-gd": "*",
     "ext-pdo_pgsql": "*",
     "vlucas/phpdotenv": "^5.6"
   }
