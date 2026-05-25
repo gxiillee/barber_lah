@@ -80,7 +80,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     if (isset($_SESSION['reserva_pendiente'])) {
                         redirigir('/cliente/confirmar_reserva.php');
                     } elseif ($usuario->tieneRolAdmin()) {
-                        redirigir('admin/panel.php');
+                        redirigir('admin/index.php');
                     } else {
                         redirigir('cliente/index.php');
                     }

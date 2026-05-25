@@ -910,3 +910,40 @@ body.body-panel {
     opacity: 1 !important;
   }
 }
+
+/* ============================================================
+   ANIMACIONES PANEL DE ADMINISTRADOR (Agenda)
+   ============================================================ */
+@keyframes slot-entrar {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.slot-card {
+  animation: slot-entrar 0.3s ease both;
+}
+
+/* Efecto cascada: Retrasa la entrada de cada tarjeta */
+.agenda-grid .slot-card:nth-child(1)  { animation-delay: 0.03s; }
+.agenda-grid .slot-card:nth-child(2)  { animation-delay: 0.06s; }
+.agenda-grid .slot-card:nth-child(3)  { animation-delay: 0.09s; }
+.agenda-grid .slot-card:nth-child(4)  { animation-delay: 0.12s; }
+.agenda-grid .slot-card:nth-child(5)  { animation-delay: 0.15s; }
+.agenda-grid .slot-card:nth-child(6)  { animation-delay: 0.18s; }
+.agenda-grid .slot-card:nth-child(7)  { animation-delay: 0.20s; }
+.agenda-grid .slot-card:nth-child(8)  { animation-delay: 0.22s; }
+.agenda-grid .slot-card:nth-child(9)  { animation-delay: 0.24s; }
+.agenda-grid .slot-card:nth-child(10) { animation-delay: 0.26s; }
+.agenda-grid .slot-card:nth-child(11) { animation-delay: 0.28s; }
+.agenda-grid .slot-card:nth-child(12) { animation-delay: 0.30s; }
+
+/* Accesibilidad */
+@media (prefers-reduced-motion: reduce) {
+  .slot-card { animation: none; }
+}

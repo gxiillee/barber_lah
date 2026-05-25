@@ -2,31 +2,21 @@
 /**
  * nav_cliente.php
  * Barra de navegación compartida del Área de Cliente.
- * Se incluye al principio de CADA página del panel de cliente.
- *
- * REQUISITO: antes de incluir este archivo, la página ya debe haber:
- * 1. Hecho session_start()
- * 2. Comprobado que $_SESSION['usuario'] existe
- * 3. Definido $pagina_activa con el nombre de la sección actual
- * ('inicio', 'fidelidad', 'fotos', 'historial', 'reservar', 'perfil')
- *
- * Uso: require_once __DIR__ . '/nav_cliente.php';
  */
 
-// Datos del usuario para mostrar en el nav (vienen de la sesión)
+// Datos del usuario para mostrar en el nav (vienen de la sesión definida en la página que incluye este archivo)
 $nav_nombre     = $usuario->getNombre();
 $nav_puntos     = (int) $usuario->getPuntosFidelidad();
 $nav_avatar     = $usuario->getAvatar();
 $nav_inicial    = mb_strtoupper(mb_substr($nav_nombre, 0, 1, 'UTF-8'), 'UTF-8');
 
 // Definición de los apartados del menú
-// 'href' es relativo dentro de la carpeta /cliente/
 $nav_items = [
         'inicio'    => ['href' => 'index.php',     'icon' => 'bi-grid-1x2',    'label' => 'Inicio',       'short' => 'Inicio'],
         'fidelidad' => ['href' => 'fidelidad.php', 'icon' => 'bi-award',        'label' => 'Mi Fidelidad', 'short' => 'Puntos'],
         'fotos'     => ['href' => 'fotos.php',     'icon' => 'bi-camera',       'label' => 'Mis Fotos',    'short' => 'Fotos'],
         'historial' => ['href' => 'historial.php', 'icon' => 'bi-clock-history','label' => 'Historial',    'short' => 'Historial'],
-        'reservar'  => ['href' => 'reserva.php',  'icon' => 'bi-calendar-plus','label' => 'Nueva Cita',   'short' => 'Reservar'],
+        'reservar'  => ['href' => 'reserva.php',   'icon' => 'bi-calendar-plus','label' => 'Nueva Cita',   'short' => 'Reservar'],
 ];
 ?>
 
@@ -39,7 +29,7 @@ $nav_items = [
 
     <a href="perfil.php" class="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center border flex-shrink-0 active:scale-95 transition-all"
        style="border-color:var(--gold-brd); background:var(--gold-dim);">
-        <?php if ($nav_avatar): ?>
+        <?php if (!empty($nav_avatar)): ?>
             <img src="<?= h($nav_avatar) ?>" alt="Foto de <?= h($nav_nombre) ?>" class="w-full h-full object-cover">
         <?php else: ?>
             <span style="font-family:var(--pf); color:var(--gold); font-size:0.82rem; line-height:1;">
@@ -47,9 +37,7 @@ $nav_items = [
             </span>
         <?php endif; ?>
     </a>
-
 </header>
-
 
 <aside class="hidden lg:flex fixed inset-y-0 left-0 flex-col z-20 w-64"
        style="background:var(--bg2); border-right:1px solid var(--brd);">
@@ -66,9 +54,9 @@ $nav_items = [
     <div class="flex items-center gap-3 px-4 py-4" style="border-bottom:1px solid var(--brd);">
 
         <div class="w-9 h-9 rounded-full overflow-hidden flex items-center justify-center flex-shrink-0 border"
-             style="border-color:var(--gold-brd); background:var(--gold-dim);">
-            <?php if ($nav_avatar): ?>
-                <img src="<?= h($nav_avatar) ?>" alt="" class="w-full h-full object-cover">
+             style="min-width:36px; border-color:var(--gold-brd); background:var(--gold-dim);">
+            <?php if (!empty($nav_avatar)): ?>
+                <img src="<?= h($nav_avatar) ?>" alt="Foto de <?= h($nav_nombre) ?>" class="w-full h-full object-cover">
             <?php else: ?>
                 <span style="font-family:var(--pf); color:var(--gold); font-size:0.82rem; line-height:1;">
                     <?= h($nav_inicial) ?>
@@ -98,14 +86,12 @@ $nav_items = [
     </nav>
 
     <div class="px-5 py-4 flex flex-col gap-3.5" style="border-top:1px solid var(--brd);">
-
         <a href="perfil.php"
            class="flex items-center gap-2 transition-colors duration-150 group"
            style="font-size:0.65rem; color:<?= $pagina_activa === 'perfil' ? 'var(--gold)' : 'var(--tx-m)' ?>; text-transform:uppercase; letter-spacing:0.1em; font-weight:500;">
             <i class="bi bi-person-gear" style="font-size:0.85rem; color:var(--gold);"></i>
             Mi Perfil
         </a>
-
         <a href="../logout.php"
            class="flex items-center gap-2 transition-colors duration-150"
            style="font-size:0.65rem; color:var(--tx-d); text-transform:uppercase; letter-spacing:0.1em;">
@@ -114,7 +100,6 @@ $nav_items = [
         </a>
     </div>
 </aside>
-
 
 <nav class="lg:hidden fixed bottom-0 inset-x-0 z-30 h-16 flex"
      style="background:var(--bg2); border-top:1px solid var(--brd);">

@@ -26,9 +26,9 @@ if ($usuario->tieneRolAdmin()) {
 // ── Fase 3: Carga de datos del dashboard ──────────────────────────
 $id_usuario = (int) $usuario->getId();
 $puntos     = (int) $usuario->getPuntosFidelidad();
-$nombre     = $usuario->getNombre();
+$nombre = $usuario->getNombre() ?? 'Cliente';
 $avatar_url = $usuario->getAvatar();
-$inicial    = mb_strtoupper(mb_substr($nombre, 0, 1, 'UTF-8'), 'UTF-8');
+$inicial = mb_strtoupper(mb_substr($nombre, 0, 1, 'UTF-8'), 'UTF-8');
 
 // Consultas delegadas a sus clases correspondientes
 $total_citas = Reserva::contarCompletadasPorCliente($id_usuario);

@@ -538,67 +538,6 @@ class Reserva {
     // =========================================================================
 
     /**
-     * Recupera la cita más cercana en el futuro que esté en estado 'pendiente'.
-     * Justificación TFG: Control de flujo. Si existe, alimenta la tarjeta destacada
-     * del Dashboard para mitigar el ausentismo (No-Show).
-     */
-    public static function obtenerProximaCita(int $idCliente): array|false {
-        $conexion = BD::obtenerConexion();
-        // Usamos CURRENT_DATE para asegurar la compatibilidad con PostgreSQL
-        $stmt = $conexion->prepare("
-            SELECT r.id, r.fecha, r.hora, r.estado, r.nota,
-                   s.nombre as servicio_nombre, s.precio as servicio_precio, s.duracion,
-                   u.nombre as barbero_nombre
-            FROM citas r
-            INNER JOIN servicios s ON r.id_servicio = s.id
-            INNER JOIN usuarios u ON r.id_barbero = u.id
-            WHERE r.id_usuario = :id_cliente 
-              AND r.fecha >= CURRENT_DATE 
-              AND r.estado = 'pendiente'
-            ORDER BY r.fecha ASC, r.hora ASC 
-            LIMIT 1
-        ");
-        $stmt->execute(['id_cliente' => $idCliente]);
-        return $stmt->fetch(PDO::FETCH_ASSOC);
-    }
-
-    /**
-     * Cuenta cuántos cortes con estado 'completada' tiene el cliente.
-     * Justificación TFG: Regla de negocio automatizada para el plan de fidelidad (Fidelización 10 puntos).
-     */
-    public static function contarCortesCompletados(int $idCliente): int {
-        $conexion = BD::obtenerConexion();
-        $stmt = $conexion->prepare("
-            SELECT COUNT(*) 
-            FROM citas 
-            WHERE id_usuario = :id_cliente AND estado = 'completada'
-        ");
-        $stmt->execute(['id_cliente' => $idCliente]);
-        return (int)$stmt->fetchColumn();
-    }
-
-    /**
-     * Retorna todo el histórico de citas del usuario (pasadas, pendientes y canceladas).
-     * Justificación TFG: Auditoría visual transparente para que el usuario gestione sus visitas.
-     */
-    public static function obtenerHistorialCliente(int $idCliente): array {
-        $conexion = BD::obtenerConexion();
-        $stmt = $conexion->prepare("
-            SELECT r.id, r.fecha, r.hora, r.estado, r.precio_historico, r.duracion_historica,
-                   s.nombre as servicio_nombre,
-                   u.nombre as barbero_nombre
-            FROM citas r
-            INNER JOIN servicios s ON r.id_servicio = s.id
-            INNER JOIN usuarios u ON r.id_barbero = u.id
-            WHERE r.id_usuario = :id_cliente
-            ORDER BY r.fecha DESC, r.hora DESC
-        ");
-        $stmt->execute(['id_cliente' => $idCliente]);
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
-    }
-
-
-    /**
      * APARTADO PARA EL USO EN CLIENTE
      * Contar rservas para fidelidad
      * obtener proxima para avisarle cuando es la siguiente
@@ -729,5 +668,119 @@ class Reserva {
             }
             error_log("Error en Reserva::actualizarCitasPasadas: " . $e->getMessage());
         }
+    }
+
+    // =========================================================================
+    // MÉTODOS ESPECÍFICOS PARA EL ÁREA DE ADMIN (HAAAAAAAAASSSAAAAAN)
+    // =========================================================================
+
+    /**
+     * Devuelve todas las reservas de un barbero en una fecha concreta,
+     * con los datos del cliente y del servicio ya unidos (JOIN).
+     * USO EXCLUSIVO DEL PANEL DE ADMINISTRACIÓN — agenda del día.
+     *
+     * A diferencia de getByBarberoYFecha() (privado, solo hora+duración para el algoritmo),
+     * este método devuelve la ficha completa: nombre del cliente, servicio, precio, estado y nota.
+     *
+     * @return array  Array de arrays asociativos, ordenado por hora ASC.
+     */
+    public static function obtenerDelDiaParaAdmin(int $idBarbero, string $fecha): array {
+        $conexion = BD::obtenerConexion();
+        $stmt = $conexion->prepare("
+        SELECT r.id,
+               r.hora,
+               r.duracion_historica,
+               r.precio_historico,
+               r.estado,
+               r.nota,
+               r.id_cliente,
+               u.nombre  AS cliente_nombre,
+               u.email   AS cliente_email,
+               s.nombre  AS servicio_nombre
+        FROM   reservas r
+        JOIN   usuarios  u ON r.id_cliente  = u.id
+        JOIN   servicios s ON r.id_servicio = s.id
+        WHERE  r.id_barbero = :barbero
+          AND  r.fecha      = :fecha
+          AND  r.estado NOT IN ('cancelada')
+        ORDER  BY r.hora ASC
+    ");
+        $stmt->execute([':barbero' => $idBarbero, ':fecha' => $fecha]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * Devuelve los datos completos de una reserva concreta, con JOIN a servicios y usuarios.
+     * Se usa en la ficha del cliente del admin al clicar una tarjeta de la agenda.
+     *
+     * @return array|null  Array asociativo con todos los datos, o null si no existe el ID.
+     */
+    public static function obtenerPorId(int $id): ?array {
+        $conexion = BD::obtenerConexion();
+        $stmt = $conexion->prepare("
+        SELECT r.id,
+               r.fecha,
+               r.hora,
+               r.duracion_historica,
+               r.precio_historico,
+               r.estado,
+               r.nota,
+               r.id_cliente,
+               u.nombre  AS cliente_nombre,
+               u.email   AS cliente_email,
+               s.nombre  AS servicio_nombre
+        FROM   reservas r
+        JOIN   usuarios  u ON r.id_cliente  = u.id
+        JOIN   servicios s ON r.id_servicio = s.id
+        WHERE  r.id = :id
+    ");
+        $stmt->execute([':id' => $id]);
+        $fila = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $fila ?: null;
+    }
+
+    /**
+     * Cuenta cuántas reservas de un cliente tienen un estado concreto.
+     * Se usa en la ficha del admin para mostrar las estadísticas del cliente:
+     * canceladas y no_presentado (las completadas ya las cuenta contarCompletadasPorCliente).
+     *
+     * @param  string $estado  'cancelada' | 'no_presentado' | 'confirmada' | 'completada'
+     * @return int
+     */
+    public static function contarPorEstadoYCliente(int $idCliente, string $estado): int {
+        $conexion = BD::obtenerConexion();
+        $stmt = $conexion->prepare("
+        SELECT COUNT(*)
+        FROM   reservas
+        WHERE  id_cliente = :id
+          AND  estado     = :estado
+    ");
+        $stmt->execute([':id' => $idCliente, ':estado' => $estado]);
+        return (int)$stmt->fetchColumn();
+    }
+
+    /**
+     * Devuelve la última cita completada de un cliente con el nombre del servicio.
+     * Se usa en la ficha del admin para que Hassan vea qué corte pidió la última vez.
+     *
+     * @return array|null  Array asociativo con fecha, hora y servicio, o null si no tiene ninguna.
+     */
+    public static function obtenerUltimaCompletadaPorCliente(int $idCliente): ?array {
+        $conexion = BD::obtenerConexion();
+        $stmt = $conexion->prepare("
+        SELECT r.fecha,
+               r.hora,
+               r.precio_historico,
+               s.nombre AS servicio_nombre
+        FROM   reservas r
+        JOIN   servicios s ON r.id_servicio = s.id
+        WHERE  r.id_cliente = :id
+          AND  r.estado     = 'completada'
+        ORDER  BY r.fecha DESC, r.hora DESC
+        LIMIT  1
+    ");
+        $stmt->execute([':id' => $idCliente]);
+        $fila = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $fila ?: null;
     }
 }

@@ -85,8 +85,16 @@ class Usuario {
         $stmt->execute(['email' => $email]);
         $fila = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        // Si no existe el email o la contrasena no coincide, devolver null
-        if (!$fila || !password_verify($password, $fila['password'])) {
+        // 1. Si no existe el usuario, salimos
+        if (!$fila) return null;
+
+        // 2. Si existe pero NO tiene contraseña (es cuenta Google), impedimos el login por formulario
+        if (empty($fila['password'])) {
+            return null;
+        }
+
+        // 3. Ahora sí, verificamos la contraseña con seguridad
+        if (!password_verify($password, $fila['password'])) {
             return null;
         }
 
