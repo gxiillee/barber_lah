@@ -11,6 +11,9 @@ require_once __DIR__ . '/Usuario.php';
  */
 class Cliente extends Usuario {
 
+    // Propiedad extra: no está en el constructor del padre, se asigna en obtenerPorId
+    private $created_at = null;
+
     // --------------------------------------------------------------
     // 1. CONSTRUCTOR
     // --------------------------------------------------------------
@@ -32,7 +35,8 @@ class Cliente extends Usuario {
     ) {
         parent::__construct($id, $google_id, $nombre, $email, $password, $avatar, $telefono, $puntos_fidelidad, 'cliente');
     }
-
+    //getter excluisvo de cliente, no hereda ded usuario
+    public function getCreatedAt()       { return $this->created_at; }
     // --------------------------------------------------------------
     // 2. MÉTODOS DE ESCRITURA (Escritura en BD)
     // --------------------------------------------------------------
@@ -115,5 +119,53 @@ class Cliente extends Usuario {
             $fotos[] = $fila;
         }
         return $fotos;
+    }
+
+
+    /* =======================================================================
+     * Devuelve un objeto Cliente (que extends Usuario) o null si no existe.
+     * Se usa en ficha_cliente.php para cargar el cliente por su id.
+     * ======================================================================= */
+
+    public static function obtenerPorId(int $id): ?Cliente {
+        $conexion = BD::obtenerConexion();
+
+        // Seleccionamos también created_at para mostrarlo en la ficha.
+        $stmt = $conexion->prepare(
+            "SELECT id, google_id, nombre, email, password, avatar,
+                    telefono, puntos_fidelidad, created_at
+               FROM usuarios
+              WHERE id = :id
+                AND rol = 'cliente'
+                AND activo = true"
+        );
+        $stmt->execute(['id' => $id]);
+
+        $fila = $stmt->fetch(PDO::FETCH_ASSOC);
+        if ($fila == false) {
+            return null;
+        }
+
+        // El orden sigue exactamente la firma del constructor:
+        // id, google_id, nombre, email, password, avatar, telefono, puntos_fidelidad
+        $cliente = new Cliente(
+            $fila['id'],
+            $fila['google_id'],
+            $fila['nombre'],
+            $fila['email'],
+            $fila['password'],
+            $fila['avatar'],
+            $fila['telefono'],
+            (int)($fila['puntos_fidelidad'] ?? 0)
+        );
+
+        // Asignamos created_at separado porque no forma parte del constructor
+        $cliente->setCreatedAt($fila['created_at']);
+        return $cliente;
+    }
+
+    // Setter interno para created_at (usado solo en obtenerPorId)
+    private function setCreatedAt($valor): void {
+        $this->created_at = $valor;
     }
 }

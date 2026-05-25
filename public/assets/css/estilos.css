@@ -947,3 +947,19 @@ body.body-panel {
 @media (prefers-reduced-motion: reduce) {
   .slot-card { animation: none; }
 }
+
+/* ============================================================
+   ANIMACIONES PANEL DE ADMINISTRADOR ficha del cliente
+   ============================================================ */
+
+/* Animación de entrada crítica para paneles y tarjetas */
+@keyframes ficha-entrar {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

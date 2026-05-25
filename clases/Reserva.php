@@ -783,4 +783,78 @@ class Reserva {
         $fila = $stmt->fetch(PDO::FETCH_ASSOC);
         return $fila ?: null;
     }
+
+
+    /* =======================================================================
+     * MÉTODOS NUEVOS PARA ficha_cliente.php
+     * Pegar dentro de la clase Reserva, junto al resto de métodos estáticos
+     *
+     * Dependencias ya existentes: BD::obtenerConexion(), $conexion
+     * ======================================================================= */
+
+// -----------------------------------------------------------------------
+// Historial completo de reservas de un cliente (todas, excepto canceladas
+// si lo prefieres — aquí devuelve todas para que Hassan vea el historial
+// completo). ORDER BY fecha DESC para ver primero las más recientes.
+// -----------------------------------------------------------------------
+    public static function obtenerHistorialPorCliente(int $id_cliente): array
+    {
+        $conexion = BD::obtenerConexion();
+
+        $stmt = $conexion->prepare(
+            "SELECT r.id, r.fecha, r.hora, r.estado,
+                r.precio_historico, r.duracion_historica,
+                s.nombre AS nombre_servicio
+           FROM reservas r
+      LEFT JOIN servicios s ON r.id_servicio = s.id
+          WHERE r.id_cliente = :id_cliente
+       ORDER BY r.fecha DESC, r.hora DESC"
+        );
+        $stmt->execute(['id_cliente' => $id_cliente]);
+
+        $resultado = [];
+        while ($fila = $stmt->fetch(PDO::FETCH_ASSOC)) {
+            $resultado[] = $fila;
+        }
+        return $resultado;
+    }
+
+// -----------------------------------------------------------------------
+// Marcar una reserva como completada (Hassan cierra la cita)
+// Solo se puede marcar si estaba en estado 'confirmada'
+// -----------------------------------------------------------------------
+    public static function marcarComoCompletada(int $id_reserva): bool
+    {
+        $conexion = BD::obtenerConexion();
+
+        $stmt = $conexion->prepare(
+            "UPDATE reservas
+            SET estado = 'completada'
+          WHERE id = :id
+            AND estado = 'confirmada'"
+        );
+        $stmt->execute(['id' => $id_reserva]);
+
+        // rowCount() devuelve cuántas filas se actualizaron realmente
+        return $stmt->rowCount() > 0;
+    }
+
+// -----------------------------------------------------------------------
+// Marcar una reserva como no_presentado
+// Solo aplica si estaba en estado 'confirmada'
+// -----------------------------------------------------------------------
+    public static function marcarComoNoPresentado(int $id_reserva): bool
+    {
+        $conexion = BD::obtenerConexion();
+
+        $stmt = $conexion->prepare(
+            "UPDATE reservas
+            SET estado = 'no_presentado'
+          WHERE id = :id
+            AND estado = 'confirmada'"
+        );
+        $stmt->execute(['id' => $id_reserva]);
+
+        return $stmt->rowCount() > 0;
+    }
 }
