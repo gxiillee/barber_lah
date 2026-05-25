@@ -40,7 +40,7 @@ $items_config = [
             <img src="<?= h($admin_avatar) ?>" alt="Perfil de <?= h($admin_nombre) ?>" class="w-full h-full object-cover">
         <?php else: ?>
             <span style="font-family:var(--pf); color:var(--gold); font-size:0.85rem; font-weight:600; line-height:1;">
-                <?= h($admin_inicial) ?>
+                <?= h($admin_iniciales) ?>
             </span>
         <?php endif; ?>
 
