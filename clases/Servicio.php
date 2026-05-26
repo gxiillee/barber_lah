@@ -70,6 +70,33 @@ class Servicio {
                 (bool)$fila['activo']
             );
         }
-        return null; // <--- IMPRESCINDIBLE: Si no hay fila, devuelve nulo.
+        return null; //  Si no hay fila, devuelve nulo.
+    }
+    /**
+     * Crea un nuevo servicio y lo marca como activo por defecto
+     */
+    public static function crear(string $nombre, int $duracionMin, float $precio, ?string $descripcion = null): bool {
+        $conexion = BD::obtenerConexion();
+        // Usamos el nombre exacto de tu columna: duracion_min
+        $stmt = $conexion->prepare("
+            INSERT INTO servicios (nombre, duracion_min, precio, descripcion, activo) 
+            VALUES (:n, :d, :p, :desc, TRUE)
+        ");
+        return $stmt->execute([
+            ':n'    => $nombre,
+            ':d'    => $duracionMin,
+            ':p'    => $precio,
+            ':desc' => $descripcion
+        ]);
+    }
+
+    /**
+     * "Elimina" un servicio de forma lógica (activo = FALSE)
+     * Así no se borran del historial de citas pasadas.
+     */
+    public static function eliminar(int $id): bool {
+        $conexion = BD::obtenerConexion();
+        $stmt = $conexion->prepare("UPDATE servicios SET activo = FALSE WHERE id = :id");
+        return $stmt->execute([':id' => $id]);
     }
 }

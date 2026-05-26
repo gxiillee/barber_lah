@@ -64,4 +64,48 @@ class Bloqueo {
 
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
+
+    // =========================================================================
+    // MÉTODOS DE BASE DE DATOS PARA LA INTERFAZ DE GESTIÓN (CRUD)
+    // =========================================================================
+
+    /**
+     * Obtiene todos los bloqueos registrados para listarlos en el panel administrativo.
+     */
+    public static function listarTodos(): array {
+        $conexion = BD::obtenerConexion();
+        $stmt = $conexion->query("
+            SELECT id, id_barbero, fecha, hora_inicio, hora_fin, motivo 
+            FROM bloqueos 
+            ORDER BY fecha DESC, hora_inicio ASC
+        ");
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * Inserta una nueva restricción de horario o día completo.
+     */
+    public static function crear(int $idBarbero, string $fecha, ?string $horaInicio, ?string $horaFin, ?string $motivo): bool {
+        $conexion = BD::obtenerConexion();
+        $stmt = $conexion->prepare("
+            INSERT INTO bloqueos (id_barbero, fecha, hora_inicio, hora_fin, motivo)
+            VALUES (:id_barbero, :fecha, :hora_inicio, :hora_fin, :motivo)
+        ");
+        return $stmt->execute([
+            ':id_barbero' => $idBarbero,
+            ':fecha'      => $fecha,
+            ':hora_inicio'=> $horaInicio ?: null,
+            ':hora_fin'   => $horaFin ?: null,
+            ':motivo'     => $motivo ?: null
+        ]);
+    }
+
+    /**
+     * Elimina una restricción por su clave primaria.
+     */
+    public static function eliminar(int $id): bool {
+        $conexion = BD::obtenerConexion();
+        $stmt = $conexion->prepare("DELETE FROM bloqueos WHERE id = :id");
+        return $stmt->execute([':id' => $id]);
+    }
 }

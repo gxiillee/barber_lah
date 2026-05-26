@@ -189,4 +189,20 @@ class Usuario {
 
         return new self($idNuevo, $googleId, $nombre, $email, null, $avatar, null, 0, 'cliente');
     }
+
+    /**
+     * PANEL ADMIN DE HASSAN
+     * Devuelve únicamente los usuarios que son clientes,
+     * ideal para la agenda y el directorio del barbero.
+     */
+    public static function listarClientes(): array {
+        $conexion = BD::obtenerConexion();
+        $stmt = $conexion->query("
+            SELECT id, nombre, email, telefono, puntos_fidelidad 
+            FROM usuarios 
+            WHERE rol = 'cliente' 
+            ORDER BY nombre ASC
+        ");
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
 }
