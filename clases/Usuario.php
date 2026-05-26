@@ -11,18 +11,18 @@ require_once __DIR__ . '/BD.php';
 class Usuario {
 
     // ---------------------------------------------------------------
-    // Propiedades privadas — solo accesibles via getters
+    // Propiedades protegidas — accesibles por clases hijas y getters
     // ---------------------------------------------------------------
 
-    private $id;
-    private $google_id;
-    private $nombre;
-    private $email;
-    private $password;
-    private $avatar;
-    private $telefono;
-    private $puntos_fidelidad;
-    private $rol;
+    protected $id;
+    protected $google_id;
+    protected $nombre;
+    protected $email;
+    protected $password;
+    protected $avatar;
+    protected $telefono;
+    protected $puntos_fidelidad;
+    protected $rol;
 
     // ---------------------------------------------------------------
     // Constructor
@@ -90,7 +90,7 @@ class Usuario {
 
         // 2. Si existe pero NO tiene contraseña (es cuenta Google), impedimos el login por formulario
         if (empty($fila['password'])) {
-            return null;
+            throw new Exception("Esta cuenta se registró a través de Google. Por favor, inicia sesión pulsando el botón de Google.");
         }
 
         // 3. Ahora sí, verificamos la contraseña con seguridad

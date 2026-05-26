@@ -34,6 +34,7 @@ if (isset($_SESSION['reserva_pendiente']) && is_array($_SESSION['reserva_pendien
 }
 
 // Procesar formulario POST
+// Procesar formulario POST
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $accion = $_POST['accion'] ?? 'login';
 
@@ -71,22 +72,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $errorLogin = 'El formato del email no es correcto.';
 
             } else {
-                $usuario = Usuario::comprobarLogin($email, $password);
 
-                if ($usuario instanceof Usuario) {
-                    session_regenerate_id(true);
-                    $_SESSION['usuario'] = $usuario;
-                    // Redireccion inteligente: reserva pendiente > admin > inicio
-                    if (isset($_SESSION['reserva_pendiente'])) {
-                        redirigir('/cliente/confirmar_reserva.php');
-                    } elseif ($usuario->tieneRolAdmin()) {
-                        redirigir('admin/index.php');
-                    } else {
-                        redirigir('cliente/index.php');
+                try {
+                    $usuario = Usuario::comprobarLogin($email, $password);
+
+                    if ($usuario instanceof Usuario) {
+                        session_regenerate_id(true);
+                        $_SESSION['usuario'] = $usuario;
+
+                        // Redireccion inteligente: reserva pendiente > admin > inicio
+                        if (isset($_SESSION['reserva_pendiente'])) {
+                            redirigir('/cliente/confirmar_reserva.php');
+                        } elseif ($usuario->tieneRolAdmin()) {
+                            redirigir('admin/index.php');
+                        } else {
+                            redirigir('cliente/index.php');
+                        }
                     }
-                }
 
-                $errorLogin = 'Email o contraseña incorrectos.';
+                    // Si llega aquí es porque devolvió null (usuario/contraseña incorrectos)
+                    $errorLogin = 'Email o contraseña incorrectos.';
+
+                } catch (Exception $e) {
+                    // Si el método comprobarLogin lanza una excepción, capturamos su mensaje
+                    // (ej: "Esta cuenta se registró a través de Google...")
+                    $errorLogin = $e->getMessage();
+                }
             }
         }
     }
@@ -159,7 +170,12 @@ $wrapperClase = 'login-wrapper ' . ($modoActivo === 'registro' ? 'es-registro' :
                 <input type="hidden" name="source" value="<?= h((string)$sourceLogin) ?>">
 
                 <input class="mb-3 w-full rounded-md border border-[#282828] bg-[#141414] px-3.5 py-[13px] text-[13px] tracking-[0.03em] text-[#e0e0e0] outline-none transition placeholder:text-[#3a3a3a] focus:border-[var(--gold)] focus:bg-[#171717] focus:shadow-[0_0_0_2px_rgba(212,175,55,0.15)]" type="email" name="email" placeholder="Email" value="<?= h($valores['login_email']) ?>" autocomplete="email" required>
-                <input class="mb-2 w-full rounded-md border border-[#282828] bg-[#141414] px-3.5 py-[13px] text-[13px] tracking-[0.03em] text-[#e0e0e0] outline-none transition placeholder:text-[#3a3a3a] focus:border-[var(--gold)] focus:bg-[#171717] focus:shadow-[0_0_0_2px_rgba(212,175,55,0.15)]" type="password" name="password" placeholder="Contraseña" autocomplete="current-password" required>
+                <div class="relative mb-2 w-full">
+                    <input class="w-full rounded-md border border-[#282828] bg-[#141414] px-3.5 py-[13px] pr-10 text-[13px] tracking-[0.03em] text-[#e0e0e0] outline-none transition placeholder:text-[#3a3a3a] focus:border-[var(--gold)] focus:bg-[#171717] focus:shadow-[0_0_0_2px_rgba(212,175,55,0.15)]" type="password" name="password" placeholder="Contraseña" autocomplete="current-password" required>
+                    <button type="button" class="toggle-password absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer border-0 bg-transparent p-0 text-[15px] leading-none text-[#3a3a3a] transition hover:text-[var(--gold)]" aria-label="Mostrar contraseña">
+                        <i class="bi bi-eye"></i>
+                    </button>
+                </div>
 
                 <a href="recuperar.php" class="mb-4 block w-full text-right text-[10px] tracking-[0.04em] text-white/35 no-underline transition hover:text-[var(--gold)]">¿Olvidaste tu contraseña?</a>
                 <button type="submit" class="w-full rounded-md bg-[var(--gold)] px-3 py-3 text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--obsidian)] transition hover:-translate-y-0.5 hover:bg-[var(--gold-light)] hover:shadow-[0_6px_20px_rgba(212,175,55,0.25)]">Entrar</button>
@@ -228,7 +244,18 @@ $wrapperClase = 'login-wrapper ' . ($modoActivo === 'registro' ? 'es-registro' :
                     </button>
                 </div>
                 <input class="mb-3 w-full rounded-md border border-[#282828] bg-[#141414] px-3.5 py-[13px] text-[13px] tracking-[0.03em] text-[#e0e0e0] outline-none transition placeholder:text-[#3a3a3a] focus:border-[var(--gold)] focus:bg-[#171717] focus:shadow-[0_0_0_2px_rgba(212,175,55,0.15)]" type="email" name="email_registro" placeholder="Email" value="<?= h($valores['email_registro']) ?>" autocomplete="email" required>
-                <input class="mb-3 w-full rounded-md border border-[#282828] bg-[#141414] px-3.5 py-[13px] text-[13px] tracking-[0.03em] text-[#e0e0e0] outline-none transition placeholder:text-[#3a3a3a] focus:border-[var(--gold)] focus:bg-[#171717] focus:shadow-[0_0_0_2px_rgba(212,175,55,0.15)]" type="password" name="password_registro" placeholder="Contraseña (mín. 6 caracteres)" autocomplete="new-password" required>
+                <div class="relative w-full">
+                    <input id="passwordRegistro" class="w-full rounded-md border border-[#282828] bg-[#141414] px-3.5 py-[13px] pr-10 text-[13px] tracking-[0.03em] text-[#e0e0e0] outline-none transition placeholder:text-[#3a3a3a] focus:border-[var(--gold)] focus:bg-[#171717] focus:shadow-[0_0_0_2px_rgba(212,175,55,0.15)]" type="password" name="password_registro" placeholder="Contraseña (mín. 6 caracteres)" autocomplete="new-password" required>
+                    <button type="button" class="toggle-password absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer border-0 bg-transparent p-0 text-[15px] leading-none text-[#3a3a3a] transition hover:text-[var(--gold)]" aria-label="Mostrar contraseña">
+                        <i class="bi bi-eye"></i>
+                    </button>
+                </div>
+                <div class="mb-3 mt-1.5 w-full">
+                    <div class="h-[3px] w-full overflow-hidden rounded-full bg-[#1e1e1e]">
+                        <div id="strengthBar" class="h-full rounded-full transition-all duration-300" style="width: 0%; background-color: transparent;"></div>
+                    </div>
+                    <p id="strengthLabel" class="mt-1 min-h-[14px] text-[10px] tracking-[0.04em] text-[#444] transition-colors"></p>
+                </div>
 
                 <button type="submit" class="w-full rounded-md bg-[var(--gold)] px-3 py-3 text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--obsidian)] transition hover:-translate-y-0.5 hover:bg-[var(--gold-light)] hover:shadow-[0_6px_20px_rgba(212,175,55,0.25)]">Crear cuenta</button>
             </form>
@@ -288,54 +315,46 @@ $wrapperClase = 'login-wrapper ' . ($modoActivo === 'registro' ? 'es-registro' :
         }
     }
 
-    // Añadir a cada input de contraseña un boton ojo
-    document.querySelectorAll('input[type="password"]').forEach(input => {
-        const wrap = document.createElement('div');
-        wrap.className = 'relative mb-3';
-        input.parentNode.insertBefore(wrap, input);
-        wrap.appendChild(input);
-        input.classList.replace('mb-3', 'mb-0');
-        input.style.paddingRight = '38px';
-        const btn = document.createElement('button');
-        btn.type = 'button';
-        btn.setAttribute('aria-label', 'Mostrar contraseña');
-        btn.className = 'absolute right-3 top-1/2 -translate-y-1/2 border-0 bg-transparent p-0 leading-none cursor-pointer text-[#3a3a3a] hover:text-[var(--gold)] transition text-[15px]';
-        btn.innerHTML = '<i class="bi bi-eye"></i>';
+    // Mostrar/Ocultar contraseña
+    document.querySelectorAll('.toggle-password').forEach(btn => {
         btn.addEventListener('click', () => {
-            const visible = input.type === 'text';
-            input.type = visible ? 'password' : 'text';
-            btn.innerHTML = visible ? '<i class="bi bi-eye"></i>' : '<i class="bi bi-eye-slash"></i>';
-            btn.setAttribute('aria-label', visible ? 'Mostrar contraseña' : 'Ocultar contraseña');
+            const input = btn.previousElementSibling;
+            const icon = btn.querySelector('i');
+            const isPassword = input.type === 'password';
+            
+            input.type = isPassword ? 'text' : 'password';
+            icon.className = isPassword ? 'bi bi-eye-slash' : 'bi bi-eye';
+            btn.setAttribute('aria-label', isPassword ? 'Ocultar contraseña' : 'Mostrar contraseña');
         });
-        wrap.appendChild(btn);
     });
 
-    // Barra de fuerza de contrasena (solo en registro)
-    const pwdReg = document.querySelector('input[name="password_registro"]');
+    // Medidor de fuerza de contraseña
+    const pwdReg = document.getElementById('passwordRegistro');
     if (pwdReg) {
-        const bar = document.createElement('div');
-        bar.innerHTML = `<div class="mt-1.5 h-[3px] w-full rounded-full bg-[#1e1e1e] overflow-hidden"><div id="strengthBar" class="h-full rounded-full transition-all duration-300" style="width:0"></div></div><p id="strengthLabel" class="mt-1 text-[10px] tracking-[0.04em] transition-colors" style="min-height:14px;color:#444"></p>`;
-        pwdReg.closest('div').after(bar);
-        const strengthBar  = document.getElementById('strengthBar');
+        const strengthBar = document.getElementById('strengthBar');
         const strengthLabel = document.getElementById('strengthLabel');
         const lvls = [
-            {p:0,  c:'transparent', t:''},
-            {p:20, c:'#c0392b',     t:'Muy débil'},
-            {p:40, c:'#e67e22',     t:'Débil'},
-            {p:60, c:'#f1c40f',     t:'Aceptable'},
-            {p:80, c:'#27ae60',     t:'Fuerte'},
-            {p:100,c:'#d4af37',     t:'Excelente ✦'}
+            { p: 0,   c: 'transparent', t: '' },
+            { p: 20,  c: '#c0392b',     t: 'Muy débil' },
+            { p: 40,  c: '#e67e22',     t: 'Débil' },
+            { p: 60,  c: '#f1c40f',     t: 'Aceptable' },
+            { p: 80,  c: '#27ae60',     t: 'Fuerte' },
+            { p: 100, c: '#d4af37',     t: 'Excelente ✦' }
         ];
+
         pwdReg.addEventListener('input', () => {
             let s = 0;
             const v = pwdReg.value;
-            if (v.length >= 6)            { s++; }
-            if (v.length >= 10)           { s++; }
-            if (/[A-Z]/.test(v))          { s++; }
-            if (/[0-9]/.test(v))          { s++; }
-            if (/[^A-Za-z0-9]/.test(v))   { s++; }
+            
+            if (v.length >= 6) s++;
+            if (v.length >= 10) s++;
+            if (/[A-Z]/.test(v)) s++;
+            if (/[0-9]/.test(v)) s++;
+            if (/[^A-Za-z0-9]/.test(v)) s++;
+            
             const l = lvls[Math.min(s, 5)];
-            strengthBar.style.cssText = `width:${l.p}%;background:${l.c}`;
+            strengthBar.style.width = `${l.p}%`;
+            strengthBar.style.backgroundColor = l.c;
             strengthLabel.textContent = l.t;
             strengthLabel.style.color = l.c;
         });
