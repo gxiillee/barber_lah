@@ -1,14 +1,14 @@
 <?php
 
-require_once __DIR__ . '/vendor/autoload.php'; // ¡ESTO ES VITAL para que funcione Mongo!
+require_once __DIR__ . '/vendor/autoload.php';
 require_once 'clases/BdMongo.php';
 require_once 'clases/Galeria_corte.php';
 require_once 'clases/Producto.php';
 require_once 'clases/Servicio.php';
 
-$servicios = Servicio::obtenerTodos(); // De Postgres
-$galeriaCortes   = Corte::obtenerTodos();      // De Mongo
-$productos = Producto::obtenerActivos(); // De Mongo
+$servicios = Servicio::obtenerTodos();
+$galeriaCortes = Corte::obtenerTodos();
+$productos = Producto::obtenerActivos();
 ?>
 
 <!DOCTYPE html>
@@ -673,7 +673,7 @@ $productos = Producto::obtenerActivos(); // De Mongo
                     <iframe
                             title="Ubicación Barbershop La H"
                             class="h-[400px] w-full lg:h-[450px] block"
-                            src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2985.2936355819036!2d-0.8756306!3d41.6494793!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0xd5914ed0761614b%3A0x868b9176c764e52f!2sC.%20de%20Miguel%20Servet%2C%2024%2C%2050013%20Zaragoza!5e0!3m2!1ses!2ses!4v1700000000000!5m2!1ses!2ses"
+                            src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2985.2936355819036!2d-0.8756306!3d41.6494793!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0xd5914ed0761614b%3A0x868b9176c764e52f!2sC.%20de%20Miguel%20Servet%2C%2024%2C%2050013%20Zaragoza!5e0!3m2!1ses!2ses!4v1716900000000!5m2!1ses!2ses"
                             style="border: 0;"
                             allowfullscreen=""
                             loading="lazy">

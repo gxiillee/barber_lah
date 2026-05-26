@@ -10,6 +10,7 @@ require_once __DIR__ . '/../clases/helpers.php';
 require_once __DIR__ . '/../clases/Usuario.php';
 require_once __DIR__ . '/../clases/Cliente.php';
 require_once __DIR__ . '/../clases/Reserva.php';
+require_once __DIR__ . '/../clases/FotoCliente.php';
 require_once __DIR__ . '/../clases/Csrf.php';
 
 /* =====================================================================
@@ -62,7 +63,7 @@ $ultima_visita      = Reserva::obtenerUltimaCompletadaPorCliente($id_cliente);
 $historial = Reserva::obtenerHistorialPorCliente($id_cliente);
 
 // Fotos del cliente (vista lectura para Hassan)
-$fotos = Cliente::obtenerFotos($id_cliente);
+$fotos = FotoCliente::obtenerPorUsuario($id_cliente);
 
 /* =====================================================================
  * FASE 5 — POST: marcar reserva como completada

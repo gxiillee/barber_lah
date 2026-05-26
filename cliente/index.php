@@ -3,10 +3,10 @@ declare(strict_types=1);
 date_default_timezone_set('Europe/Madrid');
 
 // ── Fase 1: Carga de dependencias ─────────────────────────────────
-require_once __DIR__ . '/../clases/BD.php';
+
 require_once __DIR__ . '/../clases/helpers.php';
 require_once __DIR__ . '/../clases/Usuario.php';
-require_once __DIR__ . '/../clases/Cliente.php';
+require_once __DIR__ . '/../clases/FotoCliente.php';
 require_once __DIR__ . '/../clases/Reserva.php';
 
 // ── Fase 2: Sesión y control de acceso ────────────────────────────
@@ -23,14 +23,14 @@ if ($usuario->tieneRolAdmin()) {
     redirigir('../admin/index.php');
 }
 
-// ── Fase 3: Carga de datos del dashboard ──────────────────────────
+// ── Fase 3: Carga de datos para el dashboard ─────────────────────
 $id_usuario = (int) $usuario->getId();
 $puntos     = (int) $usuario->getPuntosFidelidad();
 $nombre = $usuario->getNombre() ?? 'Cliente';
 $avatar_url = $usuario->getAvatar();
 $inicial = mb_strtoupper(mb_substr($nombre, 0, 1, 'UTF-8'), 'UTF-8');
 
-// Consultas delegadas a sus clases correspondientes
+// Consultas de base de datos delegadas a sus modelos
 $total_citas = Reserva::contarCompletadasPorCliente($id_usuario);
 $proxima     = Reserva::obtenerProximaPorCliente($id_usuario);
 
@@ -50,8 +50,8 @@ if ($proxima !== null) {
     $proxima_fecha_larga = fechaHumana($proxima['fecha']);
 }
 
-// Fotos del cliente (método en Cliente.php)
-$fotos         = Cliente::obtenerFotos($id_usuario);
+// Fotos del cliente (FotoCliente::obtenerPorUsuario)
+$fotos         = FotoCliente::obtenerPorUsuario($id_usuario);
 $ultimas_fotos = array_slice($fotos, 0, 4);
 $total_fotos   = count($fotos);
 

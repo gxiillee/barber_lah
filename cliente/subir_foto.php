@@ -39,7 +39,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $errores[] = 'Ya tienes el máximo de ' . FotoCliente::MAX_FOTOS . ' fotos.';
     } elseif (isset($_FILES['fotos']) && !empty($_FILES['fotos']['name'][0])) {
 
-        // ¡Magia! Toda la lógica compleja delegada a la clase
+        // Delegamos validación y almacenamiento al modelo (principio de responsabilidad única)
         $resultado = FotoCliente::procesarSubidaMultiple($_FILES['fotos'], $id_usuario, $huecos);
 
         $subidas = $resultado['subidas'];
@@ -156,14 +156,18 @@ $pagina_activa = 'fotos';
 </main>
 
 <script>
-    // JS Minimalista: Solo escucha cuando el input cambia y actualiza la vista
-    const inputFotos = document.getElementById('input-fotos');
-    const resumen = document.getElementById('resumen');
-    const btnSubir = document.getElementById('btn-subir');
-    const btnTexto = document.getElementById('btn-texto');
-    const formulario = document.getElementById('form-subida');
+    /**
+     * [TFG] Patrón declarativo: los elementos ya existen en el HTML.
+     * El JS solo añade comportamiento (event listeners), no crea DOM.
+     * Esto simplifica el mantenimiento y mejora la legibilidad.
+     */
+    const inputFotos  = document.getElementById('input-fotos');
+    const resumen     = document.getElementById('resumen');
+    const btnSubir    = document.getElementById('btn-subir');
+    const btnTexto    = document.getElementById('btn-texto');
+    const formulario  = document.getElementById('form-subida');
 
-    // Importante: Definimos la variable desde PHP aquí
+    // [TFG] Variable inyectada desde PHP — puente servidor → cliente
     const huecosDisponibles = <?= $huecos ?>;
 
     if (inputFotos) {
@@ -173,7 +177,7 @@ $pagina_activa = 'fotos';
             if (numArchivos > 0) {
                 let mensaje = '';
 
-                // Lógica de aviso si supera el límite
+                // [TFG] Feedback inmediato al usuario si selecciona más archivos de los permitidos
                 if (numArchivos > huecosDisponibles) {
                     mensaje = 'Has seleccionado ' + numArchivos + ' archivos, pero solo se guardarán los primeros ' + huecosDisponibles + '.';
                     resumen.style.color = '#fca5a5'; // Color rojo de advertencia
@@ -189,7 +193,7 @@ $pagina_activa = 'fotos';
                 btnSubir.style.opacity = '1';
                 btnSubir.style.cursor = 'pointer';
 
-                // Ajustamos el texto del botón al límite real que se va a subir
+                // [TFG] UX: el texto del botón refleja la cantidad real que se procesará
                 const aSubir = (numArchivos > huecosDisponibles) ? huecosDisponibles : numArchivos;
                 btnTexto.textContent = 'Subir ' + aSubir + ' foto' + (aSubir > 1 ? 's' : '');
             } else {
@@ -201,7 +205,7 @@ $pagina_activa = 'fotos';
             }
         });
 
-        // Efecto de carga visual al enviar
+        // [TFG] Feedback visual de envío: desactivar botón y mostrar spinner
         formulario.addEventListener('submit', function() {
             btnSubir.disabled = true;
             btnSubir.style.opacity = '0.7';

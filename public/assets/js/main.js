@@ -89,8 +89,15 @@ function lerp(a, b, t) {
 }
 
 /**
- * Calcula el progreso del scroll dentro de la sección de video.
- * 0 = inicio de la sección visible, 1 = fin del scroll de la sección.
+ * [TFG] Cálculo Asíncrono del Scroll (Sección Experiencia)
+ * Calcula dinámicamente qué porcentaje de la sección de video se ha desplazado.
+ * 
+ * ¿Cómo funciona?
+ * 1. Obtiene las dimensiones de la sección del video respecto al viewport.
+ * 2. Calcula el espacio total disponible para hacer scroll (altura total - viewport).
+ * 3. Mapea la posición negativa del top respecto al total para obtener un porcentaje.
+ * 
+ * @returns {number} Progreso normalizado entre 0 (inicio) y 1 (fin de la sección).
  */
 function getScrollProgress() {
   if (!DOM.videoSection) return 0;
@@ -141,8 +148,14 @@ function updateIntroTitle(p) {
 }
 
 /**
- * Bucle de animación principal.
- * Se ejecuta cada frame via requestAnimationFrame.
+ * [TFG] Bucle de Renderizado Principal (Motor de Animación)
+ * Este es el corazón de los efectos visuales. Se ejecuta a ~60fps utilizando 
+ * requestAnimationFrame (rAF), delegando la sincronización de frames al navegador.
+ * 
+ * ¿Por qué usar rAF y Lerp para el video?
+ * En lugar de enlazar bruscamente el fotograma del video con el píxel del scroll,
+ * calculamos un "tiempo objetivo" y usamos interpolación lineal (Lerp) para
+ * que el "tiempo actual" alcance al objetivo suavemente, evitando tirones (stuttering).
  */
 function renderFrame() {
   const p = getScrollProgress(); // progreso 0 → 1
@@ -378,7 +391,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
     current = index;
 
-    // En móvil centra el slide; en desktop sin offset
+    // [TFG] Responsive Slide Offset (Cálculo Dinámico del Centro)
+    // Para dispositivos móviles, queremos que la imagen activa quede en el centro de la pantalla.
+    // Restamos el ancho del slide al ancho de la ventana y lo dividimos entre 2 
+    // para obtener los márgenes laterales (centerOffset).
+    // En escritorio (desktop), el carrusel fluye libremente desde el margen izquierdo (0px).
     const isMobile = window.innerWidth <= 768;
     const centerOffset = isMobile
       ? (window.innerWidth - slides[0].offsetWidth) / 2

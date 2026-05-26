@@ -1,5 +1,6 @@
 <?php
-// Horario.php
+declare(strict_types=1);
+
 require_once __DIR__ . '/BD.php';
 
 class Horario {
@@ -33,7 +34,6 @@ class Horario {
         $actual = new DateTime($inicio);
         $cierre = new DateTime($fin);
 
-        // Mientras la hora actual sea menor al cierre, seguimos generando huecos
         while ($actual < $cierre) {
             $slots[] = $actual->format('H:i');
             $actual->modify("+$intervalo minutes");

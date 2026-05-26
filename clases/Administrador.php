@@ -16,29 +16,7 @@ class Administrador extends Usuario {
 
     // 2. MÉTODOS DE CONSULTA (Lectura de datos)
 
-    /**
-     * Obtiene la lista de todos los administradores activos.
-     * Útil si el negocio crece y Hassan tiene colaboradores.
-     */
-    public static function obtenerTodosLosAdmins(): array {
-        $conexion = BD::obtenerConexion();
 
-        // Ajustado para PostgreSQL (activo = true)
-        $stmt = $conexion->prepare("SELECT * FROM usuarios WHERE rol = 'admin' AND activo = true");
-        $stmt->execute();
-
-        $admins = [];
-        while ($fila = $stmt->fetch(PDO::FETCH_ASSOC)) {
-            $admins[] = new self(
-                $fila['id'],
-                $fila['nombre'],
-                $fila['email'],
-                $fila['password'],
-                $fila['telefono']
-            );
-        }
-        return $admins;
-    }
 
     // 3. MÉTODOS DE ESTADÍSTICAS (Panel de Gestión)
 

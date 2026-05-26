@@ -23,7 +23,7 @@ if ($usuario->tieneRolAdmin()) {
     redirigir('../admin/index.php');
 }
 
-// ── Fase 3: Recuperación de datos ─────────────────────────────────
+
 $id_usuario  = (int) $usuario->getId();
 $fotos       = FotoCliente::obtenerPorUsuario($id_usuario);
 $total_fotos = count($fotos);

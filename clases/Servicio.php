@@ -1,4 +1,6 @@
 <?php
+declare(strict_types=1);
+
 require_once __DIR__ . '/BD.php';
 
 class Servicio {
@@ -10,7 +12,6 @@ class Servicio {
     private bool $activo;
 
     public function __construct(int $id, string $nombre, float $precio, int $duracionMin, ?string $descripcion, bool $activo) {
-        // Inicializa un servicio con sus propiedades básicas
         $this->id          = $id;
         $this->nombre      = $nombre;
         $this->precio      = $precio;
@@ -34,21 +35,18 @@ class Servicio {
      */
     public static function obtenerTodos(): array {
         $conexion = BD::obtenerConexion();
-        // Usamos tu query con el filtro de activos
         $stmt = $conexion->query("SELECT * FROM servicios WHERE activo = TRUE ORDER BY nombre ASC");
 
-        $servicios = [];
-        while ($fila = $stmt->fetch()) {
-            $servicios[] = new self(
+        return array_map(static function (array $fila): Servicio {
+            return new self(
                 (int)$fila['id'],
                 $fila['nombre'],
                 (float)$fila['precio'],
-                (int)$fila['duracion_min'], // Mapeamos duracion_min de la BD a duracion de la clase
+                (int)$fila['duracion_min'],
                 $fila['descripcion'] ?? null,
                 (bool)$fila['activo']
             );
-        }
-        return $servicios;
+        }, $stmt->fetchAll(PDO::FETCH_ASSOC));
     }
 
     /**

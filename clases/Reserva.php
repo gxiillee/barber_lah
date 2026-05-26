@@ -538,12 +538,6 @@ class Reserva {
     // =========================================================================
 
     /**
-     * APARTADO PARA EL USO EN CLIENTE
-     * Contar rservas para fidelidad
-     * obtener proxima para avisarle cuando es la siguiente
-     */
-
-    /**
      * Cuenta las citas completadas de un cliente.
      * Usada en el dashboard para el contador de cortes realizados.
      */
@@ -587,91 +581,51 @@ class Reserva {
         return $fila ?: null;
     }
 
-    /**
-     * Obtiene el historial completo de citas de un cliente determinado.
-     * Trae tanto las completadas como las canceladas o ausentes.
-     *
-     * @param int $id_usuario ID único del cliente en la sesión.
-     * @return array Listado asociativo con los datos de las reservas y servicios.
-     */
-    public static function obtenerHistorialPorUsuario(int $id_usuario): array {
-        try {
-            $db = BD::obtenerConexion();
 
-            // 🌟 AGREGAMOS 'r.estado' A LA CONSULTA SQL
-            $sql = "SELECT 
-                    s.nombre AS servicio_nombre, 
-                    r.fecha, 
-                    r.hora, 
-                    r.precio_historico, 
-                    r.estado 
-                FROM reservas r
-                INNER JOIN servicios s ON r.id_servicio = s.id
-                WHERE r.id_cliente = :id_usuario
-                ORDER BY r.fecha DESC, r.hora DESC";
-
-            $stmt = $db->prepare($sql);
-            $stmt->execute(['id_usuario' => $id_usuario]);
-
-            return $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-        } catch (Exception $e) {
-            error_log("Error en obtenerHistorialPorUsuario: " . $e->getMessage());
-            return [];
-        }
-    }
-    /**
-     * Pone las citas pasadas como completadas
-     * Una vez pasa media hora del corte ya es completada
-     *
-     */
     public static function actualizarCitasPasadas(): void {
+        $conexion = BD::obtenerConexion();
+
         try {
-            $db = BD::obtenerConexion();
-            $db->beginTransaction();
+            $conexion->beginTransaction();
 
-            // 1. PostgreSQL permite el RETURNING en el UPDATE.
-            // Combinamos la fecha y hora y sumamos el intervalo.
-            $sqlReservas = "UPDATE reservas 
-                        SET estado = 'completada' 
-                        WHERE estado IN ('pendiente', 'confirmada') 
-                          AND NOW() >= (fecha + hora + (duracion_historica * INTERVAL '1 minute'))
-                        RETURNING id_cliente";
+            // Marca como completadas las citas cuya hora de fin + 30 min ya ha pasado
+            $stmt = $conexion->prepare("
+                UPDATE reservas
+                SET estado = 'completada'
+                WHERE estado IN ('pendiente', 'confirmada')
+                  AND NOW() >= (fecha + hora + (duracion_historica * INTERVAL '1 minute') + INTERVAL '30 minutes')
+                RETURNING id_cliente
+            ");
+            $stmt->execute();
+            $clientes = $stmt->fetchAll(PDO::FETCH_COLUMN);
 
-            $stmtReservas = $db->prepare($sqlReservas);
-            $stmtReservas->execute();
-
-            // Obtenemos los IDs directamente del resultado del update
-            $clientesAfectados = $stmtReservas->fetchAll(PDO::FETCH_COLUMN);
-
-            // 2. Si hay clientes, actualizamos sus puntos
-            if (!empty($clientesAfectados)) {
-                $sqlPuntos = "UPDATE usuarios 
-                          SET puntos_fidelidad = CASE 
-                              WHEN puntos_fidelidad + 1 >= 10 THEN 0 
-                              ELSE puntos_fidelidad + 1 
-                          END 
-                          WHERE id = :id_cliente";
-
-                $stmtPuntos = $db->prepare($sqlPuntos);
-
-                foreach ($clientesAfectados as $id_cliente) {
-                    $stmtPuntos->execute(['id_cliente' => $id_cliente]);
+            // Suma 1 punto de fidelidad a cada cliente afectado (reset a 0 al llegar a 10)
+            if (!empty($clientes)) {
+                $stmtPuntos = $conexion->prepare("
+                    UPDATE usuarios
+                    SET puntos_fidelidad = CASE
+                        WHEN puntos_fidelidad + 1 >= 10 THEN 0
+                        ELSE puntos_fidelidad + 1
+                    END
+                    WHERE id = :id
+                ");
+                foreach ($clientes as $id) {
+                    $stmtPuntos->execute([':id' => $id]);
                 }
             }
 
-            $db->commit();
+            $conexion->commit();
 
         } catch (Exception $e) {
-            if (isset($db) && $db->inTransaction()) {
-                $db->rollBack();
+            if ($conexion->inTransaction()) {
+                $conexion->rollBack();
             }
-            error_log("Error en Reserva::actualizarCitasPasadas: " . $e->getMessage());
+            error_log("Error en actualizarCitasPasadas: " . $e->getMessage());
         }
     }
 
     // =========================================================================
-    // MÉTODOS ESPECÍFICOS PARA EL ÁREA DE ADMIN (HAAAAAAAAASSSAAAAAN)
+    // MÉTODOS ESPECÍFICOS PARA EL ÁREA DE ADMINISTRACIÓN
     // =========================================================================
 
     /**

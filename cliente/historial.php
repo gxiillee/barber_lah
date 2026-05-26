@@ -23,13 +23,11 @@ if ($usuario->tieneRolAdmin()) {
 }
 
 // ── Fase 3: Recuperación de datos ─────────────────────────────────
-// ── Fase 3: Recuperación de datos ─────────────────────────────────
-// 1. Ejecutamos el "limpiador" automático para actualizar el pasado
+// Actualizar estado de citas pasadas antes de consultar el historial
 Reserva::actualizarCitasPasadas();
 
-// 2. Ahora que la BD está al día, recuperamos el historial del usuario
 $id_usuario = (int)$usuario->getId();
-$historial  = Reserva::obtenerHistorialPorUsuario($id_usuario);
+$historial  = Reserva::obtenerHistorialPorCliente($id_usuario);
 $pagina_activa = 'historial';
 
 ?>
@@ -114,7 +112,7 @@ $pagina_activa = 'historial';
                     <div class="bg-[var(--bg2)] border border-[var(--brd)] rounded-2xl p-5 transition-all duration-200 hover:border-[var(--brd-h)] hover:-translate-y-0.5 flex items-center justify-between gap-4">
                         <div class="flex flex-col gap-1.5">
                             <span class="text-[var(--tx)] font-semibold text-lg leading-tight">
-                                <?= h($cita['servicio_nombre']) ?>
+                                <?= h($cita['nombre_servicio']) ?>
                             </span>
                             <div class="flex flex-wrap items-center gap-3 text-[var(--tx-m)] text-sm">
                                 <span class="flex items-center gap-1.5">

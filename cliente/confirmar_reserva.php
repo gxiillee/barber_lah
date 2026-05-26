@@ -24,6 +24,7 @@ session_start();
 // ---------------------------------------------------------------
 // FASE 1: Configuración, Seguridad y Control de Acceso
 // ---------------------------------------------------------------
+// [TFG] Carga y validación del usuario autenticado
 $usuario = $_SESSION['usuario'] ?? null;
 if (!$usuario instanceof Usuario) {
     redirigir('login.php?source=reserva');
@@ -32,6 +33,7 @@ if (!$usuario instanceof Usuario) {
 // ---------------------------------------------------------------
 // FASE 2: Recuperación de Datos de la Sesión Pendiente
 // ---------------------------------------------------------------
+// [TFG] Obtención de datos de la reserva en proceso desde la sesión
 $pendiente = (isset($_SESSION['reserva_pendiente']) && is_array($_SESSION['reserva_pendiente']))
         ? $_SESSION['reserva_pendiente']
         : null;
@@ -43,6 +45,7 @@ if ($pendiente === null) {
 // ---------------------------------------------------------------
 // FASE 3: Carga de Entidades Relacionadas (ORM/Modelos)
 // ---------------------------------------------------------------
+// [TFG] Carga de objetos Barbero y Servicio basados en IDs de la sesión
 $idBarbero  = (int)($pendiente['id_barbero']  ?? 1);
 $idServicio = (int)($pendiente['id_servicio'] ?? 0);
 $fecha      = (string)($pendiente['fecha']    ?? '');
@@ -59,6 +62,7 @@ if (!$barbero || !$servicio || $fecha === '' || $hora === '') {
 // ---------------------------------------------------------------
 // FASE 4: Verificación de Disponibilidad en Tiempo Real y UI
 // ---------------------------------------------------------------
+// [TFG] Consulta de disponibilidad inmediata y preformateo de datos para la vista
 $precio            = (float)($pendiente['precio'] ?? $servicio->getPrecio());
 $duracion          = (int)($pendiente['duracion'] ?? $servicio->getDuracion());
 $disponibleAhora   = Reserva::estaDisponible($idBarbero, $fecha, $hora, $duracion);
@@ -77,6 +81,7 @@ $urlModificar = 'reserva.php?' . http_build_query([
 // ---------------------------------------------------------------
 // FASE 5: Procesamiento de la Confirmación (Petición POST)
 // ---------------------------------------------------------------
+// [TFG] Validación de CSRF, creación atómica de la reserva y envío de notificación
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion']) && $_POST['accion'] === 'confirmar') {
 
     // SOLUCIÓN AL ERROR: Validación pasando el identificador de acción requerido por tu clase Csrf
@@ -137,6 +142,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion']) && $_POST['
 
 // SOLUCIÓN AL ERROR: Generación del token inyectando el identificador string obligatorio
 $csrfToken = Csrf::generarToken('csrf_confirmar_reserva');
+// [TFG] Generación del token CSRF para proteger el formulario
 ?>
 <!DOCTYPE html>
 <html lang="es">
