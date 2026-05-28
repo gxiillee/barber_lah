@@ -59,6 +59,7 @@ $total_canceladas   = Reserva::contarPorEstadoYCliente($id_cliente, 'cancelada')
 $total_no_presento  = Reserva::contarPorEstadoYCliente($id_cliente, 'no_presentado');
 $ultima_visita      = Reserva::obtenerUltimaCompletadaPorCliente($id_cliente);
 
+$admin_avatar = $_SESSION['usuario']->getAvatar();
 // Historial completo de reservas del cliente
 $historial = Reserva::obtenerHistorialPorCliente($id_cliente);
 

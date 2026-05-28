@@ -14,15 +14,11 @@ class Administrador extends Usuario {
         parent::__construct($id, $nombre, $email, $password, $telefono, 'admin');
     }
 
-    // 2. MÉTODOS DE CONSULTA (Lectura de datos)
-
-
-
     // 3. MÉTODOS DE ESTADÍSTICAS (Panel de Gestión)
 
     /**
      * Devuelve el número total de citas agendadas para el día de hoy.
-     * Se utiliza para el resumen rápido del Dashboard.
+     * Se podria utilizar para un resumen rápido del Dashboard de Hassan.
      */
     public static function obtenerResumenCitasHoy(): int {
         $conexion = BD::obtenerConexion();

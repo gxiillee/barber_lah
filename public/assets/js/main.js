@@ -9,6 +9,11 @@
    REFERENCIAS AL DOM
    ──────────────────────────────────────────────────────────────── */
 
+/*
+Crea objetos materializado por cada elemento de HTML
+que con js se va a modificar
+ */
+
 const DOM = {
   preloader: document.getElementById("preloader"),
   mainNav: document.getElementById("mainNav"),
@@ -42,6 +47,10 @@ const DOM = {
    PRELOADER
    Oculta la pantalla de carga al terminar de cargar la página.
    ──────────────────────────────────────────────────────────────── */
+
+/*
+Oculta el div de preloader cuando la página ha cargado por completo.
+ */
 function quitarCarga() {
   const p = document.getElementById("preloader");
   if (p) {
@@ -57,13 +66,15 @@ window.addEventListener("load", () => {
   setTimeout(quitarCarga, 1000);
 });
 
-// Failsafe 5s
+// Failsafe: SI algo falla, lo oculta en 5s
 setTimeout(quitarCarga, 5000);
 
 /* ────────────────────────────────────────────────────────────────
    NAVEGACIÓN — clase "scrolled" al bajar del viewport
    ──────────────────────────────────────────────────────────────── */
-
+/*
+si el usuario baja >60px, cambia el scroll
+ */
 function updateNav() {
   DOM.mainNav.classList.toggle("scrolled", window.scrollY > 60);
 }
@@ -89,7 +100,7 @@ function lerp(a, b, t) {
 }
 
 /**
- * [TFG] Cálculo Asíncrono del Scroll (Sección Experiencia)
+ *  Cálculo de Scroll VIDEO
  * Calcula dinámicamente qué porcentaje de la sección de video se ha desplazado.
  * 
  * ¿Cómo funciona?

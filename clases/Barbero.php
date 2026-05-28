@@ -45,6 +45,8 @@ class Barbero {
     }
 
     /**
+     * SI EN UN FUTURO TUVIESE MAS
+     * PERO POR AHORA NADA
      * Obtiene todos los barberos activos
      */
     public static function obtenerTodos(): array {
