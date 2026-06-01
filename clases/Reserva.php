@@ -197,31 +197,32 @@ class Reserva {
      * @param  int    $intervalo  Granularidad del calendario en minutos (defecto: 30).
      * @return array<string>      Array de horas disponibles en formato 'H:i', ordenado ASC.
      */
-    public static function obtenerSlotsDisponibles(
-        int $idBarbero,
-        string $fecha,
-        int $duracion,
+    public static function obtenerSlotsDisponibles(int $idBarbero, string $fecha, int $duracion,
         int $intervalo = 30
     ): array {
+        //comprobamos cosas imposibles
+        //argumentos invalidos
         if ($duracion <= 0 || $intervalo <= 0) {
             return [];
         }
 
+        //fechas pasadas
         $hoy      = new DateTimeImmutable('today');
         $fechaDia = new DateTimeImmutable($fecha);
 
-        // Paso 1: descartes rápidos sin ir a la BD
+        // si es un dia completo bloqueado, bloqueamos toda la franja horaria
         if ($fechaDia < $hoy || Bloqueo::esDiaBloqueadoCompleto($idBarbero, $fecha)) {
             return [];
         }
 
-        // Paso 2: tramos laborales del barbero para ese día de la semana
+        // sacamos tramos por dia ej. lunes
         $tramos = Horario::obtenerTramosPorFecha($idBarbero, $fecha);
+        //hassan no trabaja si los saca vacios
         if ($tramos === []) {
             return [];
         }
 
-        // Paso 3: cargamos reservas y bloqueos una sola vez para todos los candidatos
+        // Cargamos reservas y bloqueos del barbero una sola vez, fuera del bucle
         $reservas = self::getByBarberoYFecha($idBarbero, $fecha);
         $bloqueos = Bloqueo::obtenerPorFecha($idBarbero, $fecha);
         $ahora    = new DateTimeImmutable('now');
@@ -739,17 +740,10 @@ class Reserva {
     }
 
 
-    /* =======================================================================
-     * MÉTODOS NUEVOS PARA ficha_cliente.php
-     * Pegar dentro de la clase Reserva, junto al resto de métodos estáticos
-     *
-     * Dependencias ya existentes: BD::obtenerConexion(), $conexion
-     * ======================================================================= */
-
 // -----------------------------------------------------------------------
 // Historial completo de reservas de un cliente (todas, excepto canceladas
-// si lo prefieres — aquí devuelve todas para que Hassan vea el historial
-// completo). ORDER BY fecha DESC para ver primero las más recientes.
+// aquí devuelve todas para que Hassan vea el historial
+// ORDER BY fecha DESC para ver primero las más recientes.
 // -----------------------------------------------------------------------
     public static function obtenerHistorialPorCliente(int $id_cliente): array
     {
