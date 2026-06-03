@@ -4,175 +4,13 @@ declare(strict_types=1);
 require_once __DIR__ . '/BD.php';
 require_once __DIR__ . '/Horario.php';
 require_once __DIR__ . '/Bloqueo.php';
-// fechaHumana(), nombreMes() y nombreDia() vienen de helpers.php (cargado en el bootstrap)
+
 
 class Reserva {
-
     // ---------------------------------------------------------------
-    // PROPIEDADES
-    // ---------------------------------------------------------------
-
-    private int     $id;
-    private int     $idCliente;
-    private int     $idBarbero;
-    private int     $idServicio;
-    private string  $fecha;
-    private string  $hora;
-    private float   $precioHistorico;
-    private int     $duracionHistorica;
-    private string  $estado;
-    private ?string $nota;
-    private string  $createdAt;
-
-    // ---------------------------------------------------------------
-    // CONSTRUCTOR
+    // No tiene ni propiedades, ni constructor ni getters.
     // ---------------------------------------------------------------
 
-    public function __construct(
-        int     $id,
-        int     $idCliente,
-        int     $idBarbero,
-        int     $idServicio,
-        string  $fecha,
-        string  $hora,
-        float   $precioHistorico,
-        int     $duracionHistorica,
-        string  $estado,
-        ?string $nota,
-        string  $createdAt
-    ) {
-        $this->id                = $id;
-        $this->idCliente         = $idCliente;
-        $this->idBarbero         = $idBarbero;
-        $this->idServicio        = $idServicio;
-        $this->fecha             = $fecha;
-        $this->hora              = $hora;
-        $this->precioHistorico   = $precioHistorico;
-        $this->duracionHistorica = $duracionHistorica;
-        $this->estado            = $estado;
-        $this->nota              = $nota;
-        $this->createdAt         = $createdAt;
-    }
-
-    // ---------------------------------------------------------------
-    // GETTERS
-    // ---------------------------------------------------------------
-
-    public function getId(): int                { return $this->id; }
-    public function getIdCliente(): int         { return $this->idCliente; }
-    public function getIdBarbero(): int         { return $this->idBarbero; }
-    public function getIdServicio(): int        { return $this->idServicio; }
-    public function getFecha(): string          { return $this->fecha; }
-    public function getHora(): string           { return $this->hora; }
-    public function getPrecioHistorico(): float { return $this->precioHistorico; }
-    public function getDuracionHistorica(): int { return $this->duracionHistorica; }
-    public function getEstado(): string         { return $this->estado; }
-    public function getNota(): ?string          { return $this->nota; }
-    public function getCreatedAt(): string      { return $this->createdAt; }
-
-    // ---------------------------------------------------------------
-    // ÁREA CLIENTE — consumido en mi-cuenta.php (pendiente de construir)
-    // ---------------------------------------------------------------
-
-    /**
-     * Devuelve el historial de reservas de un cliente, de la más reciente a la más antigua.
-     * Se usará en el área privada para que el cliente consulte sus citas pasadas y futuras.
-     */
-    public static function getByCliente(int $idCliente): array {
-        $conexion = BD::obtenerConexion();
-        $stmt = $conexion->prepare("
-            SELECT *
-            FROM   reservas
-            WHERE  id_cliente = :id
-            ORDER  BY fecha DESC, hora DESC
-        ");
-        $stmt->execute([':id' => $idCliente]);
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
-    }
-
-    // ===============================================================
-    // MÉTODOS DE GESTIÓN ADMINISTRATIVA (PREPARADOS PARA EL FUTURO)
-    // ===============================================================
-    //
-    // Estos métodos forman la interfaz que el panel de administración
-    // usará para interactuar con la entidad Reserva de forma centralizada.
-    //
-    // Principio de diseño:
-    //   Toda operación sobre la tabla 'reservas' pasa por esta clase,
-    //   tanto el flujo público (crearAtomicamente) como el administrativo
-    //   (crear y cambiarEstado). Así el panel de admin nunca ejecuta SQL
-    //   directamente: delega en el modelo, que es el único responsable
-    //   de la integridad de los datos.
-    //
-    // Por qué crear() no usa transacción ni bloqueo:
-    //   El administrador actúa con privilegios elevados y conocimiento
-    //   del sistema. Puede necesitar forzar una cita en un hueco ya
-    //   ocupado (reagendaciones, excepciones) o insertar datos históricos.
-    //   En ese contexto, el bloqueo pesimista de crearAtomicamente()
-    //   sería una restricción, no una protección.
-    // ===============================================================
-
-    /**
-     * INSERT directo en la BD sin transacción ni comprobación de disponibilidad.
-     * USO EXCLUSIVO DEL PANEL DE ADMINISTRACIÓN.
-     *
-     * En el flujo público de reservas siempre se usa crearAtomicamente() en su lugar,
-     * que garantiza atomicidad y protege contra condiciones de carrera.
-     *
-     * @return int  ID de la reserva recién insertada (PostgreSQL RETURNING id).
-     */
-    public static function crear(
-        int     $idCliente,
-        int     $idBarbero,
-        int     $idServicio,
-        string  $fecha,
-        string  $hora,
-        float   $precio,
-        int     $duracion,
-        ?string $nota
-    ): int {
-        $conexion = BD::obtenerConexion();
-        $stmt = $conexion->prepare("
-            INSERT INTO reservas
-                (id_cliente, id_barbero, id_servicio, fecha, hora,
-                 precio_historico, duracion_historica, nota)
-            VALUES
-                (:cliente, :barbero, :servicio, :fecha, :hora,
-                 :precio, :duracion, :nota)
-            RETURNING id
-        ");
-        $stmt->execute([
-            ':cliente'  => $idCliente,
-            ':barbero'  => $idBarbero,
-            ':servicio' => $idServicio,
-            ':fecha'    => $fecha,
-            ':hora'     => $hora,
-            ':precio'   => $precio,
-            ':duracion' => $duracion,
-            ':nota'     => $nota,
-        ]);
-        return (int)$stmt->fetchColumn();
-    }
-
-    /**
-     * Cambia el estado de una reserva a cualquier valor del enum del dominio:
-     * 'confirmada' | 'cancelada' | 'completada' | 'no_presentado'.
-     * USO EXCLUSIVO DEL PANEL DE ADMINISTRACIÓN.
-     *
-     * El admin la usa para marcar citas como completadas (lo que dispara
-     * el envío del token de reseña verificada) o para cancelar citas en nombre del cliente.
-     *
-     * @return bool  true si el UPDATE afectó al menos una fila.
-     */
-    public static function cambiarEstado(int $id, string $estado): bool {
-        $conexion = BD::obtenerConexion();
-        $stmt = $conexion->prepare("
-            UPDATE reservas
-            SET    estado = :estado
-            WHERE  id = :id
-        ");
-        return $stmt->execute([':estado' => $estado, ':id' => $id]);
-    }
 
     // ---------------------------------------------------------------
     // LÓGICA DE DISPONIBILIDAD — núcleo del sistema de reservas
@@ -197,9 +35,7 @@ class Reserva {
      * @param  int    $intervalo  Granularidad del calendario en minutos (defecto: 30).
      * @return array<string>      Array de horas disponibles en formato 'H:i', ordenado ASC.
      */
-    public static function obtenerSlotsDisponibles(int $idBarbero, string $fecha, int $duracion,
-        int $intervalo = 30
-    ): array {
+    public static function obtenerSlotsDisponibles(int $idBarbero, string $fecha, int $duracion, int $intervalo = 30): array {
         //comprobamos cosas imposibles
         //argumentos invalidos
         if ($duracion <= 0 || $intervalo <= 0) {
@@ -789,7 +625,7 @@ class Reserva {
 
 // -----------------------------------------------------------------------
 // Marcar una reserva como no_presentado
-// Solo aplica si estaba en estado 'confirmada'
+// Solo funciona si estaba en estado 'confirmada'
 // -----------------------------------------------------------------------
     public static function marcarComoNoPresentado(int $id_reserva): bool
     {
