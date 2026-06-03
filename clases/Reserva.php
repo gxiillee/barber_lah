@@ -198,15 +198,17 @@ class Reserva {
 
     // ---------------------------------------------------------------
     // HELPERS PRIVADOS — fechas y detección de solapamientos
+    //para ver si esta totalmente libre la hora o choca con algo
     // ---------------------------------------------------------------
 
     /**
      * Consulta interna de reservas activas de un barbero en una fecha.
+     * Saca un listado de todas las reservas por barberro y dia concreto
      * private: solo la necesita obtenerSlotsDisponibles() para construir
      * los objetos DateTimeImmutable del algoritmo de solapamiento.
      * Exponer tramos en bruto fuera de la clase violaría la encapsulación.
      *
-     * SELECT reducido a las dos columnas que realmente consume el algoritmo.
+     * SELECT reducido a las dos columnas para que sea rapida
      */
     private static function getByBarberoYFecha(int $idBarbero, string $fecha): array {
         $conexion = BD::obtenerConexion();
@@ -223,11 +225,12 @@ class Reserva {
     }
 
     /**
-     * Combina fecha 'Y-m-d' y hora 'H:i[:ss]' en un DateTimeImmutable.
-     * Renombrado de crearFechaHora() a combinarFechaHora() para que el nombre
-     * describa qué hace sin depender de conocer su implementación.
+     * Combina fecha '2026-06-03' y hora '10:30:00' en un DateTimeImmutable.
+     * DateTimeImmutable para al realizar calculos del calendario no se
+     * modifique ese horario y se cree otro nuevo
      */
     private static function combinarFechaHora(string $fecha, string $hora): DateTimeImmutable {
+        //substr($hora, 0, 5) obliga a quedarse el dato con los 5 caracteres, sin segundos
         return new DateTimeImmutable($fecha . ' ' . substr($hora, 0, 5));
     }
 
