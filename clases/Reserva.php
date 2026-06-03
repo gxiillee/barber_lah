@@ -9,6 +9,9 @@ require_once __DIR__ . '/Bloqueo.php';
 class Reserva {
     // ---------------------------------------------------------------
     // No tiene ni propiedades, ni constructor ni getters.
+    //en ningun lado se hacia new Reserva porque no se creaba un objeto reserva
+    //solo se creaba reserva en la bd, y getters no hace falta porque ya no hay
+    //propiedades que hay que poder mostrar c0on getters
     // ---------------------------------------------------------------
 
 
