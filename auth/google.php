@@ -91,7 +91,7 @@ try {
 
     // Redirección inteligente unificada respetando la carpeta public/
     if (isset($_SESSION['reserva_pendiente']) && is_array($_SESSION['reserva_pendiente'])) {
-        redirigir('../public/confirmar_reserva.php');
+        redirigir('../cliente/confirmar_reserva.php');
     } else {
         redirigir('../mi-cuenta.php');
     }

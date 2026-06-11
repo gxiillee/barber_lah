@@ -24,13 +24,13 @@ class Cliente extends Usuario {
      * Soluciona el error de desajuste de parámetros con la clase padre Usuario.
      */
     public function __construct(
-        $id,
-        $google_id,
-        $nombre,
-        $email,
-        $password,
-        $avatar,
-        $telefono,
+        ?int $id = null,
+        ?string $google_id = null,
+        string $nombre,
+        string $email,
+        ?string $password = null,
+        ?string $avatar = null,
+        ?string $telefono = null,
         int $puntos_fidelidad = 0
     ) {
         parent::__construct($id, $google_id, $nombre, $email, $password, $avatar, $telefono, $puntos_fidelidad, 'cliente');
@@ -151,5 +151,79 @@ class Cliente extends Usuario {
     // Setter interno para created_at (usado solo en obtenerPorId)
     private function setCreatedAt($valor): void {
         $this->created_at = $valor;
+    }
+
+    /**
+     * Procesa el registro de un nuevo cliente desde el formulario de login.php.
+     * Valida los datos, hashea la contraseña, crea el usuario y devuelve el objeto
+     * creado o un mensaje de error.
+     *
+     * @param array $datos Array asociativo con las claves:
+     *                     - nombre
+     *                     - telefono
+     *                     - email_registro
+     *                     - password_registro
+     * @return array       ['usuario' => Cliente|null, 'errorRegistro' => string, 'valores' => array]
+     */
+    public static function procesarRegistroLogin(array $datos): array {
+        // Inicializar retorno
+        $retorno = [
+            'usuario' => null,
+            'errorRegistro' => '',
+            'valores' => $datos
+        ];
+
+        // Extraer campos
+        $nombre = trim($datos['nombre'] ?? '');
+        $telefono = trim($datos['telefono'] ?? '');
+        $email = trim($datos['email_registro'] ?? '');
+        $password = $datos['password_registro'] ?? '';
+
+        // Validaciones básicas
+        if ($nombre === '') {
+            $retorno['errorRegistro'] = 'El nombre es obligatorio.';
+            return $retorno;
+        }
+        if ($telefono === '') {
+            $retorno['errorRegistro'] = 'El teléfono es obligatorio.';
+            return $retorno;
+        }
+        if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            $retorno['errorRegistro'] = 'El email es obligatorio y debe ser válido.';
+            return $retorno;
+        }
+        if ($password === '' || strlen($password) < 6) {
+            $retorno['errorRegistro'] = 'La contraseña debe tener al menos 6 caracteres.';
+            return $retorno;
+        }
+
+        // Nota: crear() ya aplica password_hash, así que pasamos la contraseña en plano
+        try {
+            // Intentar crear el usuario
+            $idNuevo = self::crear($nombre, $email, $password, $telefono);
+            if ($idNuevo <= 0) {
+                $retorno['errorRegistro'] = 'No se pudo crear el usuario. Inténtalo de nuevo.';
+                return $retorno;
+            }
+            // Obtener el objeto creado
+            $usuario = self::obtenerPorId($idNuevo);
+            if ($usuario === null) {
+                $retorno['errorRegistro'] = 'Error al recuperar el usuario creado.';
+                return $retorno;
+            }
+            $retorno['usuario'] = $usuario;
+            return $retorno;
+        } catch (Throwable $e) {
+            // Manejo de excepciones de base de datos (ej. email duplicado)
+            $errorMsg = $e->getMessage();
+            // Detectar error de unicidad (SQLSTATE 23000) en PostgreSQL
+            if ($e instanceof PDOException && $e->getCode() === '23000') {
+                $retorno['errorRegistro'] = 'Este correo electrónico ya está registrado.';
+            } else {
+                // En producción no se debe exponer el error completo; se puede loggear.
+                $retorno['errorRegistro'] = 'Error al registrar el usuario. Inténtalo de nuevo.';
+            }
+            return $retorno;
+        }
     }
 }
