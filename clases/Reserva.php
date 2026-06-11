@@ -20,26 +20,10 @@ class Reserva {
     // ---------------------------------------------------------------
 
     /**
-     * Devuelve los huecos horarios disponibles para un barbero en una fecha y duración dadas.
-     *
-     * Algoritmo (5 pasos):
-     *   1. Descarte rápido: fecha pasada o día bloqueado por completo → devuelve [].
-     *   2. Carga los tramos laborales del barbero para ese día de la semana.
-     *      Si no trabaja ese día → devuelve [].
-     *   3. Carga reservas activas y bloqueos parciales del día (1 consulta cada uno,
-     *      fuera del bucle para no repetirlas por cada candidato).
-     *   4. Recorre cada tramo generando candidatos cada 'intervalo' minutos (30 por defecto).
-     *      Descarta los que ya pasaron (si la fecha es hoy).
-     *   5. Acepta solo los candidatos que no solapen con reservas ni con bloqueos.
-     *
-     * @param  int    $idBarbero  ID del barbero (solo hay uno en este proyecto: Hassan).
-     * @param  string $fecha      Fecha en formato 'Y-m-d'.
-     * @param  int    $duracion   Duración del servicio en minutos.
-     * @param  int    $intervalo  Granularidad del calendario en minutos (defecto: 30).
-     * @return array<string>      Array de horas disponibles en formato 'H:i', ordenado ASC.
+     * Devuelve los huecos disponibles para hassan
      */
     public static function obtenerSlotsDisponibles(int $idBarbero, string $fecha, int $duracion, int $intervalo = 30): array {
-        //comprobamos cosas imposibles
+        //comprobamos cosas imposibles(servicio sin tiempo)
         //argumentos invalidos
         if ($duracion <= 0 || $intervalo <= 0) {
             return [];
@@ -54,35 +38,38 @@ class Reserva {
             return [];
         }
 
-        // sacamos tramos por dia ej. lunes
+        // sacamos horario de trabajo por dia (para el lunes)
         $tramos = Horario::obtenerTramosPorFecha($idBarbero, $fecha);
         //hassan no trabaja si los saca vacios
         if ($tramos === []) {
             return [];
         }
 
-        // Cargamos reservas y bloqueos del barbero una sola vez, fuera del bucle
+        // traemos reservas/bloqueos existentes de ese dia
         $reservas = self::getByBarberoYFecha($idBarbero, $fecha);
         $bloqueos = Bloqueo::obtenerPorFecha($idBarbero, $fecha);
         $ahora    = new DateTimeImmutable('now');
         $slots    = [];
 
-        // Pasos 4 y 5: recorrido de tramos y filtrado de candidatos
+        // Sacamos los tramos primero mañanas, luego tardes.
         foreach ($tramos as $tramo) {
+            //tramo 1: 09:00 y 14:00
             $actual   = self::combinarFechaHora($fecha, $tramo['hora_inicio']);
             $finTramo = self::combinarFechaHora($fecha, $tramo['hora_fin']);
 
-            // Condición del while: el servicio completo debe caber dentro del tramo
+            // si sumo minutos del corte, es antes que la hora de fin?
             while ($actual->modify("+{$duracion} minutes") <= $finTramo) {
+                //guarda a que h acaba el peluquero el corte
                 $slotFin = $actual->modify("+{$duracion} minutes");
 
-                // Paso 4: descartar huecos ya pasados si es hoy
+                // si es hoy y es antes de hora actual, se modifica el actual
+                //para probar en el siguiente con el siguiente slot y se manda continue para que salte al sigiente
                 if ($fechaDia->format('Y-m-d') === $hoy->format('Y-m-d') && $actual <= $ahora) {
                     $actual = $actual->modify("+{$intervalo} minutes");
                     continue;
                 }
 
-                // Paso 5: aceptar solo si el candidato está libre de reservas y bloqueos
+                //comprueba si desde que empieza a que acaba, choca con alguna reserva/bloqueo
                 if (
                     !self::solapaConReservas($actual, $slotFin, $reservas, $fecha)
                     && !self::solapaConBloqueos($actual, $slotFin, $bloqueos, $fecha)
@@ -93,7 +80,7 @@ class Reserva {
                 $actual = $actual->modify("+{$intervalo} minutes");
             }
         }
-
+        //ordena las horas conseguidas en slots y eliminamos horas repetidas (si hay)
         sort($slots);
         return array_values(array_unique($slots));
     }
@@ -114,7 +101,9 @@ class Reserva {
         string $hora,
         int $duracion
     ): bool {
+        //substr coge el string $hora y le le dices que quieres 5 caracteres (14:30)
         $horaNormalizada = substr($hora, 0, 5);
+        //busca si $horaNormalizada está en listado de slotsDisponibles
         return in_array(
             $horaNormalizada,
             self::obtenerSlotsDisponibles($idBarbero, $fecha, $duracion),
@@ -124,17 +113,7 @@ class Reserva {
 
     /**
      * Crea una reserva de forma atómica garantizando que no existe condición de carrera.
-     *
-     * Por qué necesita transacción + LOCK:
-     *   Sin este mecanismo, dos usuarios podrían superar la comprobación de disponibilidad
-     *   simultáneamente, ver el hueco libre ambos e insertar la misma cita (race condition).
-     *   El LOCK pesimista (SHARE ROW EXCLUSIVE) bloquea escrituras concurrentes sobre
-     *   'reservas' hasta que esta transacción confirme o deshaga.
-     *   La comprobación de disponibilidad ocurre DENTRO del bloqueo, no antes,
-     *   para que la verificación y el INSERT sean una operación atómica indivisible.
-     *
-     * @return int|null  ID de la nueva reserva si el hueco estaba libre; null si ya estaba ocupado.
-     * @throws Throwable Relanza cualquier excepción de BD tras deshacer la transacción.
+     *LLeva transaccion y LOCK para que nadie escriba en reservas si esta pendiente
      */
     public static function crearAtomicamente(
         int     $idCliente,
@@ -182,17 +161,19 @@ class Reserva {
                 ':nota'     => $nota,
             ]);
 
+            //devuelve id para al redirigir a confirmarla llevara con ese id
             $id = (int)$stmt->fetchColumn();
+            //boton de guardar cambios
             $conexion->commit();
             return $id;
 
         } catch (Throwable $e) {
-            // Garantizamos el rollback aunque el fallo ocurra en la comprobación,
-            // en el INSERT o incluso en el propio commit.
+            // si hay transaccion a medias
+            // rompemos esa transaccion
             if ($conexion->inTransaction()) {
                 $conexion->rollBack();
             }
-            throw $e; // Relanzamos para que el controlador pueda registrar el error
+            throw $e;
         }
     }
 
@@ -203,12 +184,8 @@ class Reserva {
 
     /**
      * Consulta interna de reservas activas de un barbero en una fecha.
-     * Saca un listado de todas las reservas por barberro y dia concreto
+     * Saca un listado de todas las reservas por barbero y dia concreto
      * private: solo la necesita obtenerSlotsDisponibles() para construir
-     * los objetos DateTimeImmutable del algoritmo de solapamiento.
-     * Exponer tramos en bruto fuera de la clase violaría la encapsulación.
-     *
-     * SELECT reducido a las dos columnas para que sea rapida
      */
     private static function getByBarberoYFecha(int $idBarbero, string $fecha): array {
         $conexion = BD::obtenerConexion();
@@ -399,9 +376,7 @@ class Reserva {
 
     /**
      * Devuelve la próxima cita confirmada del cliente, o null si no tiene ninguna.
-     * Hace JOIN con servicios para traer el nombre en la misma consulta.
-     * Devuelve un array asociativo porque no necesitamos un objeto completo Reserva,
-     * solo los datos para mostrar en el dashboard.
+     * Devuelvelos datos para mostrar en el dashboard.
      */
     public static function obtenerProximaPorCliente(int $id_usuario): ?array
     {
@@ -440,6 +415,7 @@ class Reserva {
                 RETURNING id_cliente
             ");
             $stmt->execute();
+            //devuelve los id de clientes a los que se les ha actualizado
             $clientes = $stmt->fetchAll(PDO::FETCH_COLUMN);
 
             // Suma 1 punto de fidelidad a cada cliente afectado (reset a 0 al llegar a 10)
@@ -452,6 +428,7 @@ class Reserva {
                     END
                     WHERE id = :id
                 ");
+                //ejecuta el update por cada cliente
                 foreach ($clientes as $id) {
                     $stmtPuntos->execute([':id' => $id]);
                 }
@@ -473,12 +450,10 @@ class Reserva {
 
     /**
      * Devuelve todas las reservas de un barbero en una fecha concreta,
-     * con los datos del cliente y del servicio ya unidos (JOIN).
-     * USO EXCLUSIVO DEL PANEL DE ADMINISTRACIÓN — agenda del día.
-     *
-     * A diferencia de getByBarberoYFecha() (privado, solo hora+duración para el algoritmo),
      * este método devuelve la ficha completa: nombre del cliente, servicio, precio, estado y nota.
-     *
+     * USO EXCLUSIVO DEL PANEL DE ADMINISTRACIÓN — agenda del día.
+
+     * A diferencia de getByBarberoYFecha() (privado, solo hora+duración para el algoritmo),
      * @return array  Array de arrays asociativos, ordenado por hora ASC.
      */
     public static function obtenerDelDiaParaAdmin(int $idBarbero, string $fecha): array {
@@ -581,12 +556,11 @@ class Reserva {
         return $fila ?: null;
     }
 
-
-// -----------------------------------------------------------------------
-// Historial completo de reservas de un cliente (todas, excepto canceladas
-// aquí devuelve todas para que Hassan vea el historial
-// ORDER BY fecha DESC para ver primero las más recientes.
-// -----------------------------------------------------------------------
+    /**
+     * Historial completo de reservas de un cliente (todas, excepto canceladas
+     * aquí devuelve todas para que Hassan vea el historial
+     * ORDER BY fecha DESC para ver primero las más recientes.
+     */
     public static function obtenerHistorialPorCliente(int $id_cliente): array
     {
         $conexion = BD::obtenerConexion();
