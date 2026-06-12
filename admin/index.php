@@ -12,6 +12,7 @@ require_once __DIR__ . '/../clases/BD.php';
 require_once __DIR__ . '/../clases/Horario.php';
 require_once __DIR__ . '/../clases/Bloqueo.php';
 require_once __DIR__ . '/../clases/Reserva.php';
+require_once __DIR__ . '/../clases/Administrador.php'; // ← NUEVO
 require_once __DIR__ . '/../clases/helpers.php';
 
 // ── FASE 2: Sesión y control de acceso ──────────────────────
@@ -34,15 +35,15 @@ $dt_seleccionada = new DateTimeImmutable($fecha_seleccionada);
 $fecha_anterior  = $dt_seleccionada->modify('-1 day')->format('Y-m-d');
 $fecha_siguiente = $dt_seleccionada->modify('+1 day')->format('Y-m-d');
 
-$hoy          = new DateTimeImmutable('today');
-$es_hoy       = $fecha_seleccionada === $hoy->format('Y-m-d');
-$es_pasado    = $dt_seleccionada < $hoy;
+$hoy       = new DateTimeImmutable('today');
+$es_hoy    = $fecha_seleccionada === $hoy->format('Y-m-d');
+$es_pasado = $dt_seleccionada < $hoy;
 
 // ── FASE 4: Datos del día ────────────────────────────────────
 const ID_BARBERO = 1;
 $dia_bloqueado_completo = Bloqueo::esDiaBloqueadoCompleto(ID_BARBERO, $fecha_seleccionada);
-$tramos_del_dia = Horario::obtenerTramosPorFecha(ID_BARBERO, $fecha_seleccionada);
-$trabaja_hoy = !$dia_bloqueado_completo && !empty($tramos_del_dia);
+$tramos_del_dia         = Horario::obtenerTramosPorFecha(ID_BARBERO, $fecha_seleccionada);
+$trabaja_hoy            = !$dia_bloqueado_completo && !empty($tramos_del_dia);
 
 $reservas_del_dia = [];
 $bloqueos_del_dia = [];
@@ -52,23 +53,31 @@ if ($trabaja_hoy) {
     $bloqueos_del_dia = Bloqueo::obtenerPorFecha(ID_BARBERO, $fecha_seleccionada);
 }
 
+// Resumen del día desde Administrador (una sola query agregada con FILTER)
+// Solo lo mostramos si es hoy — en días pasados tiene sentido también,
+// pero lo limitamos a hoy para que el panel tenga foco operativo.
+$resumen_dia    = Administrador::obtenerResumenDia($fecha_seleccionada);
+$resumen_semana = $es_hoy ? Administrador::obtenerResumenSemanaActual() : null;
+
 // ── FASE 5: Construir los slots ──────────────────────────────
 $slots = [];
 
 if ($trabaja_hoy) {
     foreach ($tramos_del_dia as $tramo) {
-        $hora_actual   = new DateTimeImmutable($fecha_seleccionada . ' ' . substr($tramo['hora_inicio'], 0, 5));
+        $hora_actual    = new DateTimeImmutable($fecha_seleccionada . ' ' . substr($tramo['hora_inicio'], 0, 5));
         $hora_fin_tramo = new DateTimeImmutable($fecha_seleccionada . ' ' . substr($tramo['hora_fin'], 0, 5));
 
         while ($hora_actual < $hora_fin_tramo) {
-            $hora_str  = $hora_actual->format('H:i');
+            $hora_str      = $hora_actual->format('H:i');
             $hora_fin_slot = $hora_actual->modify('+30 minutes');
-            $estado  = 'libre';
-            $reserva = null;
+            $estado        = 'libre';
+            $reserva       = null;
 
             // Bloqueos
             foreach ($bloqueos_del_dia as $bloqueo) {
-                if (empty($bloqueo['hora_inicio']) || empty($bloqueo['hora_fin'])) continue;
+                if (empty($bloqueo['hora_inicio']) || empty($bloqueo['hora_fin'])) {
+                    continue;
+                }
                 $bloqueo_inicio = new DateTimeImmutable($fecha_seleccionada . ' ' . substr($bloqueo['hora_inicio'], 0, 5));
                 $bloqueo_fin    = new DateTimeImmutable($fecha_seleccionada . ' ' . substr($bloqueo['hora_fin'], 0, 5));
 
@@ -92,22 +101,22 @@ if ($trabaja_hoy) {
                 }
             }
 
-            $slots[] = ['hora' => $hora_str, 'estado' => $estado, 'reserva' => $reserva];
+            $slots[]     = ['hora' => $hora_str, 'estado' => $estado, 'reserva' => $reserva];
             $hora_actual = $hora_fin_slot;
         }
     }
 }
 
-// ── FASE 6: Estadísticas ─────────────────────────────────────
+// ── FASE 6: Estadísticas de slots (visual) ───────────────────
 $total_reservados = $total_libres = $total_bloqueados = 0;
 foreach ($slots as $slot) {
-    if ($slot['estado'] === 'reservado')  $total_reservados++;
-    if ($slot['estado'] === 'libre')      $total_libres++;
-    if ($slot['estado'] === 'bloqueado')  $total_bloqueados++;
+    if ($slot['estado'] === 'reservado') { $total_reservados++; }
+    if ($slot['estado'] === 'libre')     { $total_libres++;     }
+    if ($slot['estado'] === 'bloqueado') { $total_bloqueados++; }
 }
 
 $pagina_activa = 'agenda';
-$titulo_fecha = fechaHumana($fecha_seleccionada);
+$titulo_fecha  = fechaHumana($fecha_seleccionada);
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -119,7 +128,6 @@ $titulo_fecha = fechaHumana($fecha_seleccionada);
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600&family=Montserrat:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
-
     <link rel="stylesheet" href="../public/assets/css/estilos.css">
 </head>
 <body class="min-h-screen bg-[var(--bg)] text-[var(--tx)] font-sans">
@@ -128,6 +136,7 @@ $titulo_fecha = fechaHumana($fecha_seleccionada);
 
 <main class="pt-[80px] pb-[96px] px-4 max-w-[720px] mx-auto lg:ml-[240px] lg:mr-auto lg:pt-10 lg:pb-16 lg:px-10 lg:max-w-none">
 
+    <!-- Cabecera con título y navegación de fechas -->
     <div class="flex flex-col gap-4 mb-6 sm:flex-row sm:items-center sm:justify-between">
 
         <div>
@@ -148,19 +157,67 @@ $titulo_fecha = fechaHumana($fecha_seleccionada);
             <a href="?fecha=<?= h($fecha_anterior) ?>" class="w-9 h-9 rounded-lg border border-[var(--brd)] bg-white/5 text-[var(--tx-m)] flex items-center justify-center transition-all hover:bg-[var(--gold-dim)] hover:border-[var(--gold-brd)] hover:text-[var(--gold)]">
                 <i class="bi bi-chevron-left"></i>
             </a>
-
             <?php if (!$es_hoy): ?>
                 <a href="?fecha=<?= h($hoy->format('Y-m-d')) ?>" class="px-3.5 h-9 rounded-lg border border-[var(--gold-brd)] bg-[var(--gold-dim)] text-[var(--gold)] text-[0.65rem] font-semibold tracking-widest uppercase flex items-center transition-all hover:bg-white/10">
                     Hoy
                 </a>
             <?php endif; ?>
-
             <a href="?fecha=<?= h($fecha_siguiente) ?>" class="w-9 h-9 rounded-lg border border-[var(--brd)] bg-white/5 text-[var(--tx-m)] flex items-center justify-center transition-all hover:bg-[var(--gold-dim)] hover:border-[var(--gold-brd)] hover:text-[var(--gold)]">
                 <i class="bi bi-chevron-right"></i>
             </a>
         </nav>
     </div>
 
+    <!-- ═══════════════════════════════════════════════════════
+         FRANJA DE RESUMEN — datos de Administrador::obtenerResumenDia()
+         Se muestra siempre que haya datos (cualquier fecha).
+         En días sin citas todos los contadores son 0.
+    ════════════════════════════════════════════════════════ -->
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+
+        <div class="flex flex-col gap-1 px-4 py-3.5 rounded-xl border border-[var(--brd)] bg-white/[0.03]">
+            <span class="text-[0.6rem] uppercase tracking-widest font-semibold text-[var(--tx-d)]">Citas hoy</span>
+            <span class="text-[1.6rem] font-semibold leading-none text-[var(--tx)]" style="font-family: var(--pf);"><?= $resumen_dia['total'] ?></span>
+            <span class="text-[0.62rem] text-[var(--tx-d)]"><?= $resumen_dia['confirmadas'] ?> confirmada<?= $resumen_dia['confirmadas'] !== 1 ? 's' : '' ?></span>
+        </div>
+
+        <div class="flex flex-col gap-1 px-4 py-3.5 rounded-xl border border-[var(--brd)] bg-white/[0.03]">
+            <span class="text-[0.6rem] uppercase tracking-widest font-semibold text-[var(--tx-d)]">Completadas</span>
+            <span class="text-[1.6rem] font-semibold leading-none text-[var(--tx)]" style="font-family: var(--pf);"><?= $resumen_dia['completadas'] ?></span>
+            <?php if ($resumen_dia['no_presentados'] > 0): ?>
+                <span class="text-[0.62rem] text-[#888]"><?= $resumen_dia['no_presentados'] ?> no show</span>
+            <?php else: ?>
+                <span class="text-[0.62rem] text-[var(--tx-d)]">de <?= $resumen_dia['total'] ?> totales</span>
+            <?php endif; ?>
+        </div>
+
+        <div class="flex flex-col gap-1 px-4 py-3.5 rounded-xl border border-[var(--gold-brd)] bg-[var(--gold-dim)]">
+            <span class="text-[0.6rem] uppercase tracking-widest font-semibold text-[var(--gold)]/70">Ingresos hoy</span>
+            <span class="text-[1.6rem] font-semibold leading-none text-[var(--gold)]" style="font-family: var(--pf);">
+                <?= number_format($resumen_dia['ingresos'], 0, ',', '.') ?>€
+            </span>
+            <span class="text-[0.62rem] text-[var(--gold)]/60">de citas completadas</span>
+        </div>
+
+        <?php if ($resumen_semana !== null): ?>
+            <!-- Solo se muestra cuando es hoy: resumen de la semana en curso -->
+            <div class="flex flex-col gap-1 px-4 py-3.5 rounded-xl border border-[var(--brd)] bg-white/[0.03]">
+                <span class="text-[0.6rem] uppercase tracking-widest font-semibold text-[var(--tx-d)]">Esta semana</span>
+                <span class="text-[1.6rem] font-semibold leading-none text-[var(--tx)]" style="font-family: var(--pf);"><?= $resumen_semana['total'] ?></span>
+                <span class="text-[0.62rem] text-[var(--tx-d)]"><?= number_format($resumen_semana['ingresos'], 0, ',', '.') ?>€ completados</span>
+            </div>
+        <?php else: ?>
+            <!-- En días pasados/futuros mostramos el estado del día en su lugar -->
+            <div class="flex flex-col gap-1 px-4 py-3.5 rounded-xl border border-[var(--brd)] bg-white/[0.03]">
+                <span class="text-[0.6rem] uppercase tracking-widest font-semibold text-[var(--tx-d)]">Canceladas</span>
+                <span class="text-[1.6rem] font-semibold leading-none text-[var(--tx)]" style="font-family: var(--pf);"><?= $resumen_dia['canceladas'] ?></span>
+                <span class="text-[0.62rem] text-[var(--tx-d)]">ese día</span>
+            </div>
+        <?php endif; ?>
+
+    </div>
+
+    <!-- Pastillas de slots (las que ya tenías) -->
     <?php if ($trabaja_hoy): ?>
         <div class="flex flex-wrap gap-2 mb-6">
             <div class="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[0.65rem] font-medium bg-[rgba(212,175,55,0.1)] border border-[rgba(212,175,55,0.2)] text-[var(--gold)]">
@@ -180,6 +237,7 @@ $titulo_fecha = fechaHumana($fecha_seleccionada);
         </div>
     <?php endif; ?>
 
+    <!-- Agenda de slots -->
     <div class="flex flex-col gap-2 agenda-grid">
 
         <?php if ($dia_bloqueado_completo): ?>
@@ -188,28 +246,29 @@ $titulo_fecha = fechaHumana($fecha_seleccionada);
                 <p class="text-[1.1rem] text-[var(--tx-m)]" style="font-family: var(--pf);">Día cerrado</p>
                 <p class="text-[0.7rem] text-[var(--tx-d)] max-w-xs">Hassan ha bloqueado este día completo.</p>
             </div>
+
         <?php elseif (empty($tramos_del_dia)): ?>
             <div class="flex flex-col items-center justify-center py-16 px-6 text-center gap-3">
                 <i class="bi bi-calendar-x text-4xl text-[var(--tx-d)] opacity-50 mb-1"></i>
                 <p class="text-[1.1rem] text-[var(--tx-m)]" style="font-family: var(--pf);">Día de descanso</p>
                 <p class="text-[0.7rem] text-[var(--tx-d)] max-w-xs">No hay horario definido para este día.</p>
             </div>
+
         <?php elseif (empty($slots)): ?>
             <div class="flex flex-col items-center justify-center py-16 px-6 text-center gap-3">
                 <i class="bi bi-hourglass text-4xl text-[var(--tx-d)] opacity-50 mb-1"></i>
                 <p class="text-[1.1rem] text-[var(--tx-m)]" style="font-family: var(--pf);">Sin huecos disponibles</p>
             </div>
+
         <?php else: ?>
 
             <?php foreach ($slots as $slot): ?>
-                <?php if ($slot['estado'] === 'reservado'): ?>
 
+                <?php if ($slot['estado'] === 'reservado'): ?>
                     <a href="ficha_cliente.php?id_reserva=<?= (int)$slot['reserva']['id'] ?>"
                        class="slot-card group flex items-center gap-4 px-4 py-3.5 rounded-xl border border-[var(--gold-brd)] bg-[var(--gold-dim)] min-h-[64px] cursor-pointer transition-all duration-150 hover:bg-[rgba(212,175,55,0.1)] hover:border-[rgba(212,175,55,0.4)] hover:translate-x-1">
-
                         <div class="text-[0.78rem] font-semibold text-[var(--tx)] min-w-[42px] shrink-0"><?= h($slot['hora']) ?></div>
                         <div class="w-[2px] h-9 bg-[var(--gold)] rounded-full shrink-0 opacity-70"></div>
-
                         <div class="flex-1 min-w-0">
                             <div class="text-[0.82rem] font-semibold text-[var(--tx)] truncate"><?= h($slot['reserva']['cliente_nombre']) ?></div>
                             <div class="text-[0.65rem] text-[var(--gold)] mt-0.5 truncate"><?= h($slot['reserva']['servicio_nombre']) ?></div>
@@ -222,14 +281,12 @@ $titulo_fecha = fechaHumana($fecha_seleccionada);
                                 </span>
                             </div>
                         </div>
-
                         <div class="text-[var(--tx-d)] text-xs shrink-0 transition-all duration-150 group-hover:text-[var(--gold)] group-hover:translate-x-1">
                             <i class="bi bi-chevron-right"></i>
                         </div>
                     </a>
 
                 <?php elseif ($slot['estado'] === 'bloqueado'): ?>
-
                     <div class="slot-card flex items-center gap-4 px-4 py-3.5 rounded-xl border border-[var(--brd)] bg-white/5 min-h-[64px] opacity-45 cursor-default">
                         <div class="text-[0.78rem] font-semibold text-[var(--tx-d)] min-w-[42px] shrink-0"><?= h($slot['hora']) ?></div>
                         <div class="flex items-center gap-2 text-[0.68rem] text-[var(--tx-d)] tracking-wide">
@@ -238,16 +295,16 @@ $titulo_fecha = fechaHumana($fecha_seleccionada);
                     </div>
 
                 <?php else: ?>
-
                     <div class="slot-card flex items-center gap-4 px-4 py-3.5 rounded-xl border border-[var(--brd)] bg-white/5 min-h-[64px] opacity-50 cursor-default">
                         <div class="text-[0.78rem] font-semibold text-[var(--tx-d)] min-w-[42px] shrink-0"><?= h($slot['hora']) ?></div>
                         <div class="flex items-center gap-2 text-[0.68rem] text-[var(--tx-d)] tracking-wide">
                             <span class="w-1.5 h-1.5 rounded-full bg-emerald-500/50 shrink-0"></span> Disponible
                         </div>
                     </div>
-
                 <?php endif; ?>
+
             <?php endforeach; ?>
+
         <?php endif; ?>
 
     </div>

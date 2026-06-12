@@ -406,30 +406,36 @@ class Reserva {
         try {
             $conexion->beginTransaction();
 
-            // Marca como completadas las citas cuya hora de fin + 30 min ya ha pasado
+            // 1. Marcamos como completadas las citas pasadas
             $stmt = $conexion->prepare("
-                UPDATE reservas
-                SET estado = 'completada'
-                WHERE estado IN ('pendiente', 'confirmada')
-                  AND NOW() >= (fecha + hora + (duracion_historica * INTERVAL '1 minute') + INTERVAL '30 minutes')
-                RETURNING id_cliente
-            ");
+            UPDATE reservas
+            SET estado = 'completada'
+            WHERE estado IN ('pendiente', 'confirmada')
+              AND NOW() >= (fecha + hora + (duracion_historica * INTERVAL '1 minute') + INTERVAL '30 minutes')
+            RETURNING id_cliente
+        ");
             $stmt->execute();
-            //devuelve los id de clientes a los que se les ha actualizado
-            $clientes = $stmt->fetchAll(PDO::FETCH_COLUMN);
 
-            // Suma 1 punto de fidelidad a cada cliente afectado (reset a 0 al llegar a 10)
-            if (!empty($clientes)) {
+            // Devuelve los IDs de los clientes afectados (puede contener duplicados si tenían varias citas)
+            $clientesAfectados = $stmt->fetchAll(PDO::FETCH_COLUMN);
+
+            if (!empty($clientesAfectados)) {
+                // CORRECCIÓN 2: Eliminamos duplicados para que si un cliente tenía varias citas juntas, solo le sume 1 vez
+                $clientesUnicos = array_unique($clientesAfectados);
+
+                // Preparar la consulta de actualización de puntos
+                // CORRECCIÓN 1: Si llega a 10 o más, reinicia a 1 (no a 0) para contar la cita actual
                 $stmtPuntos = $conexion->prepare("
-                    UPDATE usuarios
-                    SET puntos_fidelidad = CASE
-                        WHEN puntos_fidelidad + 1 >= 10 THEN 0
-                        ELSE puntos_fidelidad + 1
-                    END
-                    WHERE id = :id
-                ");
-                //ejecuta el update por cada cliente
-                foreach ($clientes as $id) {
+                UPDATE usuarios
+                SET puntos_fidelidad = CASE
+                    WHEN puntos_fidelidad >= 10 THEN 1
+                    ELSE puntos_fidelidad + 1
+                END
+                WHERE id = :id
+            ");
+
+                // Ejecutamos la actualización solo para los clientes únicos
+                foreach ($clientesUnicos as $id) {
                     $stmtPuntos->execute([':id' => $id]);
                 }
             }
@@ -591,16 +597,73 @@ class Reserva {
     {
         $conexion = BD::obtenerConexion();
 
-        $stmt = $conexion->prepare(
-            "UPDATE reservas
-            SET estado = 'completada'
-          WHERE id = :id
-            AND estado = 'confirmada'"
-        );
-        $stmt->execute(['id' => $id_reserva]);
+        try {
+            // 1. Iniciamos la transacción para que todo se guarde junto
+            $conexion->beginTransaction();
 
-        // rowCount() devuelve cuántas filas se actualizaron realmente
-        return $stmt->rowCount() > 0;
+            // 2. Buscamos el id_cliente de esta reserva antes de cambiar nada
+            $stmtSelect = $conexion->prepare(
+                "SELECT id_cliente 
+             FROM reservas 
+             WHERE id = :id AND estado = 'confirmada'"
+            );
+            $stmtSelect->execute(['id' => $id_reserva]);
+            $reserva = $stmtSelect->fetch(PDO::FETCH_ASSOC);
+
+            // Si la reserva no existe o ya no está "confirmada", cancelamos
+            if (!$reserva) {
+                $conexion->rollBack();
+                return false;
+            }
+
+            $id_cliente = $reserva['id_cliente'];
+
+            // 3. Actualizamos el estado de la reserva a 'completada'
+            $stmtUpdateReserva = $conexion->prepare(
+                "UPDATE reservas
+             SET estado = 'completada'
+             WHERE id = :id"
+            );
+            $stmtUpdateReserva->execute(['id' => $id_reserva]);
+
+            // 4. Buscamos cuántos puntos tiene el cliente JUSTO AHORA en la base de datos
+            $stmtPuntos = $conexion->prepare("SELECT puntos_fidelidad FROM usuarios WHERE id = :id_cliente");
+            $stmtPuntos->execute(['id_cliente' => $id_cliente]);
+            $usuario = $stmtPuntos->fetch(PDO::FETCH_ASSOC);
+
+            $puntos_actuales = $usuario ? (int)$usuario['puntos_fidelidad'] : 0;
+
+            // 5. Aplicamos tu lógica de fidelidad circular (Máximo 10)
+            if ($puntos_actuales >= 10) {
+                // Si ya tenía 10 o más, reinicia su tarjeta y se queda con 1 punto
+                $nuevos_puntos = 1;
+            } else {
+                // Si tenía menos de 10, simplemente le sumamos 1 punto
+                $nuevos_puntos = $puntos_actuales + 1;
+            }
+
+            // 6. Guardamos los nuevos puntos en la tabla de usuarios
+            $stmtUpdatePuntos = $conexion->prepare(
+                "UPDATE usuarios
+             SET puntos_fidelidad = :nuevos_puntos
+             WHERE id = :id_cliente"
+            );
+            $stmtUpdatePuntos->execute([
+                'nuevos_puntos' => $nuevos_puntos,
+                'id_cliente'    => $id_cliente
+            ]);
+
+            // 7. Si todo ha ido perfecto, consolidamos los cambios
+            $conexion->commit();
+            return true;
+
+        } catch (Exception $e) {
+            // Si algo falla en el proceso, revertimos todo para no corromper datos
+            if ($conexion->inTransaction()) {
+                $conexion->rollBack();
+            }
+            return false;
+        }
     }
 
 // -----------------------------------------------------------------------
@@ -611,14 +674,55 @@ class Reserva {
     {
         $conexion = BD::obtenerConexion();
 
-        $stmt = $conexion->prepare(
-            "UPDATE reservas
-            SET estado = 'no_presentado'
-          WHERE id = :id
-            AND estado = 'confirmada'"
-        );
-        $stmt->execute(['id' => $id_reserva]);
+        try {
+            // 1. Iniciamos la transacción para proteger ambas operaciones
+            $conexion->beginTransaction();
 
-        return $stmt->rowCount() > 0;
+            // 2. Primero, necesitamos saber de qué cliente es esta reserva
+            $stmtSelect = $conexion->prepare(
+                "SELECT id_cliente 
+             FROM reservas 
+             WHERE id = :id AND estado = 'confirmada'"
+            );
+            $stmtSelect->execute(['id' => $id_reserva]);
+            $reserva = $stmtSelect->fetch(PDO::FETCH_ASSOC);
+
+            // Si la reserva no existe o ya no está "confirmada", abortamos
+            if (!$reserva) {
+                $conexion->rollBack();
+                return false;
+            }
+
+            $id_cliente = $reserva['id_cliente'];
+
+            // 3. Actualizamos el estado de la reserva a 'no_presentado'
+            $stmtUpdateReserva = $conexion->prepare(
+                "UPDATE reservas
+             SET estado = 'no_presentado'
+             WHERE id = :id"
+            );
+            $stmtUpdateReserva->execute(['id' => $id_reserva]);
+
+            // 4. Actualizamos los puntos de fidelidad del cliente
+            // OJO: He puesto "- 3" como ejemplo de penalización. Cambia ese 3 por los puntos que quieras quitar.
+            // Uso GREATEST para asegurar que, si le quitas puntos, nunca se quede con puntos negativos en PostgreSQL.
+            $stmtUpdatePuntos = $conexion->prepare(
+                "UPDATE usuarios
+             SET puntos_fidelidad = GREATEST(puntos_fidelidad - 3, 0)
+             WHERE id = :id_cliente"
+            );
+            $stmtUpdatePuntos->execute(['id_cliente' => $id_cliente]);
+
+            // 5. Si todo ha ido bien, confirmamos los cambios en ambas tablas
+            $conexion->commit();
+            return true;
+
+        } catch (Exception $e) {
+            // Si hay cualquier fallo (ej. la base de datos se cae a mitad), deshacemos todo
+            if ($conexion->inTransaction()) {
+                $conexion->rollBack();
+            }
+            return false;
+        }
     }
 }
