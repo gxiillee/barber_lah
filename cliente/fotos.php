@@ -13,6 +13,7 @@ require_once __DIR__ . '/../clases/FotoCliente.php';
 session_start();
 
 if (!isset($_SESSION['usuario'])) {
+    $_SESSION['volver_panel'] = 'index.php';
     redirigir('../login.php');
 }
 
@@ -48,6 +49,7 @@ $pagina_activa = 'fotos';
 <body class="pagina-cliente min-h-screen body-panel">
 
 <?php require_once __DIR__ . '/includes/nav_cliente.php'; ?>
+<?php require_once __DIR__ . '/includes/toast.php'; ?>
 
 <main class="pt-14 pb-20 lg:pt-0 lg:pb-0 min-h-screen flex flex-col pagina-entrada panel-main">
     <div class="flex-1 w-full max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
@@ -96,7 +98,7 @@ $pagina_activa = 'fotos';
         </div>
 
         <!-- Grid de fotos -->
-        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-4 mb-8">
+        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-4 mb-8 stagger-container">
 
             <!-- Tarjeta de añadir (solo si hay hueco) -->
             <?php if ($puede_subir): ?>
@@ -109,8 +111,10 @@ $pagina_activa = 'fotos';
             <?php endif; ?>
 
             <!-- Fotos del usuario -->
-            <?php foreach ($fotos as $foto): ?>
-                <?php
+            <?php
+            $foto_index = 0;
+            foreach ($fotos as $foto):
+                $foto_index++;
                 // Formatear fecha para el overlay
                 $fecha_texto = $foto['fecha_subida'];
                 try {
@@ -120,16 +124,22 @@ $pagina_activa = 'fotos';
                 } catch (Exception $e) {}
                 ?>
                 <div class="relative rounded-xl overflow-hidden border foto-item"
-                     style="aspect-ratio:1; border-color:var(--brd); background:var(--bg3);">
+                     style="aspect-ratio:1; border-color:var(--brd); background:var(--bg3);"
+                     data-lightbox-index="<?= $foto_index - 1 ?>">
 
-                    <!-- Imagen -->
+                    <!-- Imagen (clic para abrir lightbox) -->
                     <img src="<?= h('../' . $foto['ruta']) ?>"
                          alt="Foto historial de corte"
-                         class="w-full h-full object-cover">
+                         class="w-full h-full object-cover cursor-pointer"
+                         data-lightbox-img="true"
+                         loading="lazy"
+                         style="transition:transform 0.3s ease;"
+                         onmouseover="this.style.transform='scale(1.04)'"
+                         onmouseout="this.style.transform='scale(1)'">
 
                     <!-- Overlay siempre visible: fecha en la parte baja -->
                     <div class="absolute bottom-0 left-0 w-full p-2.5"
-                         style="background:linear-gradient(to top, rgba(0,0,0,.8), transparent);">
+                         style="background:linear-gradient(to top, rgba(0,0,0,.8), transparent); pointer-events:none;">
                         <span style="font-size:0.68rem; color:#f5f0e8; font-weight:500; letter-spacing:0.02em;">
                             <?= h($fecha_texto) ?>
                         </span>
@@ -186,7 +196,123 @@ $pagina_activa = 'fotos';
     </div>
 </main>
 
+<!-- Lightbox: visor de fotos a pantalla completa -->
+<script>
+/**
+ * Lightbox para fotos del panel de cliente.
+ * Sin dependencias. Crea overlay al hacer clic en cualquier imagen con [data-lightbox-img].
+ * Navegación con teclado (← →) y clic fuera para cerrar.
+ */
+(function() {
+    const images = Array.from(document.querySelectorAll('[data-lightbox-img]'));
+    const total  = images.length;
+    if (total === 0) return;
 
+    let overlay   = null;
+    let current   = -1;
+    let closing   = false;
+
+    function open(idx) {
+        if (closing || idx < 0 || idx >= total) return;
+        if (overlay) close();
+
+        current = idx;
+        const img = images[current];
+        const src = img.getAttribute('src');
+
+        overlay = document.createElement('div');
+        overlay.className = 'lightbox-overlay';
+        overlay.setAttribute('role', 'dialog');
+        overlay.setAttribute('aria-label', 'Visor de foto');
+
+        // Botón cerrar
+        const closeBtn = document.createElement('button');
+        closeBtn.className = 'lightbox-close';
+        closeBtn.innerHTML = '<i class="bi bi-x-lg"></i>';
+        closeBtn.setAttribute('aria-label', 'Cerrar');
+        closeBtn.addEventListener('click', close);
+        overlay.appendChild(closeBtn);
+
+        // Imagen
+        const fotoImg = document.createElement('img');
+        fotoImg.src = src;
+        fotoImg.alt = 'Foto de corte';
+        overlay.appendChild(fotoImg);
+
+        // Navegación (solo si hay más de una foto)
+        if (total > 1) {
+            const prevBtn = document.createElement('button');
+            prevBtn.className = 'lightbox-nav lightbox-prev';
+            prevBtn.innerHTML = '<i class="bi bi-chevron-left"></i>';
+            prevBtn.setAttribute('aria-label', 'Anterior');
+            prevBtn.addEventListener('click', (e) => { e.stopPropagation(); navigate(-1); });
+            overlay.appendChild(prevBtn);
+
+            const nextBtn = document.createElement('button');
+            nextBtn.className = 'lightbox-nav lightbox-next';
+            nextBtn.innerHTML = '<i class="bi bi-chevron-right"></i>';
+            nextBtn.setAttribute('aria-label', 'Siguiente');
+            nextBtn.addEventListener('click', (e) => { e.stopPropagation(); navigate(1); });
+            overlay.appendChild(nextBtn);
+
+            // Contador
+            const counter = document.createElement('div');
+            counter.className = 'lightbox-counter';
+            counter.textContent = `${current + 1} / ${total}`;
+            overlay.appendChild(counter);
+        }
+
+        // Cerrar al hacer clic en el fondo
+        overlay.addEventListener('click', close);
+
+        // Teclado
+        document.addEventListener('keydown', onKey);
+
+        document.body.appendChild(overlay);
+        // Evitar scroll del body mientras está abierto
+        document.body.style.overflow = 'hidden';
+    }
+
+    function navigate(dir) {
+        if (!overlay || closing || total <= 1) return;
+        let next = current + dir;
+        if (next < 0) next = total - 1;
+        if (next >= total) next = 0;
+        // Animación de salida antes de cambiar
+        overlay.classList.add('closing');
+        setTimeout(() => {
+            overlay.remove();
+            overlay = null;
+            open(next);
+        }, 220);
+    }
+
+    function close() {
+        if (!overlay || closing) return;
+        closing = true;
+        overlay.classList.add('closing');
+        document.removeEventListener('keydown', onKey);
+        setTimeout(() => {
+            if (overlay && overlay.parentNode) overlay.remove();
+            overlay = null;
+            closing = false;
+            document.body.style.overflow = '';
+        }, 250);
+    }
+
+    function onKey(e) {
+        if (!overlay) return;
+        if (e.key === 'Escape') close();
+        if (e.key === 'ArrowLeft') navigate(-1);
+        if (e.key === 'ArrowRight') navigate(1);
+    }
+
+    // Vincular clics en las imágenes
+    images.forEach((img, idx) => {
+        img.addEventListener('click', () => open(idx));
+    });
+})();
+</script>
 
 </body>
 </html>

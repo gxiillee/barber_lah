@@ -10,6 +10,7 @@ session_start();
 
 // Validar si el usuario está autenticado
 if (!isset($_SESSION['usuario'])) {
+    $_SESSION['volver_panel'] = 'index.php';
     redirigir('login.php');
 }
 

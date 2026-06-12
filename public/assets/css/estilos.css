@@ -37,7 +37,7 @@
 
   /* Tipografía base de textos e intensidades */
   --tx: #f5f0e8;
-  --tx-m: rgba(245, 240, 232, 0.50);
+  --tx-m: rgba(245, 240, 232, 0.5);
   --tx-d: rgba(245, 240, 232, 0.25);
 
   /* Bordes de Separación General */
@@ -623,8 +623,14 @@
 
 /* ── Entrada de página: aparece suavemente al cargar ── */
 @keyframes entrada-pagina {
-  from { opacity: 0; transform: translateY(7px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(7px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 .pagina-entrada {
   animation: entrada-pagina 0.25s ease-out both;
@@ -632,9 +638,17 @@
 
 /* ── Tarjeta de fidelidad: brillo que cruza al cargar ── */
 @keyframes card-brillo {
-  0%   { left: -80%; opacity: 0; }
-  15%  { opacity: 0.5; }
-  100% { left: 130%; opacity: 0; }
+  0% {
+    left: -80%;
+    opacity: 0;
+  }
+  15% {
+    opacity: 0.5;
+  }
+  100% {
+    left: 130%;
+    opacity: 0;
+  }
 }
 /* Se activa con .tarjeta-fidelidad::after en fidelidad.php */
 .tarjeta-fidelidad {
@@ -642,11 +656,18 @@
   overflow: hidden;
 }
 .tarjeta-fidelidad::after {
-  content: '';
+  content: "";
   position: absolute;
-  top: 0; left: -80%;
-  width: 45%; height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,.055), transparent);
+  top: 0;
+  left: -80%;
+  width: 45%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.055),
+    transparent
+  );
   transform: skewX(-15deg);
   animation: card-brillo 2s ease-in-out 0.4s both;
   pointer-events: none;
@@ -654,9 +675,18 @@
 
 /* ── Stamps de fidelidad: aparecen con "pop" escalonado ── */
 @keyframes stamp-pop {
-  0%   { transform: scale(0) rotate(-20deg); opacity: 0; }
-  65%  { transform: scale(1.2)  rotate(4deg);  opacity: 1; }
-  100% { transform: scale(1)   rotate(0deg);  opacity: 1; }
+  0% {
+    transform: scale(0) rotate(-20deg);
+    opacity: 0;
+  }
+  65% {
+    transform: scale(1.2) rotate(4deg);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1) rotate(0deg);
+    opacity: 1;
+  }
 }
 .stamp-lleno {
   animation: stamp-pop 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) both;
@@ -664,8 +694,15 @@
 
 /* ── Stamp "siguiente" (el de rayas): pulso que incita a reservar ── */
 @keyframes stamp-pulso {
-  0%, 100% { opacity: 0.3; box-shadow: none; }
-  50%       { opacity: 1;   box-shadow: 0 0 10px rgba(212,175,55,.5); }
+  0%,
+  100% {
+    opacity: 0.3;
+    box-shadow: none;
+  }
+  50% {
+    opacity: 1;
+    box-shadow: 0 0 10px rgba(212, 175, 55, 0.5);
+  }
 }
 .stamp-siguiente {
   animation: stamp-pulso 2s ease-in-out infinite;
@@ -673,9 +710,18 @@
 
 /* ── Badge "¡Corte gratis!" aparece con rebote ── */
 @keyframes badge-rebote {
-  0%   { transform: scale(0.3); opacity: 0; }
-  60%  { transform: scale(1.12); opacity: 1; }
-  100% { transform: scale(1);   opacity: 1; }
+  0% {
+    transform: scale(0.3);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.12);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 .badge-gratis {
   animation: badge-rebote 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) 0.2s both;
@@ -683,9 +729,13 @@
 
 /* ── Barra de progreso de fidelidad: crece desde cero ── */
 @keyframes barra-crecer {
-  from { width: 0%; }
+  from {
+    width: 0%;
+  }
   /* El 'to' lo define --progreso en el elemento inline */
-  to   { width: var(--progreso, 0%); }
+  to {
+    width: var(--progreso, 0%);
+  }
 }
 .barra-progreso-fill {
   animation: barra-crecer 0.9s cubic-bezier(0.34, 1.1, 0.64, 1) 0.3s both;
@@ -693,8 +743,14 @@
 
 /* ── Foto nueva: aparece suavemente al subir ── */
 @keyframes foto-aparecer {
-  from { opacity: 0; transform: scale(0.94); }
-  to   { opacity: 1; transform: scale(1); }
+  from {
+    opacity: 0;
+    transform: scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 .foto-item {
   animation: foto-aparecer 0.3s ease-out both;
@@ -702,11 +758,15 @@
 
 /* ── Tarjetas de servicio: se levantan levemente al hacer hover ── */
 .svc-card {
-  transition: border-color 0.18s ease, background 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
+  transition:
+    border-color 0.18s ease,
+    background 0.18s ease,
+    transform 0.18s ease,
+    box-shadow 0.18s ease;
 }
 .svc-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
 }
 
 /* ==========================================================================
@@ -715,37 +775,39 @@
 
 /* ── Nav lateral ────────────── */
 .nav-lateral-lnk {
-  display: flex; 
-  align-items: center; 
+  display: flex;
+  align-items: center;
   gap: 10px;
   padding: 0.62rem 1.25rem;
-  font-size: 0.74rem; 
+  font-size: 0.74rem;
   font-family: var(--mt);
   color: var(--tx-m);
   border-left: 2px solid transparent;
-  transition: background 0.15s ease, color 0.15s ease;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
 }
-.nav-lateral-lnk:hover { 
-  background: var(--card); 
-  color: var(--tx); 
+.nav-lateral-lnk:hover {
+  background: var(--card);
+  color: var(--tx);
 }
 .nav-lateral-lnk.activo {
-  color: var(--gold); 
+  color: var(--gold);
   border-left-color: var(--gold);
-  background: var(--gold-dim); 
+  background: var(--gold-dim);
   font-weight: 500;
 }
-.nav-lateral-lnk .bi { 
-  font-size: 0.9rem; 
-  width: 16px; 
+.nav-lateral-lnk .bi {
+  font-size: 0.9rem;
+  width: 16px;
 }
 
 /* ── Nav inferior móvil ──────── */
-.nav-inf-lnk { 
-  color: var(--tx-d); 
+.nav-inf-lnk {
+  color: var(--tx-d);
 }
-.nav-inf-lnk.activo { 
-  color: var(--gold); 
+.nav-inf-lnk.activo {
+  color: var(--gold);
 }
 
 /* ==========================================================================
@@ -766,7 +828,9 @@
   border-style: dashed;
   border-color: var(--brd);
   background: var(--card);
-  transition: border-color 0.2s ease, color 0.2s ease;
+  transition:
+    border-color 0.2s ease,
+    color 0.2s ease;
 }
 .foto-add-btn:hover {
   border-color: var(--gold-brd);
@@ -790,7 +854,9 @@ body.body-panel {
 
 /* Ajuste responsive nativo para el panel lateral de escritorio */
 @media (min-width: 1024px) {
-  .panel-main { margin-left: 16rem; } /* Equivale al ancho del aside lateral */
+  .panel-main {
+    margin-left: 16rem;
+  } /* Equivale al ancho del aside lateral */
 }
 
 /* Clases específicas de la sección de Fotos */
@@ -798,7 +864,9 @@ body.body-panel {
   background: var(--card);
   border: 1.5px dashed var(--brd-h);
   aspect-ratio: 1;
-  transition: border-color 0.2s ease, background-color 0.2s ease;
+  transition:
+    border-color 0.2s ease,
+    background-color 0.2s ease;
 }
 .foto-add-btn:hover {
   border-color: var(--gold-brd);
@@ -817,7 +885,9 @@ body.body-panel {
 }
 
 .foto-item {
-  transition: transform 0.3s var(--ease-out), border-color 0.3s ease;
+  transition:
+    transform 0.3s var(--ease-out),
+    border-color 0.3s ease;
 }
 .foto-item:hover {
   transform: scale(1.02);
@@ -830,7 +900,7 @@ body.body-panel {
 
 /* ── Tarjeta de próxima cita ──────────── */
 .card-proxima {
-  background: linear-gradient(115deg, rgba(212,175,55,.08), var(--card));
+  background: linear-gradient(115deg, rgba(212, 175, 55, 0.08), var(--card));
   border: 1px solid var(--gold-brd);
   border-radius: 12px;
 }
@@ -842,15 +912,15 @@ body.body-panel {
   border-radius: 12px;
   transition: border-color 0.15s ease;
 }
-.card-fidelidad-teaser:hover { 
-  border-color: var(--gold-brd); 
+.card-fidelidad-teaser:hover {
+  border-color: var(--gold-brd);
 }
 
 /* ── Stamp mini (teaser de fidelidad) ─── */
 .stamp-mini {
-  width: 16px; 
-  height: 16px; 
-  border-radius: 50%; 
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
   flex-shrink: 0;
   transition: transform 0.2s ease;
 }
@@ -861,7 +931,12 @@ body.body-panel {
 
 /* ── Member Card ──────────────────────── */
 .member-card {
-  background: linear-gradient(145deg, var(--bg3) 0%, var(--bg2) 50%, var(--bg3) 100%);
+  background: linear-gradient(
+    145deg,
+    var(--bg3) 0%,
+    var(--bg2) 50%,
+    var(--bg3) 100%
+  );
   border: 1px solid var(--gold-brd);
   border-radius: 16px;
   padding: 1.75rem;
@@ -869,17 +944,17 @@ body.body-panel {
 
 /* ── Stamp (sello) dentro de card ─────── */
 .stamp {
-  width: 36px; 
+  width: 36px;
   height: 36px;
   border-radius: 50%;
-  display: flex; 
-  align-items: center; 
+  display: flex;
+  align-items: center;
   justify-content: center;
   flex-shrink: 0;
   transition: transform 0.2s ease;
 }
-.stamp:hover { 
-  transform: scale(1.12); 
+.stamp:hover {
+  transform: scale(1.12);
 }
 
 /* ── Tarjeta info "¿Cómo funciona?" ───── */
@@ -888,7 +963,9 @@ body.body-panel {
   border: 1px solid var(--brd);
   border-radius: 12px;
   padding: 1.5rem;
-  transition: border-color 0.2s ease, transform 0.2s ease;
+  transition:
+    border-color 0.2s ease,
+    transform 0.2s ease;
 }
 .info-card:hover {
   border-color: var(--gold-brd);
@@ -899,11 +976,23 @@ body.body-panel {
     5. PANEL FOTOS (fotos.php)
    ========================================================================== */
 
-<!-- Mostrar botón de eliminar al pasar el ratón sobre cada foto -->
-
- .foto-item:hover .foto-overlay-btn {
-   opacity: 1;
- }
+<!--
+  Mostrar
+  botón
+  de
+  eliminar
+  al
+  pasar
+  el
+  ratón
+  sobre
+  cada
+  foto
+  --
+  > .foto-item:hover
+  .foto-overlay-btn {
+  opacity: 1;
+}
 /* En móvil (sin hover real) mostramos siempre el botón para que sea accesible */
 @media (hover: none) {
   .foto-overlay-btn {
@@ -930,22 +1019,48 @@ body.body-panel {
 }
 
 /* Efecto cascada: Retrasa la entrada de cada tarjeta */
-.agenda-grid .slot-card:nth-child(1)  { animation-delay: 0.03s; }
-.agenda-grid .slot-card:nth-child(2)  { animation-delay: 0.06s; }
-.agenda-grid .slot-card:nth-child(3)  { animation-delay: 0.09s; }
-.agenda-grid .slot-card:nth-child(4)  { animation-delay: 0.12s; }
-.agenda-grid .slot-card:nth-child(5)  { animation-delay: 0.15s; }
-.agenda-grid .slot-card:nth-child(6)  { animation-delay: 0.18s; }
-.agenda-grid .slot-card:nth-child(7)  { animation-delay: 0.20s; }
-.agenda-grid .slot-card:nth-child(8)  { animation-delay: 0.22s; }
-.agenda-grid .slot-card:nth-child(9)  { animation-delay: 0.24s; }
-.agenda-grid .slot-card:nth-child(10) { animation-delay: 0.26s; }
-.agenda-grid .slot-card:nth-child(11) { animation-delay: 0.28s; }
-.agenda-grid .slot-card:nth-child(12) { animation-delay: 0.30s; }
+.agenda-grid .slot-card:nth-child(1) {
+  animation-delay: 0.03s;
+}
+.agenda-grid .slot-card:nth-child(2) {
+  animation-delay: 0.06s;
+}
+.agenda-grid .slot-card:nth-child(3) {
+  animation-delay: 0.09s;
+}
+.agenda-grid .slot-card:nth-child(4) {
+  animation-delay: 0.12s;
+}
+.agenda-grid .slot-card:nth-child(5) {
+  animation-delay: 0.15s;
+}
+.agenda-grid .slot-card:nth-child(6) {
+  animation-delay: 0.18s;
+}
+.agenda-grid .slot-card:nth-child(7) {
+  animation-delay: 0.2s;
+}
+.agenda-grid .slot-card:nth-child(8) {
+  animation-delay: 0.22s;
+}
+.agenda-grid .slot-card:nth-child(9) {
+  animation-delay: 0.24s;
+}
+.agenda-grid .slot-card:nth-child(10) {
+  animation-delay: 0.26s;
+}
+.agenda-grid .slot-card:nth-child(11) {
+  animation-delay: 0.28s;
+}
+.agenda-grid .slot-card:nth-child(12) {
+  animation-delay: 0.3s;
+}
 
 /* Accesibilidad */
 @media (prefers-reduced-motion: reduce) {
-  .slot-card { animation: none; }
+  .slot-card {
+    animation: none;
+  }
 }
 
 /* ============================================================
@@ -961,5 +1076,733 @@ body.body-panel {
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+/* ==========================================================================
+   6. PANEL CLIENTE — STAGGER: ENTRADA ESCALONADA
+   Aplica a: index.php, fidelidad.php, fotos.php, historial.php, perfil.php
+   Descripción: los hijos directos del contenedor aparecen uno tras otro
+   ========================================================================== */
+
+/* ── Contenedor padre: cada hijo aparece con fadeInUp escalonado ── */
+.stagger-container > * {
+  opacity: 0;
+  animation: fadeInUp 0.45s var(--ease-out) forwards;
+}
+
+/* Retraso progresivo: cada hijo aparece 0.07s más tarde que el anterior */
+.stagger-container > *:nth-child(1) {
+  animation-delay: 0.02s;
+}
+.stagger-container > *:nth-child(2) {
+  animation-delay: 0.09s;
+}
+.stagger-container > *:nth-child(3) {
+  animation-delay: 0.16s;
+}
+.stagger-container > *:nth-child(4) {
+  animation-delay: 0.23s;
+}
+.stagger-container > *:nth-child(5) {
+  animation-delay: 0.3s;
+}
+.stagger-container > *:nth-child(6) {
+  animation-delay: 0.37s;
+}
+.stagger-container > *:nth-child(7) {
+  animation-delay: 0.44s;
+}
+.stagger-container > *:nth-child(8) {
+  animation-delay: 0.51s;
+}
+.stagger-container > *:nth-child(9) {
+  animation-delay: 0.58s;
+}
+.stagger-container > *:nth-child(10) {
+  animation-delay: 0.65s;
+}
+
+/* ==========================================================================
+   7. PANEL CLIENTE — GLOW HOVER EN TARJETAS DEL DASHBOARD
+   Aplica a: index.php (tarjetas de estadísticas)
+   Descripción: resplandor dorado sutil al pasar el ratón
+   ========================================================================== */
+
+@keyframes glow-gold-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 8px rgba(212, 175, 55, 0.08);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(212, 175, 55, 0.18);
+  }
+}
+
+.glow-card {
+  transition:
+    transform 0.25s var(--ease-out),
+    border-color 0.25s ease,
+    box-shadow 0.25s ease;
+}
+.glow-card:hover {
+  transform: translateY(-3px);
+  border-color: var(--gold-brd);
+  box-shadow: 0 0 24px rgba(212, 175, 55, 0.1);
+}
+.glow-card:hover .glow-icon {
+  color: var(--gold) !important;
+  transform: scale(1.1);
+}
+
+/* ==========================================================================
+   8. PANEL CLIENTE — TIMELINE DE HISTORIAL
+   Aplica a: historial.php
+   Descripción: línea vertical con puntos y conectores para cada cita
+   ========================================================================== */
+
+.timeline-track {
+  position: relative;
+}
+/* Línea vertical que conecta todos los puntos */
+.timeline-track::before {
+  content: "";
+  position: absolute;
+  left: 27px;
+  top: 0;
+  bottom: 0;
+  width: 1.5px;
+  background: linear-gradient(
+    to bottom,
+    var(--gold-brd),
+    var(--gold-dim),
+    transparent
+  );
+}
+
+/* Cada item de la timeline */
+.timeline-item {
+  position: relative;
+  padding-left: 62px;
+  padding-bottom: 1.25rem;
+  opacity: 0;
+  animation: fadeInUp 0.4s var(--ease-out) forwards;
+}
+
+/* Punto dorado en la línea */
+.timeline-item::before {
+  content: "";
+  position: absolute;
+  left: 20px;
+  top: 6px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--gold);
+  border: 3px solid var(--bg);
+  box-shadow: 0 0 0 2px var(--gold-brd);
+  z-index: 1;
+}
+
+/* Retraso escalonado para cada item */
+.timeline-item:nth-child(1) {
+  animation-delay: 0.05s;
+}
+.timeline-item:nth-child(2) {
+  animation-delay: 0.12s;
+}
+.timeline-item:nth-child(3) {
+  animation-delay: 0.19s;
+}
+.timeline-item:nth-child(4) {
+  animation-delay: 0.26s;
+}
+.timeline-item:nth-child(5) {
+  animation-delay: 0.33s;
+}
+.timeline-item:nth-child(6) {
+  animation-delay: 0.4s;
+}
+.timeline-item:nth-child(7) {
+  animation-delay: 0.47s;
+}
+.timeline-item:nth-child(8) {
+  animation-delay: 0.54s;
+}
+
+/* Conector decorativo entre items */
+.timeline-item:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  left: 27px;
+  top: 22px;
+  bottom: 0;
+  width: 1.5px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+/* ==========================================================================
+   9. PANEL CLIENTE — LIGHTBOX PARA FOTOS
+   Aplica a: fotos.php
+   Descripción: overlay a pantalla completa para ver fotos ampliadas
+   ========================================================================== */
+
+@keyframes lightbox-enter {
+  from {
+    opacity: 0;
+    backdrop-filter: blur(0px);
+  }
+  to {
+    opacity: 1;
+    backdrop-filter: blur(8px);
+  }
+}
+@keyframes lightbox-img-in {
+  from {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+@keyframes lightbox-img-out {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+}
+
+.lightbox-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: rgba(0, 0, 0, 0.88);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: zoom-out;
+  animation: lightbox-enter 0.3s ease both;
+}
+.lightbox-overlay.closing {
+  animation: lightbox-enter 0.3s ease reverse both;
+}
+.lightbox-overlay img {
+  max-width: 90vw;
+  max-height: 90vh;
+  object-fit: contain;
+  border-radius: 8px;
+  cursor: default;
+  animation: lightbox-img-in 0.35s var(--ease-out) both;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7);
+}
+.lightbox-overlay.closing img {
+  animation: lightbox-img-out 0.25s ease both;
+}
+.lightbox-overlay .lightbox-close {
+  position: absolute;
+  top: 20px;
+  right: 24px;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+  border: none;
+  color: #fff;
+  font-size: 1.3rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s ease;
+}
+.lightbox-overlay .lightbox-close:hover {
+  background: rgba(255, 255, 255, 0.18);
+}
+/* Navegación dentro del lightbox */
+.lightbox-overlay .lightbox-nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.06);
+  border: none;
+  color: #fff;
+  font-size: 1.2rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition:
+    background 0.2s ease,
+    transform 0.2s ease;
+}
+.lightbox-overlay .lightbox-nav:hover {
+  background: rgba(255, 255, 255, 0.16);
+  transform: translateY(-50%) scale(1.08);
+}
+.lightbox-overlay .lightbox-prev {
+  left: 20px;
+}
+.lightbox-overlay .lightbox-next {
+  right: 20px;
+}
+/* Contador en el lightbox */
+.lightbox-overlay .lightbox-counter {
+  position: absolute;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.4);
+  font-family: var(--mt);
+  letter-spacing: 0.06em;
+}
+
+/* ==========================================================================
+   10. PANEL CLIENTE — TOAST NOTIFICATIONS
+   Aplica a: todas las páginas del panel
+   Descripción: notificación emergente en esquina inferior derecha
+   ========================================================================== */
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateX(100%) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+@keyframes toast-out {
+  from {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(100%) scale(0.9);
+  }
+}
+
+.toast-container {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 10000;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  pointer-events: none;
+}
+
+.toast {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 20px;
+  border-radius: 12px;
+  background: var(--bg2);
+  border: 1px solid var(--brd);
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.5),
+    0 0 0 1px rgba(212, 175, 55, 0.06);
+  pointer-events: auto;
+  animation: toast-in 0.35s var(--ease-out) forwards;
+  font-size: 0.82rem;
+  color: var(--tx);
+  font-family: var(--mt);
+  max-width: 360px;
+  backdrop-filter: blur(12px);
+}
+.toast.closing {
+  animation: toast-out 0.25s ease forwards;
+}
+.toast.toast-success {
+  border-color: rgba(34, 197, 94, 0.25);
+  background: rgba(5, 25, 10, 0.92);
+}
+.toast.toast-error {
+  border-color: rgba(239, 68, 68, 0.25);
+  background: rgba(25, 5, 5, 0.92);
+}
+.toast.toast-info {
+  border-color: var(--gold-brd);
+  background: rgba(10, 8, 0, 0.92);
+}
+.toast .toast-icon {
+  font-size: 1.1rem;
+  flex-shrink: 0;
+}
+.toast.toast-success .toast-icon {
+  color: #22c55e;
+}
+.toast.toast-error .toast-icon {
+  color: #ef4444;
+}
+.toast.toast-info .toast-icon {
+  color: var(--gold);
+}
+
+@keyframes toast-slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ==========================================================================
+   11. PANEL CLIENTE — CÍRCULO DE PROGRESO (PERFIL)
+   Aplica a: perfil.php
+   Descripción: círculo SVG animado para progreso de fidelidad
+   ========================================================================== */
+
+.progress-ring-circle {
+  transition: stroke-dashoffset 1s var(--ease-out);
+  transform: rotate(-90deg);
+  transform-origin: 50% 50%;
+}
+
+/* ==========================================================================
+   12. PANEL CLIENTE — CONFETTI CELEBRACIÓN
+   Aplica a: fidelidad.php (cuando el usuario tiene 10 puntos)
+   Descripción: partículas doradas tipo confetti con canvas
+   ========================================================================== */
+
+#confetti-canvas {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 9998;
+}
+
+/* ==========================================================================
+   13. PANEL CLIENTE — STREAK / RACHA DE VISITAS (PERFIL)
+   Aplica a: perfil.php
+   Descripción: llama animada para racha de visitas consecutivas
+   ========================================================================== */
+
+@keyframes streak-fire {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.8;
+  }
+  50% {
+    transform: scale(1.15);
+    opacity: 1;
+  }
+}
+.streak-fire {
+  animation: streak-fire 1.2s ease-in-out infinite;
+}
+
+/* ==========================================================================
+   14. PANEL CLIENTE — ANIMACIÓN DE PARTÍCULAS EN BOTÓN RESERVAR
+   Aplica a: index.php (botón "Reservar ahora")
+   Descripción: pulso de atención en el CTA principal
+   ========================================================================== */
+
+@keyframes cta-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(212, 175, 55, 0.4);
+  }
+  70% {
+    box-shadow: 0 0 0 12px rgba(212, 175, 55, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(212, 175, 55, 0);
+  }
+}
+.cta-pulse {
+  animation: cta-pulse 2s ease-in-out infinite;
+}
+
+/* ==========================================================================
+   15. RESERVA — STEPPER MÓVIL (reserva.php)
+   Aplica a: reserva.php
+   Descripción: navegación por pasos en móvil, bottom bar fijo con resumen
+   ========================================================================== */
+
+/* ── Step indicators (dots) ── */
+.step-dot {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 2px solid var(--brd-h);
+  background: transparent;
+  color: var(--tx-d);
+  font-size: 0.72rem;
+  font-weight: 700;
+  font-family: var(--mt);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  padding: 0;
+  flex-shrink: 0;
+}
+.step-dot.active {
+  border-color: var(--gold);
+  background: var(--gold-dim);
+  color: var(--gold);
+  box-shadow: 0 0 16px rgba(212, 175, 55, 0.2);
+}
+.step-dot.completed {
+  border-color: var(--gold);
+  background: var(--gold);
+  color: var(--bg);
+}
+.step-line {
+  flex: 1;
+  max-width: 60px;
+  height: 2px;
+  background: var(--brd);
+  border-radius: 2px;
+  transition: background 0.3s ease;
+}
+.step-line.completed {
+  background: var(--gold);
+}
+
+/* ── Step containers ── */
+.reserve-step {
+  transition:
+    opacity 0.35s ease,
+    transform 0.35s ease;
+}
+.reserve-step.hidden-step {
+  display: none;
+}
+@media (min-width: 1024px) {
+  .reserve-step.hidden-step {
+    display: block !important;
+  }
+}
+
+/* ── Step nav buttons ── */
+.step-nav-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border-radius: 10px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  border: none;
+}
+.step-nav-btn.step-prev {
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--tx-m);
+  border: 1px solid var(--brd);
+}
+.step-nav-btn.step-prev:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--tx);
+}
+.step-nav-btn.step-next {
+  background: var(--gold);
+  color: var(--bg);
+}
+.step-nav-btn.step-next:hover {
+  background: var(--gold-light);
+  transform: translateY(-1px);
+}
+.step-nav-btn.step-next:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* ── Mobile bottom bar ── */
+.reserve-bottom-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 40;
+  background: rgba(10, 10, 10, 0.95);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-top: 1px solid var(--brd);
+  padding: 12px 16px;
+  padding-bottom: max(12px, env(safe-area-inset-bottom));
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  transform: translateY(100%);
+  transition: transform 0.35s var(--ease-out);
+}
+.reserve-bottom-bar.visible {
+  transform: translateY(0);
+}
+.reserve-bottom-bar .rbb-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+.reserve-bottom-bar .rbb-service {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--tx);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.reserve-bottom-bar .rbb-meta {
+  font-size: 0.62rem;
+  color: var(--tx-m);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.reserve-bottom-bar .rbb-price {
+  font-family: var(--pf);
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--gold);
+  white-space: nowrap;
+}
+.reserve-bottom-bar .rbb-btn {
+  flex-shrink: 0;
+  padding: 10px 22px;
+  border-radius: 10px;
+  background: var(--gold);
+  color: var(--bg);
+  font-size: 0.7rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+.reserve-bottom-bar .rbb-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+.reserve-bottom-bar .rbb-btn:not(:disabled):hover {
+  background: var(--gold-light);
+  transform: translateY(-1px);
+}
+
+/* Ocultar bottom bar en desktop */
+@media (min-width: 1024px) {
+  .reserve-bottom-bar {
+    display: none !important;
+  }
+}
+
+/* Ajuste del padding inferior del main en móvil para no solaparse con la bottom bar */
+@media (max-width: 1023px) {
+  .reserve-shell {
+    padding-bottom: 80px !important;
+  }
+}
+
+/* ── Animación de transición entre pasos ── */
+@keyframes step-enter {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.reserve-step.entering {
+  animation: step-enter 0.3s var(--ease-out) both;
+}
+
+/* ==========================================================================
+   16. FORMULARIO — CAMBIAR CONTRASEÑA (cambiar_password.php)
+   Aplica a: cambiar_password.php
+   Descripción: tarjeta estilizada para cambio de contraseña
+   ========================================================================== */
+
+.pwd-card {
+  background: var(--bg2);
+  border: 1px solid var(--brd);
+  border-radius: 16px;
+  padding: 2rem;
+  transition: border-color 0.2s ease;
+}
+.pwd-card:focus-within {
+  border-color: var(--gold-brd);
+}
+.pwd-field {
+  width: 100%;
+  border-radius: 10px;
+  border: 1px solid var(--brd);
+  background: var(--bg3);
+  padding: 14px 16px;
+  font-size: 0.85rem;
+  color: var(--tx);
+  outline: none;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+  font-family: var(--mt);
+}
+.pwd-field:focus {
+  border-color: var(--gold-brd);
+  box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.08);
+}
+.pwd-field::placeholder {
+  color: var(--tx-d);
+}
+.pwd-label {
+  font-size: 0.65rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--tx-m);
+  margin-bottom: 6px;
+  display: block;
+}
+
+/* ==========================================================================
+   ACCESIBILIDAD — Reducción de movimiento
+   ========================================================================== */
+
+@media (prefers-reduced-motion: reduce) {
+  .stagger-container > *,
+  .timeline-item,
+  .glow-card,
+  .lightbox-overlay,
+  .toast,
+  .streak-fire,
+  .cta-pulse,
+  #confetti-canvas {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+  }
+  .glow-card:hover {
+    transform: none;
   }
 }

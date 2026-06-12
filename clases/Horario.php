@@ -25,6 +25,87 @@ class Horario {
     public function getHoraInicio(): string { return $this->horaInicio; }
     public function getHoraFin(): string    { return $this->horaFin; }
 
+    private const DIAS_VALIDOS = ['lunes','martes','miercoles','jueves','viernes','sabado','domingo'];
+
+    public static function obtenerDiasValidos(): array {
+        return self::DIAS_VALIDOS;
+    }
+
+    /**
+     * Devuelve los horarios agrupados por día para un barbero.
+     * Cada día es un array de tramos con id, hora_inicio, hora_fin.
+     */
+    public static function obtenerTodosPorBarbero(int $idBarbero): array {
+        $conexion = BD::obtenerConexion();
+        $stmt = $conexion->prepare("
+            SELECT id, id_barbero, dia_semana, hora_inicio, hora_fin
+            FROM horarios
+            WHERE id_barbero = :id
+            ORDER BY dia_semana, hora_inicio
+        ");
+        $stmt->execute([':id' => $idBarbero]);
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        $agrupado = [];
+        foreach (self::DIAS_VALIDOS as $dia) {
+            $agrupado[$dia] = [];
+        }
+        foreach ($rows as $row) {
+            $row['hora_inicio'] = substr((string)$row['hora_inicio'], 0, 5);
+            $row['hora_fin']    = substr((string)$row['hora_fin'], 0, 5);
+            $agrupado[$row['dia_semana']][] = $row;
+        }
+        return $agrupado;
+    }
+
+    /**
+     * Agrega un nuevo tramo horario.
+     */
+    public static function agregar(int $idBarbero, string $diaSemana, string $horaInicio, string $horaFin): int {
+        if (!in_array($diaSemana, self::DIAS_VALIDOS, true)) {
+            throw new InvalidArgumentException("Día inválido: $diaSemana");
+        }
+        $conexion = BD::obtenerConexion();
+        $stmt = $conexion->prepare("
+            INSERT INTO horarios (id_barbero, dia_semana, hora_inicio, hora_fin)
+            VALUES (:id_barbero, :dia_semana, :hora_inicio::time, :hora_fin::time)
+        ");
+        $stmt->execute([
+            ':id_barbero'  => $idBarbero,
+            ':dia_semana'  => $diaSemana,
+            ':hora_inicio' => $horaInicio,
+            ':hora_fin'    => $horaFin,
+        ]);
+        return (int)$conexion->lastInsertId();
+    }
+
+    /**
+     * Actualiza hora inicio y fin de un tramo existente.
+     */
+    public static function actualizar(int $id, string $horaInicio, string $horaFin): bool {
+        $conexion = BD::obtenerConexion();
+        $stmt = $conexion->prepare("
+            UPDATE horarios
+            SET hora_inicio = :hora_inicio::time,
+                hora_fin    = :hora_fin::time
+            WHERE id = :id
+        ");
+        return $stmt->execute([
+            ':id'         => $id,
+            ':hora_inicio' => $horaInicio,
+            ':hora_fin'   => $horaFin,
+        ]);
+    }
+
+    /**
+     * Elimina un tramo por su id.
+     */
+    public static function eliminar(int $id): bool {
+        $conexion = BD::obtenerConexion();
+        $stmt = $conexion->prepare("DELETE FROM horarios WHERE id = :id");
+        return $stmt->execute([':id' => $id]);
+    }
+
     /**
      * Genera un array de horas (strings) entre dos puntos temporales.
      * Ejemplo: generarSlots('09:00', '11:00', 30) -> ['09:00', '09:30', '10:00', '10:30']

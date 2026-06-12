@@ -23,12 +23,13 @@ class Usuario {
     protected $telefono;
     protected $puntos_fidelidad;
     protected $rol;
+    protected $nota_interna;
 
     // ---------------------------------------------------------------
     // Constructor
     // ---------------------------------------------------------------
 
-    public function __construct($id, $google_id, $nombre, $email, $password, $avatar, $telefono, $puntos_fidelidad, $rol) {
+    public function __construct($id, $google_id, $nombre, $email, $password, $avatar, $telefono, $puntos_fidelidad, $rol, $nota_interna = null) {
         $this->id               = $id;
         $this->google_id        = $google_id;
         $this->nombre           = $nombre;
@@ -38,6 +39,7 @@ class Usuario {
         $this->telefono         = $telefono;
         $this->puntos_fidelidad = $puntos_fidelidad;
         $this->rol              = $rol;
+        $this->nota_interna     = $nota_interna;
     }
 
     // ---------------------------------------------------------------
@@ -53,6 +55,7 @@ class Usuario {
     public function getTelefono()        { return $this->telefono; }
     public function getPuntosFidelidad() { return $this->puntos_fidelidad; }
     public function getRol()             { return $this->rol; }
+    public function getNotaInterna()     { return $this->nota_interna; }
 
     // ---------------------------------------------------------------
     // Metodo de utilidad de rol
@@ -188,6 +191,73 @@ class Usuario {
         $idNuevo = (int)$filaInsertada['id'];
 
         return new self($idNuevo, $googleId, $nombre, $email, null, $avatar, null, 0, 'cliente');
+    }
+
+    // ---------------------------------------------------------------
+    // Metodos de utilidad de estado
+    // ---------------------------------------------------------------
+
+    /**
+     * Indica si el usuario tiene una contraseña establecida en la BD.
+     * Los usuarios registrados con Google pueden tener password = NULL.
+     */
+    public function tienePassword(): bool {
+        return $this->password !== null && $this->password !== '';
+    }
+
+    /**
+     * Establece (o actualiza) la contraseña de un usuario en la base de datos.
+     * Sirve tanto para usuarios sin contraseña (Google) como para cambio normal.
+     *
+     * @param int    $id            ID del usuario
+     * @param string $password-plano Contraseña en texto plano (se hashea internamente)
+     * @return bool                 True si se actualizó correctamente
+     */
+    public static function establecerPassword(int $id, string $password): bool {
+        $conexion = BD::obtenerConexion();
+        $hash = password_hash($password, PASSWORD_BCRYPT, ['cost' => 12]);
+
+        $stmt = $conexion->prepare(
+            "UPDATE usuarios SET password = :password WHERE id = :id AND activo = true"
+        );
+        $stmt->execute([
+            ':password' => $hash,
+            ':id'       => $id,
+        ]);
+
+        return $stmt->rowCount() > 0;
+    }
+
+    /**
+     * Admin: actualiza los puntos de fidelidad de un cliente.
+     * Se usa desde ficha_cliente.php para corregir puntos manualmente.
+     */
+    public static function actualizarPuntos(int $idCliente, int $puntos): bool {
+        $conexion = BD::obtenerConexion();
+        $stmt = $conexion->prepare("
+            UPDATE usuarios SET puntos_fidelidad = :puntos
+            WHERE id = :id AND rol = 'cliente'
+        ");
+        return $stmt->execute([
+            ':puntos' => max(0, $puntos),
+            ':id'     => $idCliente,
+        ]);
+    }
+
+    /**
+     * Admin: actualiza la nota interna de un cliente.
+     * La nota solo la ve el admin desde ficha_cliente.php.
+     */
+    public static function actualizarNotaInterna(int $idCliente, ?string $nota): bool {
+        $conexion = BD::obtenerConexion();
+        $stmt = $conexion->prepare("
+            UPDATE usuarios SET nota_interna = :nota
+            WHERE id = :id AND rol = 'cliente'
+        ");
+        return $stmt->execute([
+            ':nota' => ($nota !== null && $nota !== '') ? $nota : null,
+            ':id'   => $idCliente,
+        ]);
     }
 
     /**

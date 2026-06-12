@@ -12,6 +12,7 @@ require_once __DIR__ . '/../clases/Reserva.php';
 session_start();
 
 if (!isset($_SESSION['usuario'])) {
+    $_SESSION['volver_panel'] = 'index.php';
     redirigir('../login.php');
 }
 
@@ -88,87 +89,96 @@ $pagina_activa = 'historial';
             </a>
         </div>
 
-        <!-- Listado de Citas -->
-        <div class="flex flex-col gap-4">
-            <?php if (empty($historial)): ?>
-                <!-- Estado Vacío -->
-                <div class="bg-[var(--bg2)] border border-[var(--brd)] rounded-2xl p-10 flex flex-col items-center text-center gap-5">
-                    <div class="w-16 h-16 rounded-full bg-[var(--card)] flex items-center justify-center border border-[var(--brd)]">
-                        <i class="bi bi-calendar2-x text-[var(--tx-d)] text-3xl"></i>
-                    </div>
-                    <div>
-                        <h3 class="text-[var(--tx)] font-semibold text-xl mb-2">Aún no tienes citas</h3>
-                        <p class="text-[var(--tx-m)] text-sm max-w-xs mx-auto">
-                            Tu historial aparecerá aquí en cuanto realices tu primera visita a la barbería.
-                        </p>
-                    </div>
-                    <a href="reservar.php" class="px-8 py-3 rounded-xl bg-[var(--gold)] text-[var(--bg)] font-bold uppercase tracking-wider transition-all hover:opacity-90">
-                        Reservar mi primera cita
-                    </a>
+        <!-- Listado de Citas — Timeline visual -->
+        <?php if (empty($historial)): ?>
+            <!-- Estado Vacío -->
+            <div class="rounded-xl p-10 flex flex-col items-center text-center gap-5 border" style="background:var(--card); border-color:var(--brd); opacity:0; animation:fadeInUp 0.45s var(--ease-out) 0.1s forwards;">
+                <div class="w-16 h-16 rounded-full flex items-center justify-center border" style="background:var(--bg2); border-color:var(--brd);">
+                    <i class="bi bi-calendar2-x" style="color:var(--tx-d); font-size:1.6rem;"></i>
                 </div>
-            <?php else: ?>
-                <!-- Bucle de Citas -->
-                <?php foreach ($historial as $cita): ?>
-                    <div class="bg-[var(--bg2)] border border-[var(--brd)] rounded-2xl p-5 transition-all duration-200 hover:border-[var(--brd-h)] hover:-translate-y-0.5 flex items-center justify-between gap-4">
-                        <div class="flex flex-col gap-1.5">
-                            <span class="text-[var(--tx)] font-semibold text-lg leading-tight">
-                                <?= h($cita['nombre_servicio']) ?>
-                            </span>
-                            <div class="flex flex-wrap items-center gap-3 text-[var(--tx-m)] text-sm">
-                                <span class="flex items-center gap-1.5">
-                                    <i class="bi bi-calendar3 text-[var(--gold)]"></i>
-                                    <?= h(fechaHumana($cita['fecha'])) ?>
-                                </span>
-                                <span class="flex items-center gap-1.5">
-                                    <i class="bi bi-clock text-[var(--gold)]"></i>
-                                    <?= h(substr($cita['hora'], 0, 5)) ?>h
-                                </span>
+                <div>
+                    <h3 style="font-family:var(--pf); font-size:1.15rem; font-weight:600; color:var(--tx); margin-bottom:8px;">Aún no tienes citas</h3>
+                    <p style="font-size:0.78rem; color:var(--tx-m); max-width:280px; line-height:1.5;">
+                        Tu historial aparecerá aquí en cuanto realices tu primera visita.
+                    </p>
+                </div>
+                <a href="reserva.php" class="cta-pulse inline-flex items-center gap-2 rounded-xl px-6 py-3 font-bold uppercase tracking-wider transition-opacity" style="background:var(--gold); color:var(--bg); font-size:0.72rem;">
+                    <i class="bi bi-calendar-plus"></i> Reservar mi primera cita
+                </a>
+            </div>
+        <?php else: ?>
+            <!-- Timeline de citas -->
+            <div class="timeline-track">
+                <?php foreach ($historial as $cita):
+                    // Badge de estado
+                    $badgeClass = "";
+                    $estadoLabel = "";
+                    $iconEstado = "";
+                    switch($cita['estado']) {
+                        case 'completada':
+                            $badgeClass = "background:rgba(34,197,94,0.12); color:#4ade80; border-color:rgba(34,197,94,0.2)";
+                            $estadoLabel = "Completada";
+                            $iconEstado = "bi-check-circle-fill";
+                            break;
+                        case 'cancelada':
+                            $badgeClass = "background:rgba(239,68,68,0.12); color:#f87171; border-color:rgba(239,68,68,0.2)";
+                            $estadoLabel = "Cancelada";
+                            $iconEstado = "bi-x-circle-fill";
+                            break;
+                        case 'no_presentado':
+                            $badgeClass = "background:rgba(251,146,60,0.12); color:#fb923c; border-color:rgba(251,146,60,0.2)";
+                            $estadoLabel = "No presentado";
+                            $iconEstado = "bi-question-circle-fill";
+                            break;
+                        case 'confirmada':
+                        case 'pendiente':
+                            $badgeClass = "background:var(--gold-dim); color:var(--gold); border-color:var(--gold-brd)";
+                            $estadoLabel = "Próxima";
+                            $iconEstado = "bi-clock-fill";
+                            break;
+                        default:
+                            $badgeClass = "background:rgba(255,255,255,0.04); color:rgba(255,255,255,0.4); border-color:rgba(255,255,255,0.08)";
+                            $estadoLabel = ucfirst($cita['estado']);
+                            $iconEstado = "bi-record-circle";
+                    }
+                ?>
+                    <div class="timeline-item">
+                        <div class="rounded-xl p-4 sm:p-5 border transition-all duration-200 hover:-translate-y-0.5" style="background:var(--bg2); border-color:var(--brd);">
+                            <div class="flex items-start justify-between gap-3 flex-wrap">
+                                <div class="min-w-0 flex-1">
+                                    <div class="flex items-center gap-2 mb-1">
+                                        <span style="font-size:0.95rem; font-weight:600; color:var(--tx);"><?= h($cita['nombre_servicio']) ?></span>
+                                    </div>
+                                    <div class="flex flex-wrap items-center gap-3 mt-1.5" style="font-size:0.72rem; color:var(--tx-m);">
+                                        <span class="flex items-center gap-1.5">
+                                            <i class="bi bi-calendar3" style="color:var(--gold); font-size:0.65rem;"></i>
+                                            <?= h(fechaHumana($cita['fecha'])) ?>
+                                        </span>
+                                        <span class="flex items-center gap-1.5">
+                                            <i class="bi bi-clock" style="color:var(--gold); font-size:0.65rem;"></i>
+                                            <?= h(substr($cita['hora'], 0, 5)) ?>h
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="flex flex-col items-end gap-2 shrink-0">
+                                    <span style="font-weight:700; font-size:1rem; color:var(--tx);">
+                                        <?= number_format((float)$cita['precio_historico'], 2, ',', '.') ?> €
+                                    </span>
+                                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[0.6rem] font-bold uppercase tracking-wider border" style="<?= $badgeClass ?>">
+                                        <i class="bi <?= $iconEstado ?>" style="font-size:0.55rem;"></i>
+                                        <?= h($estadoLabel) ?>
+                                    </span>
+                                </div>
                             </div>
-                        </div>
-
-                        <div class="flex flex-col items-end gap-2.5 shrink-0">
-                            <span class="text-[var(--tx)] font-bold text-lg">
-                                <?= number_format((float)$cita['precio_historico'], 2, ',', '.') ?> €
-                            </span>
-                            
-                            <?php
-                            $badgeClass = "";
-                            $estadoLabel = "";
-                            
-                            switch($cita['estado']) {
-                                case 'completada':
-                                    $badgeClass = "bg-green-500/10 text-green-400 border-green-500/20";
-                                    $estadoLabel = "Completada";
-                                    break;
-                                case 'cancelada':
-                                    $badgeClass = "bg-red-500/10 text-red-400 border-red-500/20";
-                                    $estadoLabel = "Cancelada";
-                                    break;
-                                case 'no_presentado':
-                                    $badgeClass = "bg-orange-500/10 text-orange-400 border-orange-500/20";
-                                    $estadoLabel = "No presentado";
-                                    break;
-                                case 'confirmada':
-                                case 'pendiente':
-                                    $badgeClass = "bg-[var(--gold-dim)] text-[var(--gold)] border-[var(--gold-brd)]";
-                                    $estadoLabel = "Próxima";
-                                    break;
-                                default:
-                                    $badgeClass = "bg-white/5 text-white/40 border-white/10";
-                                    $estadoLabel = ucfirst($cita['estado']);
-                            }
-                            ?>
-                            <span class="px-3 py-1 rounded-full text-[0.65rem] font-bold uppercase tracking-wider border <?= $badgeClass ?>">
-                                <?= h($estadoLabel) ?>
-                            </span>
                         </div>
                     </div>
                 <?php endforeach; ?>
-            <?php endif; ?>
-        </div>
+            </div>
+        <?php endif; ?>
 
     </div>
 </main>
 
+<?php require_once __DIR__ . '/includes/toast.php'; ?>
 </body>
 </html>

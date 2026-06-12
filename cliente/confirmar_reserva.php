@@ -27,7 +27,8 @@ session_start();
 // [TFG] Carga y validación del usuario autenticado
 $usuario = $_SESSION['usuario'] ?? null;
 if (!$usuario instanceof Usuario) {
-    redirigir('login.php?source=reserva');
+    $_SESSION['volver_panel'] = 'index.php';
+    redirigir('login.php'); // Eliminado ?source=reserva, se maneja por sesión
 }
 
 // ---------------------------------------------------------------
@@ -237,5 +238,6 @@ $csrfToken = Csrf::generarToken('csrf_confirmar_reserva');
         </aside>
     </section>
 </main>
+<?php require_once __DIR__ . '/includes/toast.php'; ?>
 </body>
 </html>

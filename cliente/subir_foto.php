@@ -13,6 +13,7 @@ require_once __DIR__ . '/../clases/FotoCliente.php';
 session_start();
 
 if (!isset($_SESSION['usuario'])) {
+    $_SESSION['volver_panel'] = 'index.php';
     redirigir('../login.php');
 }
 
@@ -214,5 +215,6 @@ $pagina_activa = 'fotos';
     }
 </script>
 
+<?php require_once __DIR__ . '/includes/toast.php'; ?>
 </body>
 </html>

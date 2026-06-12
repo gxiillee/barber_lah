@@ -11,6 +11,7 @@ require_once __DIR__ . '/../clases/Usuario.php';
 session_start();
 
 if (!isset($_SESSION['usuario'])) {
+    $_SESSION['volver_panel'] = 'index.php';
     redirigir('../login.php');
 }
 
@@ -231,5 +232,84 @@ require_once __DIR__ . '/includes/nav_cliente.php';
     </div><!-- /max-w container -->
 </main>
 
+<?php if ($tiene_gratis): ?>
+<!-- Confetti de celebración: se activa solo cuando el usuario tiene 10 puntos -->
+<canvas id="confetti-canvas"></canvas>
+<script>
+/**
+ * Confetti dorado para celebrar el corte gratis (fidelidad.php).
+ * Canvas puro, sin librerías. Partículas con física simple.
+ */
+(function() {
+    const canvas = document.getElementById('confetti-canvas');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    let W, H;
+
+    function resize() {
+        W = canvas.width  = window.innerWidth;
+        H = canvas.height = window.innerHeight;
+    }
+    resize();
+    window.addEventListener('resize', resize);
+
+    const COLORS = ['#d4af37', '#e5d4a1', '#f5e6b8', '#ffd700', '#8a6f3d'];
+    const pieces = [];
+    const TOTAL  = 150;
+
+    for (let i = 0; i < TOTAL; i++) {
+        pieces.push({
+            x: Math.random() * W,
+            y: Math.random() * -H * 0.5,
+            w: 4 + Math.random() * 6,
+            h: 4 + Math.random() * 6,
+            color: COLORS[Math.floor(Math.random() * COLORS.length)],
+            vx: (Math.random() - 0.5) * 3,
+            vy: 1.5 + Math.random() * 2.5,
+            rot: Math.random() * 360,
+            rv: (Math.random() - 0.5) * 6,
+            opacity: 0.8 + Math.random() * 0.2,
+        });
+    }
+
+    let frame;
+    let startTime = Date.now();
+
+    function loop() {
+        const elapsed = Date.now() - startTime;
+        // Detener tras 4 segundos (dejar que se vayan cayendo)
+        if (elapsed > 4000 && pieces.every(p => p.y > H + 20)) {
+            cancelAnimationFrame(frame);
+            canvas.style.display = 'none';
+            return;
+        }
+
+        ctx.clearRect(0, 0, W, H);
+
+        for (const p of pieces) {
+            p.x += p.vx;
+            p.vy += 0.03; // gravedad
+            p.y += p.vy;
+            p.rot += p.rv;
+
+            ctx.save();
+            ctx.translate(p.x, p.y);
+            ctx.rotate(p.rot * Math.PI / 180);
+            ctx.globalAlpha = p.opacity * Math.max(0, Math.min(1, 1 - (p.y / H)));
+            ctx.fillStyle = p.color;
+            ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+            ctx.restore();
+        }
+
+        frame = requestAnimationFrame(loop);
+    }
+
+    // Pequeño retardo inicial para que coincida con la animación de la página
+    setTimeout(() => loop(), 300);
+})();
+</script>
+<?php endif; ?>
+
+<?php require_once __DIR__ . '/includes/toast.php'; ?>
 </body>
 </html>

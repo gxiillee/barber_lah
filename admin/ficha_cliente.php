@@ -88,7 +88,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion'])) {
                 $total_completadas = Reserva::contarPorEstadoYCliente($id_cliente, 'completada');
                 $historial = Reserva::obtenerHistorialPorCliente($id_cliente);
                 $ultima_visita = Reserva::obtenerUltimaCompletadaPorCliente($id_cliente);
-                $mensaje_exito = 'Cita marcada como completada correctamente.';
+                $_SESSION['toast'] = ['type' => 'success', 'message' => 'Cita marcada como completada.'];
+                redirigir('ficha_cliente.php?id_reserva=' . $id_reserva);
             } else {
                 $mensaje_error = 'No se pudo actualizar el estado de la cita.';
             }
@@ -100,9 +101,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion'])) {
             if ($ok) {
                 $reserva_actual = Reserva::obtenerPorId($id_reserva);
                 $historial = Reserva::obtenerHistorialPorCliente($id_cliente);
-                $mensaje_exito = 'Reserva marcada como no presentado.';
+                $_SESSION['toast'] = ['type' => 'success', 'message' => 'Reserva marcada como no presentado.'];
+                redirigir('ficha_cliente.php?id_reserva=' . $id_reserva);
             } else {
                 $mensaje_error = 'No se pudo actualizar el estado.';
+            }
+        }
+
+        if ($accion === 'actualizar_puntos') {
+            $nuevos_puntos = (int)($_POST['puntos'] ?? 0);
+            if (Usuario::actualizarPuntos($id_cliente, $nuevos_puntos)) {
+                $cliente = Cliente::obtenerPorId($id_cliente);
+                $_SESSION['toast'] = ['type' => 'success', 'message' => "Puntos actualizados a $nuevos_puntos."];
+                redirigir('ficha_cliente.php?id_reserva=' . $id_reserva);
+            } else {
+                $mensaje_error = 'No se pudieron actualizar los puntos.';
+            }
+        }
+
+        if ($accion === 'actualizar_nota') {
+            $nota = trim($_POST['nota'] ?? '');
+            if (Usuario::actualizarNotaInterna($id_cliente, $nota)) {
+                $cliente = Cliente::obtenerPorId($id_cliente);
+                $_SESSION['toast'] = ['type' => 'success', 'message' => 'Nota interna guardada.'];
+                redirigir('ficha_cliente.php?id_reserva=' . $id_reserva);
+            } else {
+                $mensaje_error = 'No se pudo guardar la nota.';
             }
         }
     }
@@ -132,7 +156,7 @@ function badgeEstado(string $estado): string {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ficha Cliente — <?= h($cliente->getNombre()) ?></title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
@@ -259,6 +283,30 @@ function badgeEstado(string $estado): string {
             </div>
         <?php endif; ?>
 
+        <!-- Nota interna (solo visible para admin) -->
+        <div class="bg-white/[0.025] border border-white/[0.08] rounded-2xl p-4 sm:p-5 animate-[ficha-entrar_0.45s_cubic-bezier(0.16,1,0.3,1)_both]">
+            <div class="flex items-start justify-between gap-3">
+                <div class="min-w-0 flex-1">
+                    <div class="flex items-center gap-2 mb-2">
+                        <i class="bi bi-journal-text text-[#d4af37] text-[0.9rem] shrink-0"></i>
+                        <span class="font-['Montserrat'] text-[0.65rem] font-semibold tracking-[0.2em] uppercase text-[#666666]">Nota interna</span>
+                    </div>
+                    <?php if ($cliente->getNotaInterna()): ?>
+                        <div class="font-['Montserrat'] text-[0.8rem] text-[#f5f0e8] leading-relaxed whitespace-pre-wrap break-words max-h-24 overflow-y-auto pr-1">
+                            <?= h($cliente->getNotaInterna()) ?>
+                        </div>
+                    <?php else: ?>
+                        <div class="font-['Montserrat'] text-[0.8rem] text-[#555] italic">Sin nota aún</div>
+                    <?php endif; ?>
+                </div>
+                <button onclick="abrirEditarNota()"
+                        class="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[0.6rem] font-semibold uppercase tracking-wider border border-white/[0.08] text-[#888] hover:bg-[#d4af37]/10 hover:text-[#d4af37] hover:border-[#d4af37]/30 transition-all cursor-pointer whitespace-nowrap mt-0.5">
+                    <i class="bi bi-pencil"></i>
+                    <?= $cliente->getNotaInterna() ? 'Editar' : 'Añadir' ?>
+                </button>
+            </div>
+        </div>
+
         <section class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
             <div class="flex flex-col items-center gap-1 sm:gap-[0.35rem] py-5 sm:py-6 px-3 sm:px-4 rounded-[0.875rem] border border-white/[0.08] bg-white/[0.025] text-center transition-all duration-200 hover:border-[#d4af37]/25 hover:-translate-y-[2px] animate-[ficha-entrar_0.5s_cubic-bezier(0.16,1,0.3,1)_both] delay-[50ms]">
                 <i class="bi bi-scissors text-[#d4af37] text-lg sm:text-[1.25rem] mb-[0.1rem]"></i>
@@ -278,10 +326,16 @@ function badgeEstado(string $estado): string {
                 <span class="font-['Montserrat'] text-[0.6rem] sm:text-[0.65rem] font-semibold tracking-[0.18em] uppercase text-[#666666]">Canceladas</span>
             </div>
 
-            <div class="flex flex-col items-center gap-1 sm:gap-[0.35rem] py-5 sm:py-6 px-3 sm:px-4 rounded-[0.875rem] border border-white/[0.08] bg-white/[0.025] text-center transition-all duration-200 hover:border-[#d4af37]/25 hover:-translate-y-[2px] animate-[ficha-entrar_0.5s_cubic-bezier(0.16,1,0.3,1)_both] delay-[200ms]">
-                <i class="bi bi-person-dash text-[#888888] text-lg sm:text-[1.25rem] mb-[0.1rem]"></i>
-                <span class="font-['Playfair_Display'] text-3xl sm:text-[2rem] font-bold leading-none text-[#f5f0e8]"><?= $total_no_presento ?></span>
-                <span class="font-['Montserrat'] text-[0.6rem] sm:text-[0.65rem] font-semibold tracking-[0.18em] uppercase text-[#666666]">No show</span>
+            <div class="flex flex-col items-center gap-1 sm:gap-[0.35rem] py-5 sm:py-6 px-3 sm:px-4 rounded-[0.875rem] border border-white/[0.08] bg-white/[0.025] text-center transition-all duration-200 hover:border-[#d4af37]/25 hover:-translate-y-[2px] animate-[ficha-entrar_0.5s_cubic-bezier(0.16,1,0.3,1)_both] delay-[200ms] relative group"
+                 id="puntos-card">
+                <i class="bi bi-star text-[#d4af37] text-lg sm:text-[1.25rem] mb-[0.1rem]"></i>
+                <span class="font-['Playfair_Display'] text-3xl sm:text-[2rem] font-bold leading-none text-[#f5f0e8]" id="puntos-valor"><?= (int)$cliente->getPuntosFidelidad() ?></span>
+                <span class="font-['Montserrat'] text-[0.6rem] sm:text-[0.65rem] font-semibold tracking-[0.18em] uppercase text-[#666666]">Puntos</span>
+                <button onclick="abrirEditarPuntos()"
+                        class="absolute top-2 right-2 w-6 h-6 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-[#888] hover:bg-[#d4af37]/20 hover:text-[#d4af37] hover:border-[#d4af37]/30 transition-all opacity-0 group-hover:opacity-100 cursor-pointer"
+                        title="Editar puntos">
+                    <i class="bi bi-pencil text-[0.6rem]"></i>
+                </button>
             </div>
         </section>
 
@@ -406,6 +460,136 @@ function badgeEstado(string $estado): string {
         }, 300);
     }
 </script>
+
+<!-- Modal editar puntos -->
+<div id="modalPuntos" class="fixed inset-0 z-[9999] bg-black/80 hidden items-center justify-center p-4 opacity-0 transition-opacity duration-200" onclick="if(event.target===this)cerrarEditarPuntos()">
+    <div class="bg-[#1a1a1a] border border-white/[0.08] rounded-2xl p-6 w-full max-w-sm shadow-2xl scale-95 transition-transform duration-200" id="modalPuntosContent">
+        <div class="flex items-center justify-between mb-5">
+            <h3 class="font-['Playfair_Display'] text-[1rem] font-semibold text-[#f5f0e8]">Editar Puntos</h3>
+            <button onclick="cerrarEditarPuntos()" class="w-8 h-8 rounded-lg flex items-center justify-center text-[#888] hover:bg-white/10 hover:text-[#f5f0e8] transition-all cursor-pointer">
+                <i class="bi bi-x-lg text-[0.8rem]"></i>
+            </button>
+        </div>
+        <form action="" method="POST" class="space-y-4">
+            <input type="hidden" name="csrf_token" value="<?= h($token_csrf) ?>">
+            <input type="hidden" name="accion" value="actualizar_puntos">
+
+            <div>
+                <label class="font-['Montserrat'] text-[0.65rem] font-semibold uppercase tracking-wider text-[#888] block mb-1.5">Puntos de fidelidad</label>
+                <input type="number" name="puntos" id="inputPuntos" min="0" required
+                       class="w-full bg-[#0d0d0d] border border-white/[0.08] rounded-lg px-3 py-2.5 text-[0.85rem] text-[#f5f0e8] focus:outline-hidden focus:border-[#d4af37]/50 transition-all">
+            </div>
+
+            <p class="font-['Montserrat'] text-[0.65rem] text-[#888] leading-relaxed flex items-start gap-1.5">
+                <i class="bi bi-info-circle text-[#d4af37] mt-0.5 shrink-0"></i>
+                Útil para corregir puntos si el sistema no los asignó correctamente.
+            </p>
+
+            <div class="flex gap-3 pt-1">
+                <button type="button" onclick="cerrarEditarPuntos()"
+                        class="flex-1 px-4 py-2.5 rounded-lg border border-white/[0.08] font-['Montserrat'] text-[0.7rem] font-semibold tracking-wider text-[#888] hover:bg-white/5 transition-all cursor-pointer">
+                    Cancelar
+                </button>
+                <button type="submit"
+                        class="flex-1 px-4 py-2.5 rounded-lg bg-[#d4af37] text-[#0d0d0d] font-['Montserrat'] text-[0.7rem] font-semibold tracking-wider uppercase hover:opacity-90 transition-all cursor-pointer">
+                    Guardar
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal editar nota interna -->
+<div id="modalNota" class="fixed inset-0 z-[9999] bg-black/80 hidden items-center justify-center p-4 opacity-0 transition-opacity duration-200" onclick="if(event.target===this)cerrarEditarNota()">
+    <div class="bg-[#1a1a1a] border border-white/[0.08] rounded-2xl p-6 w-full max-w-md shadow-2xl scale-95 transition-transform duration-200" id="modalNotaContent">
+        <div class="flex items-center justify-between mb-5">
+            <h3 class="font-['Playfair_Display'] text-[1rem] font-semibold text-[#f5f0e8]">Nota interna</h3>
+            <button onclick="cerrarEditarNota()" class="w-8 h-8 rounded-lg flex items-center justify-center text-[#888] hover:bg-white/10 hover:text-[#f5f0e8] transition-all cursor-pointer">
+                <i class="bi bi-x-lg text-[0.8rem]"></i>
+            </button>
+        </div>
+        <form action="" method="POST" class="space-y-4">
+            <input type="hidden" name="csrf_token" value="<?= h($token_csrf) ?>">
+            <input type="hidden" name="accion" value="actualizar_nota">
+
+            <div>
+                <label class="font-['Montserrat'] text-[0.65rem] font-semibold uppercase tracking-wider text-[#888] block mb-1.5">Observaciones (solo visible para ti)</label>
+                <textarea name="nota" id="inputNota" rows="3"
+                          placeholder="Ej: Prefiere navaja, alérgico a X, paga en efectivo..."
+                          class="w-full bg-[#0d0d0d] border border-white/[0.08] rounded-lg px-3 py-2.5 text-[0.85rem] text-[#f5f0e8] focus:outline-hidden focus:border-[#d4af37]/50 transition-all resize-none"></textarea>
+            </div>
+
+            <p class="font-['Montserrat'] text-[0.65rem] text-[#888] leading-relaxed flex items-start gap-1.5">
+                <i class="bi bi-info-circle text-[#d4af37] mt-0.5 shrink-0"></i>
+                Esta nota solo la ves tú. El cliente no la ve en su panel.
+            </p>
+
+            <div class="flex gap-3 pt-1">
+                <button type="button" onclick="cerrarEditarNota()"
+                        class="flex-1 px-4 py-2.5 rounded-lg border border-white/[0.08] font-['Montserrat'] text-[0.7rem] font-semibold tracking-wider text-[#888] hover:bg-white/5 transition-all cursor-pointer">
+                    Cancelar
+                </button>
+                <button type="submit"
+                        class="flex-1 px-4 py-2.5 rounded-lg bg-[#d4af37] text-[#0d0d0d] font-['Montserrat'] text-[0.7rem] font-semibold tracking-wider uppercase hover:opacity-90 transition-all cursor-pointer">
+                    Guardar
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function abrirEditarPuntos() {
+    const modal = document.getElementById('modalPuntos');
+    const content = document.getElementById('modalPuntosContent');
+    const input = document.getElementById('inputPuntos');
+    const valor = document.getElementById('puntos-valor');
+    input.value = valor.textContent.trim();
+    modal.classList.remove('hidden');
+    requestAnimationFrame(() => {
+        modal.classList.remove('opacity-0');
+        content.classList.remove('scale-95');
+        content.classList.add('scale-100');
+    });
+}
+
+function cerrarEditarPuntos() {
+    const modal = document.getElementById('modalPuntos');
+    const content = document.getElementById('modalPuntosContent');
+    modal.classList.add('opacity-0');
+    content.classList.remove('scale-100');
+    content.classList.add('scale-95');
+    setTimeout(() => {
+        modal.classList.add('hidden');
+    }, 200);
+}
+
+function abrirEditarNota() {
+    const modal = document.getElementById('modalNota');
+    const content = document.getElementById('modalNotaContent');
+    const input = document.getElementById('inputNota');
+    input.value = '<?= h(addslashes($cliente->getNotaInterna() ?? '')) ?>';
+    modal.classList.remove('hidden');
+    requestAnimationFrame(() => {
+        modal.classList.remove('opacity-0');
+        content.classList.remove('scale-95');
+        content.classList.add('scale-100');
+    });
+}
+
+function cerrarEditarNota() {
+    const modal = document.getElementById('modalNota');
+    const content = document.getElementById('modalNotaContent');
+    modal.classList.add('opacity-0');
+    content.classList.remove('scale-100');
+    content.classList.add('scale-95');
+    setTimeout(() => {
+        modal.classList.add('hidden');
+    }, 200);
+}
+</script>
+
+<?php include_once __DIR__ . '/includes/toast.php'; ?>
 
 </body>
 </html>

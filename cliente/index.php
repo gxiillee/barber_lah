@@ -13,6 +13,7 @@ require_once __DIR__ . '/../clases/Reserva.php';
 session_start();
 
 if (!isset($_SESSION['usuario'])) {
+    $_SESSION['volver_panel'] = 'index.php';
     redirigir('../login.php');
 }
 
@@ -54,6 +55,16 @@ if ($proxima !== null) {
 $fotos         = FotoCliente::obtenerPorUsuario($id_usuario);
 $ultimas_fotos = array_slice($fotos, 0, 4);
 $total_fotos   = count($fotos);
+
+// ── Saludo dinámico según la hora ──
+$hora_actual = (int) date('G');
+if ($hora_actual < 12) {
+    $saludo = 'Buenos días';
+} elseif ($hora_actual < 18) {
+    $saludo = 'Buenas tardes';
+} else {
+    $saludo = 'Buenas noches';
+}
 
 $pagina_activa = 'inicio';
 ?>
@@ -99,29 +110,41 @@ require_once __DIR__ . '/includes/nav_cliente.php';
 
         <!-- ── Cabecera de bienvenida ────────────────────── -->
         <div class="mb-5 lg:mb-6">
-            <h1 class="leading-tight" style="font-family:var(--pf); font-size:clamp(1.5rem,4vw,2rem); font-weight:600;">
-                Hola, <?= h($nombre) ?>
+            <h1 style="font-family:var(--pf); font-size:clamp(1.5rem,4vw,2rem); font-weight:600; line-height:1.15;">
+                <?= h($saludo) ?>, <?= h($nombre) ?>
             </h1>
-            <p style="font-size:0.62rem; color:var(--tx-m); letter-spacing:0.22em; text-transform:uppercase; margin-top:3px;">
-                Bienvenido de vuelta
-            </p>
+            <div class="flex items-center gap-2 mt-1">
+                <span style="font-size:0.62rem; color:var(--tx-m); letter-spacing:0.22em; text-transform:uppercase;">
+                    <?php
+                    $now = new DateTimeImmutable();
+                    $hora = (int) $now->format('G');
+                    $frase = match(true) {
+                        $puntos >= 10 => '✨ Tienes un corte gratis esperándote',
+                        $hora < 12    => '🌅 Empieza el día con estilo',
+                        $hora < 18    => '☀️ Una buena barba nunca pasa de moda',
+                        default       => '🌙 Un buen corte cierra el día',
+                    };
+                    ?>
+                    <?= $frase ?>
+                </span>
+            </div>
         </div>
 
         <!-- ── Grid de estadísticas rápidas ──────────────── -->
-        <!-- 3 columnas siempre: la info es compacta y cabe bien en móvil -->
-        <div class="grid grid-cols-3 gap-2 sm:gap-3 mb-4">
+        <div class="grid grid-cols-3 gap-2 sm:gap-3 mb-4 stagger-container">
 
             <!-- Stat: Puntos de fidelidad -->
-            <div class="rounded-xl p-3 sm:p-4 border" style="background:var(--card); border-color:var(--brd);">
-                <div style="font-size:0.56rem; text-transform:uppercase; letter-spacing:0.2em; color:var(--tx-m); margin-bottom:6px;">
-                    Mis puntos
+            <div class="glow-card rounded-xl p-3 sm:p-4 border" style="background:var(--card); border-color:var(--brd);">
+                <div class="flex items-center justify-between mb-2">
+                    <span style="font-size:0.56rem; text-transform:uppercase; letter-spacing:0.2em; color:var(--tx-m);">Mis puntos</span>
+                    <i class="bi bi-star-fill glow-icon" style="font-size:0.7rem; color:var(--tx-d); transition:all 0.25s ease;"></i>
                 </div>
                 <div style="font-family:var(--pf); font-size:clamp(1.6rem,5vw,2rem); color:var(--gold); line-height:1;">
                     <?= $puntos ?>
                 </div>
                 <div style="font-size:0.58rem; color:var(--tx-d); margin-top:4px;">
                     <?php if ($puntos >= 10): ?>
-                        ¡corte gratis!
+                        <span style="color:var(--gold);">¡corte gratis!</span>
                     <?php else: ?>
                         <?= 10 - $puntos ?> para gratis
                     <?php endif; ?>
@@ -129,9 +152,10 @@ require_once __DIR__ . '/includes/nav_cliente.php';
             </div>
 
             <!-- Stat: Cortes realizados -->
-            <div class="rounded-xl p-3 sm:p-4 border" style="background:var(--card); border-color:var(--brd);">
-                <div style="font-size:0.56rem; text-transform:uppercase; letter-spacing:0.2em; color:var(--tx-m); margin-bottom:6px;">
-                    Cortes
+            <div class="glow-card rounded-xl p-3 sm:p-4 border" style="background:var(--card); border-color:var(--brd);">
+                <div class="flex items-center justify-between mb-2">
+                    <span style="font-size:0.56rem; text-transform:uppercase; letter-spacing:0.2em; color:var(--tx-m);">Cortes</span>
+                    <i class="bi bi-scissors glow-icon" style="font-size:0.7rem; color:var(--tx-d); transition:all 0.25s ease;"></i>
                 </div>
                 <div style="font-family:var(--pf); font-size:clamp(1.6rem,5vw,2rem); line-height:1;">
                     <?= $total_citas ?>
@@ -140,9 +164,10 @@ require_once __DIR__ . '/includes/nav_cliente.php';
             </div>
 
             <!-- Stat: Próxima cita (resumen) -->
-            <div class="rounded-xl p-3 sm:p-4 border" style="background:var(--card); border-color:var(--brd);">
-                <div style="font-size:0.56rem; text-transform:uppercase; letter-spacing:0.2em; color:var(--tx-m); margin-bottom:6px;">
-                    Próxima
+            <div class="glow-card rounded-xl p-3 sm:p-4 border" style="background:var(--card); border-color:var(--brd);">
+                <div class="flex items-center justify-between mb-2">
+                    <span style="font-size:0.56rem; text-transform:uppercase; letter-spacing:0.2em; color:var(--tx-m);">Próxima</span>
+                    <i class="bi bi-calendar-check glow-icon" style="font-size:0.7rem; color:var(--tx-d); transition:all 0.25s ease;"></i>
                 </div>
                 <?php if ($proxima): ?>
                     <div style="font-family:var(--pf); font-size:clamp(1rem,3vw,1.15rem); line-height:1.1;">
@@ -160,7 +185,7 @@ require_once __DIR__ . '/includes/nav_cliente.php';
 
         <!-- ── Tarjeta de próxima cita (detalle completo) ── -->
         <?php if ($proxima): ?>
-            <div class="card-proxima p-4 sm:p-5 mb-4 flex items-center justify-between gap-3">
+            <div class="card-proxima p-4 sm:p-5 mb-4 flex items-center justify-between gap-3" style="opacity:0; animation:fadeInUp 0.45s var(--ease-out) 0.22s forwards;">
                 <div class="min-w-0">
                     <div style="font-size:0.58rem; text-transform:uppercase; letter-spacing:0.22em; color:var(--gold); margin-bottom:5px;">
                         <i class="bi bi-calendar-check"></i>&nbsp;Próxima cita
@@ -186,13 +211,13 @@ require_once __DIR__ . '/includes/nav_cliente.php';
 
         <?php else: ?>
             <!-- Estado vacío: sin citas próximas → incitamos a reservar -->
-            <div class="rounded-xl p-5 mb-4 text-center border" style="background:var(--card); border-color:var(--brd);">
+            <div class="rounded-xl p-5 mb-4 text-center border" style="background:var(--card); border-color:var(--brd); opacity:0; animation:fadeInUp 0.45s var(--ease-out) 0.22s forwards;">
                 <i class="bi bi-calendar-x" style="font-size:1.6rem; color:var(--tx-d);"></i>
                 <div style="font-size:0.8rem; color:var(--tx-m); margin:8px 0 14px;">
                     No tienes ninguna cita próxima
                 </div>
                 <a href="reserva.php"
-                   class="inline-flex items-center gap-2 rounded-lg px-4 py-2"
+                   class="inline-flex items-center gap-2 rounded-lg px-4 py-2 cta-pulse"
                    style="background:var(--gold); color:var(--bg); font-size:0.72rem; font-weight:700; letter-spacing:0.05em;">
                     <i class="bi bi-calendar-plus"></i>Reservar ahora
                 </a>
@@ -200,8 +225,7 @@ require_once __DIR__ . '/includes/nav_cliente.php';
         <?php endif; ?>
 
         <!-- ── Teaser del programa de fidelidad ──────────── -->
-        <!-- Al hacer clic lleva a fidelidad.php donde se ve la tarjeta completa -->
-        <a href="fidelidad.php" class="card-fidelidad-teaser flex items-center justify-between gap-3 p-4 sm:p-5 mb-4 block">
+        <a href="fidelidad.php" class="card-fidelidad-teaser flex items-center justify-between gap-3 p-4 sm:p-5 mb-4 block" style="opacity:0; animation:fadeInUp 0.45s var(--ease-out) 0.28s forwards;">
             <div class="flex-1 min-w-0">
                 <div style="font-size:0.58rem; text-transform:uppercase; letter-spacing:0.22em; color:var(--gold); margin-bottom:5px;">
                     <i class="bi bi-award"></i>&nbsp;Programa de fidelidad
@@ -237,7 +261,7 @@ require_once __DIR__ . '/includes/nav_cliente.php';
         <!-- ── Strip de últimas fotos ─────────────────────── -->
         <?php if (!empty($ultimas_fotos)): ?>
 
-            <div class="flex items-center justify-between mb-2.5">
+            <div class="flex items-center justify-between mb-2.5" style="opacity:0; animation:fadeInUp 0.45s var(--ease-out) 0.34s forwards;">
                 <span style="font-size:0.72rem; font-weight:500;">Últimas fotos</span>
                 <a href="fotos.php"
                    style="font-size:0.65rem; color:var(--tx-d); text-transform:uppercase; letter-spacing:0.08em;">
@@ -276,7 +300,7 @@ require_once __DIR__ . '/includes/nav_cliente.php';
         <?php else: ?>
 
             <!-- Estado vacío: todavía no tiene fotos -->
-            <div class="flex items-center justify-between mb-2.5">
+            <div class="flex items-center justify-between mb-2.5" style="opacity:0; animation:fadeInUp 0.45s var(--ease-out) 0.34s forwards;">
                 <span style="font-size:0.72rem; font-weight:500;">Mis fotos</span>
                 <a href="fotos.php" style="font-size:0.65rem; color:var(--gold);">
                     <i class="bi bi-camera"></i> Añadir
@@ -299,5 +323,6 @@ require_once __DIR__ . '/includes/nav_cliente.php';
     </div><!-- /max-w -->
 </main>
 
+<?php require_once __DIR__ . '/includes/toast.php'; ?>
 </body>
 </html>

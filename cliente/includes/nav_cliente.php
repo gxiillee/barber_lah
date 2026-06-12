@@ -64,13 +64,18 @@ $nav_items = [
             <?php endif; ?>
         </div>
 
-        <div class="min-w-0">
+        <div class="min-w-0 flex-1">
             <div class="truncate" style="font-size:0.78rem; font-weight:500; color:var(--tx);">
                 <?= h($nav_nombre) ?>
             </div>
-            <div style="font-size:0.62rem; color:var(--gold); margin-top:1px;">
-                <i class="bi bi-star-fill" style="font-size:0.55rem;"></i>
-                <?= $nav_puntos ?> / 10 puntos
+            <!-- Mini barra de progreso de fidelidad (siempre visible) -->
+            <div class="flex items-center gap-2 mt-1.5">
+                <div class="flex-1 rounded-full overflow-hidden" style="height:4px; background:rgba(255,255,255,0.06);">
+                    <div style="width:<?= min(100, ($nav_puntos / 10) * 100) ?>%; height:100%; background:var(--gold); border-radius:999px; transition:width 0.6s var(--ease-out);"></div>
+                </div>
+                <span style="font-size:0.55rem; color:var(--gold); white-space:nowrap;">
+                    <?= $nav_puntos >= 10 ? '¡Gratis!' : (10 - $nav_puntos) . ' faltan' ?>
+                </span>
             </div>
         </div>
     </div>

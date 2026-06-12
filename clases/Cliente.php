@@ -114,10 +114,9 @@ class Cliente extends Usuario {
     public static function obtenerPorId(int $id): ?Cliente {
         $conexion = BD::obtenerConexion();
 
-        // Seleccionamos también created_at para mostrarlo en la ficha.
         $stmt = $conexion->prepare(
             "SELECT id, google_id, nombre, email, password, avatar,
-                    telefono, puntos_fidelidad, created_at
+                    telefono, puntos_fidelidad, nota_interna, created_at
                FROM usuarios
               WHERE id = :id
                 AND rol = 'cliente'
@@ -130,8 +129,6 @@ class Cliente extends Usuario {
             return null;
         }
 
-        // El orden sigue exactamente la firma del constructor:
-        // id, google_id, nombre, email, password, avatar, telefono, puntos_fidelidad
         $cliente = new Cliente(
             $fila['id'],
             $fila['google_id'],
@@ -143,14 +140,19 @@ class Cliente extends Usuario {
             (int)($fila['puntos_fidelidad'] ?? 0)
         );
 
-        // Asignamos created_at separado porque no forma parte del constructor
         $cliente->setCreatedAt($fila['created_at']);
+        $cliente->setNotaInterna($fila['nota_interna'] ?? null);
         return $cliente;
     }
 
     // Setter interno para created_at (usado solo en obtenerPorId)
     private function setCreatedAt($valor): void {
         $this->created_at = $valor;
+    }
+
+    // Setter para nota_interna (usado desde obtenerPorId)
+    private function setNotaInterna($valor): void {
+        $this->nota_interna = $valor;
     }
 
     /**

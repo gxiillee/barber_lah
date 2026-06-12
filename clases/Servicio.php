@@ -99,4 +99,59 @@ class Servicio {
         $stmt = $conexion->prepare("UPDATE servicios SET activo = FALSE WHERE id = :id");
         return $stmt->execute([':id' => $id]);
     }
+
+    /**
+     * Alterna el estado activo/inactivo de un servicio.
+     * Devuelve el nuevo estado (true=activo, false=inactivo) o null si falla.
+     */
+    public static function toggleActivo(int $id): ?bool {
+        $conexion = BD::obtenerConexion();
+        $stmt = $conexion->prepare("SELECT activo FROM servicios WHERE id = :id");
+        $stmt->execute([':id' => $id]);
+        $fila = $stmt->fetch(PDO::FETCH_ASSOC);
+        if (!$fila) return null;
+
+        $nuevo = !((bool)$fila['activo']);
+        $upd = $conexion->prepare("UPDATE servicios SET activo = :activo WHERE id = :id");
+        $upd->execute([':activo' => $nuevo ? 'true' : 'false', ':id' => $id]);
+        return $nuevo;
+    }
+
+    /**
+     * Actualiza los datos de un servicio existente.
+     */
+    public static function actualizar(int $id, string $nombre, int $duracionMin, float $precio, ?string $descripcion = null): bool {
+        $conexion = BD::obtenerConexion();
+        $stmt = $conexion->prepare("
+            UPDATE servicios
+            SET nombre = :n, duracion_min = :d, precio = :p, descripcion = :desc
+            WHERE id = :id
+        ");
+        return $stmt->execute([
+            ':n'    => $nombre,
+            ':d'    => $duracionMin,
+            ':p'    => $precio,
+            ':desc' => $descripcion,
+            ':id'   => $id,
+        ]);
+    }
+
+    /**
+     * Devuelve todos los servicios (activos e inactivos).
+     * Se usa en admin para gestionar el catálogo completo.
+     */
+    public static function obtenerTodosIncluyendoInactivos(): array {
+        $conexion = BD::obtenerConexion();
+        $stmt = $conexion->query("SELECT * FROM servicios ORDER BY activo DESC, nombre ASC");
+        return array_map(static function (array $fila): Servicio {
+            return new self(
+                (int)$fila['id'],
+                $fila['nombre'],
+                (float)$fila['precio'],
+                (int)$fila['duracion_min'],
+                $fila['descripcion'] ?? null,
+                (bool)$fila['activo']
+            );
+        }, $stmt->fetchAll(PDO::FETCH_ASSOC));
+    }
 }

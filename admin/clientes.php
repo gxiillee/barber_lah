@@ -1,6 +1,7 @@
 <?php
 declare(strict_types=1);
 require_once __DIR__ . '/../clases/Usuario.php';
+require_once __DIR__ . '/../clases/Administrador.php';
 require_once __DIR__ . '/../clases/BD.php';
 require_once __DIR__ . '/../clases/helpers.php';
 
@@ -9,20 +10,14 @@ if (!isset($_SESSION['usuario']) || !$_SESSION['usuario']->tieneRolAdmin()) {
     redirigir('../login.php');
 }
 
-$mensaje = $error = '';
-
-// Procesar eliminación de cliente
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion']) && $_POST['accion'] === 'eliminar') {
-    $id = (int)($_POST['id'] ?? 0);
-    if ($id > 0 && Usuario::eliminar($id)) {
-        $mensaje = "Cliente eliminado correctamente de la base de datos.";
-    } else {
-        $error = "No se ha podido eliminar al cliente.";
-    }
+// Search handling
+$busqueda = trim($_GET['buscar'] ?? '');
+if ($busqueda !== '') {
+    $clientes = Administrador::buscarClientes($busqueda);
+} else {
+    $clientes = Administrador::obtenerTodosLosClientes();
 }
 
-// Obtenemos solo los clientes
-$clientes = Usuario::listarClientes();
 $pagina_activa = 'clientes';
 ?>
 <!DOCTYPE html>
@@ -39,40 +34,56 @@ $pagina_activa = 'clientes';
 
 <?php include_once __DIR__ . '/includes/nav_admin.php'; ?>
 
-<main class="pt-[80px] pb-[96px] px-4 max-w-[720px] mx-auto lg:ml-[240px] lg:mr-auto lg:pt-10 lg:pb-16 lg:px-10 lg:max-w-none">
+<main class="pt-[80px] pb-[96px] px-4 max-w-[720px] mx-auto lg:ml-[240px] lg:mr-auto lg:pt-10 lg:pb-16 lg:px-10 lg:max-w-none pagina-entrada">
 
     <div class="mb-6">
         <h1 class="text-[1.6rem] font-semibold text-[var(--tx)] leading-tight" style="font-family: var(--pf);">Directorio de Clientes</h1>
-        <p class="text-[0.72rem] text-[var(--tx-m)] tracking-[0.04em] mt-1">Consulta los datos de contacto y fidelidad de tus clientes</p>
+        <p class="text-[0.72rem] text-[var(--tx-m)] tracking-[0.04em] mt-1">Busca, consulta y gestiona tus clientes</p>
     </div>
 
-    <?php if ($mensaje): ?>
-        <div class="mb-5 px-4 py-3 rounded-xl border border-emerald-500/20 bg-emerald-500/10 text-emerald-400 text-[0.75rem] flex items-center gap-2">
-            <i class="bi bi-check-circle-fill"></i> <?= h($mensaje) ?>
-        </div>
-    <?php endif; ?>
-    <?php if ($error): ?>
-        <div class="mb-5 px-4 py-3 rounded-xl border border-rose-500/20 bg-rose-500/10 text-rose-400 text-[0.75rem] flex items-center gap-2">
-            <i class="bi bi-exclamation-circle-fill"></i> <?= h($error) ?>
+    <!-- Search bar -->
+    <div class="mb-5">
+        <form action="" method="GET" id="searchForm" class="relative">
+            <i class="bi bi-search absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--tx-d)] text-[0.9rem] pointer-events-none"></i>
+            <input type="text" name="buscar" id="searchInput" value="<?= h($busqueda) ?>"
+                   placeholder="Buscar por nombre o email..."
+                   autocomplete="off"
+                   class="w-full bg-[#141414] border border-[var(--brd)] rounded-xl pl-10 pr-4 py-3 text-[0.82rem] text-[var(--tx)] focus:outline-hidden focus:border-[var(--gold-brd)] transition-all placeholder:text-[var(--tx-d)]/60">
+            <?php if ($busqueda !== ''): ?>
+                <a href="clientes.php" class="absolute right-3.5 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-white/10 flex items-center justify-center text-[var(--tx-d)] hover:bg-white/20 hover:text-[var(--tx)] transition-all">
+                    <i class="bi bi-x text-[0.7rem]"></i>
+                </a>
+            <?php endif; ?>
+        </form>
+    </div>
+
+    <?php if ($busqueda !== '' && !empty($clientes)): ?>
+        <div class="mb-4 text-[0.7rem] text-[var(--tx-m)]">
+            <?= count($clientes) ?> resultado<?= count($clientes) !== 1 ? 's' : '' ?> para "<strong class="text-[var(--tx)]"><?= h($busqueda) ?></strong>"
         </div>
     <?php endif; ?>
 
     <section class="space-y-2">
         <div class="flex items-center justify-between mb-3 px-1">
             <h2 class="text-[0.68rem] uppercase tracking-widest font-bold text-[var(--tx-d)]">
-                Cartera de Clientes (<?= count($clientes) ?>)
+                <?= $busqueda ? 'Resultados' : 'Cartera de Clientes' ?> (<?= count($clientes) ?>)
             </h2>
         </div>
 
         <?php if (empty($clientes)): ?>
-            <div class="flex flex-col items-center justify-center py-12 border border-[var(--brd)] bg-white/5 rounded-xl text-center gap-2 opacity-60">
-                <i class="bi bi-people text-2xl text-[var(--tx-d)]"></i>
-                <p class="text-[0.75rem] text-[var(--tx-m)]">Aún no hay clientes registrados en el sistema.</p>
+            <div class="flex flex-col items-center justify-center py-16 border border-[var(--brd)] bg-white/5 rounded-xl text-center gap-3 opacity-60">
+                <i class="bi bi-people text-3xl text-[var(--tx-d)]"></i>
+                <p class="text-[0.75rem] text-[var(--tx-m)]">
+                    <?= $busqueda ? 'No se encontraron clientes con ese criterio.' : 'Aún no hay clientes registrados en el sistema.' ?>
+                </p>
+                <?php if ($busqueda): ?>
+                    <a href="clientes.php" class="text-[0.7rem] text-[var(--gold)] underline underline-offset-2 hover:opacity-80">Ver todos los clientes</a>
+                <?php endif; ?>
             </div>
         <?php else: ?>
-            <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+            <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 stagger-container" id="clientesGrid">
                 <?php foreach ($clientes as $c): ?>
-                    <div class="slot-card flex items-center gap-4 px-4 py-3.5 rounded-xl border border-[var(--brd)] bg-white/5 min-h-[64px]">
+                    <div class="slot-card glow-card flex items-center gap-4 px-4 py-3.5 rounded-xl border border-[var(--brd)] bg-white/5 min-h-[64px]">
 
                         <div class="w-10 h-10 rounded-full bg-[#1a1a1a] border border-[var(--brd)] flex items-center justify-center text-[var(--tx-m)] font-semibold shrink-0 uppercase">
                             <?= substr(h($c['nombre']), 0, 1) ?>
@@ -101,13 +112,10 @@ $pagina_activa = 'clientes';
                                 <span class="text-[0.55rem] uppercase tracking-wider text-[var(--tx-d)] mt-0.5">Puntos</span>
                             </div>
 
-                            <form action="" method="POST" onsubmit="return confirm('¿Seguro que quieres borrar a este cliente? Perderá sus puntos de fidelidad e historial de reservas.');" class="shrink-0">
-                                <input type="hidden" name="accion" value="eliminar">
-                                <input type="hidden" name="id" value="<?= $c['id'] ?>">
-                                <button type="submit" class="w-7 h-7 rounded-lg border border-transparent text-[var(--tx-d)] flex items-center justify-center hover:bg-rose-500/10 hover:text-rose-400 transition-all cursor-pointer">
-                                    <i class="bi bi-trash3 text-[0.8rem]"></i>
-                                </button>
-                            </form>
+                            <div class="flex flex-col items-center justify-center">
+                                <span class="text-[0.85rem] font-bold text-[var(--tx)] leading-none"><?= (int)$c['total_reservas'] ?></span>
+                                <span class="text-[0.55rem] uppercase tracking-wider text-[var(--tx-d)] mt-0.5">Citas</span>
+                            </div>
                         </div>
 
                     </div>
@@ -117,5 +125,26 @@ $pagina_activa = 'clientes';
     </section>
 
 </main>
+
+<?php include_once __DIR__ . '/includes/toast.php'; ?>
+
+<script>
+// Live search with debounce
+const searchInput = document.getElementById('searchInput');
+if (searchInput) {
+    let timeout;
+    searchInput.addEventListener('input', function() {
+        clearTimeout(timeout);
+        timeout = setTimeout(() => {
+            if (this.value.trim() !== '') {
+                window.location.href = 'clientes.php?buscar=' + encodeURIComponent(this.value.trim());
+            } else {
+                window.location.href = 'clientes.php';
+            }
+        }, 400);
+    });
+}
+</script>
+
 </body>
 </html>

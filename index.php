@@ -7,7 +7,7 @@ require_once 'clases/Producto.php';
 require_once 'clases/Servicio.php';
 
 $servicios = Servicio::obtenerTodos();
-$galeriaCortes = Corte::obtenerTodos();
+$galeriaCortes = Corte::obtenerActivos();
 $productos = Producto::obtenerActivos();
 ?>
 
