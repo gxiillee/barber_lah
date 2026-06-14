@@ -15,6 +15,9 @@ session_start();
 if (!isset($_SESSION['usuario'])) redirigir('../login.php');
 if (!$_SESSION['usuario']->tieneRolAdmin()) redirigir('../cliente/index.php');
 
+// Auto-completar citas pasadas
+Reserva::actualizarCitasPasadas();
+
 // ── POST: Quick actions ──
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion_rapida'])) {
     if (!Csrf::validarToken('agenda', $_POST['csrf_token'] ?? '')) {

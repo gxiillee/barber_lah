@@ -17,6 +17,9 @@ if (!isset($_SESSION['usuario'])) {
     redirigir('../login.php');
 }
 
+// Auto-completar citas pasadas
+Reserva::actualizarCitasPasadas();
+
 /** @var Usuario $usuario */
 $usuario = $_SESSION['usuario'];
 
@@ -24,7 +27,25 @@ if ($usuario->tieneRolAdmin()) {
     redirigir('../admin/index.php');
 }
 
-// ── Fase 3: Carga de datos para el dashboard ─────────────────────
+// ── POST: guardar teléfono ──
+$error_telefono = '';
+$telefono_ok = false;
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['accion'] ?? '') === 'guardar_telefono') {
+    $tel = trim($_POST['telefono'] ?? '');
+    if (preg_match('/^[\d\s\+\-]{6,20}$/', $tel)) {
+        if (Usuario::actualizarTelefono($id_usuario, $tel)) {
+            $_SESSION['usuario']->setTelefono($tel);
+            $_SESSION['toast'] = ['type' => 'success', 'message' => 'Teléfono guardado correctamente.'];
+            redirigir('index.php');
+        } else {
+            $error_telefono = 'No se pudo guardar. Inténtalo de nuevo.';
+        }
+    } else {
+        $error_telefono = 'Introduce un número de teléfono válido.';
+    }
+}
+
+// ── Fase 4: Carga de datos para el dashboard ─────────────────────
 $id_usuario = (int) $usuario->getId();
 $puntos     = (int) $usuario->getPuntosFidelidad();
 $nombre = $usuario->getNombre() ?? 'Cliente';
@@ -129,6 +150,35 @@ require_once __DIR__ . '/includes/nav_cliente.php';
                 </span>
             </div>
         </div>
+
+        <?php if (!$usuario->getTelefono()): ?>
+        <!-- ── Banner pedir teléfono ── -->
+        <div class="mb-5 rounded-xl border border-amber-500/20 bg-gradient-to-r from-amber-500/8 to-amber-500/2 p-4 sm:p-5">
+            <form action="" method="POST" class="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
+                <input type="hidden" name="accion" value="guardar_telefono">
+                <div class="flex items-start gap-3 flex-1 min-w-0">
+                    <div class="w-9 h-9 rounded-lg bg-amber-500/15 border border-amber-500/20 flex items-center justify-center text-amber-400 shrink-0 mt-0.5">
+                        <i class="bi bi-telephone text-[0.85rem]"></i>
+                    </div>
+                    <div class="min-w-0">
+                        <p class="text-[0.78rem] font-semibold text-[var(--tx)]">¿Nos dejas tu teléfono?</p>
+                        <p class="text-[0.62rem] text-[var(--tx-m)] mt-0.5">Por si necesitamos contactarte rápido o para futuras notificaciones.</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2 w-full sm:w-auto">
+                    <input type="tel" name="telefono" placeholder="Ej: 612 34 56 78" required
+                           class="flex-1 sm:w-44 bg-[#141414] border border-[var(--brd)] rounded-lg px-3 py-2 text-[0.8rem] text-[var(--tx)] placeholder:text-[var(--tx-d)]/50 focus:outline-hidden focus:border-[var(--gold-brd)] transition-all">
+                    <button type="submit"
+                            class="shrink-0 px-4 py-2 rounded-lg bg-[var(--gold)] text-[#0d0d0d] text-[0.65rem] font-bold uppercase tracking-wider hover:opacity-90 transition-all cursor-pointer whitespace-nowrap">
+                        Guardar
+                    </button>
+                </div>
+                <?php if ($error_telefono): ?>
+                    <p class="text-[0.65rem] text-rose-400 w-full"><?= h($error_telefono) ?></p>
+                <?php endif; ?>
+            </form>
+        </div>
+        <?php endif; ?>
 
         <!-- ── Grid de estadísticas rápidas ──────────────── -->
         <div class="grid grid-cols-3 gap-2 sm:gap-3 mb-4 stagger-container">

@@ -53,13 +53,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $lista_bloqueos = Bloqueo::listarTodos();
 $pagina_activa  = 'bloqueos';
 
-// ── Contar bloqueos por tipo para el resumen ──
+// ── Contar bloqueos por tipo ──
 $total_dias   = 0;
 $total_tramos = 0;
 foreach ($lista_bloqueos as $b) {
     if (empty($b['hora_inicio'])) $total_dias++;
     else $total_tramos++;
 }
+
+// Agrupar bloqueos: activos (hoy+future) y pasados
+$bloqueos_activos  = [];
+$bloqueos_pasados  = [];
+$hoy_ts = strtotime('today');
+foreach ($lista_bloqueos as $b) {
+    if (strtotime($b['fecha']) < $hoy_ts) {
+        $bloqueos_pasados[] = $b;
+    } else {
+        $bloqueos_activos[] = $b;
+    }
+}
+
+$dias_semana = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -69,7 +83,7 @@ foreach ($lista_bloqueos as $b) {
     <title>Bloqueos — Panel Admin · Barbershop La H</title>
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600&family=Montserrat:wght@400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
     <link rel="stylesheet" href="../public/assets/css/estilos.css">
 </head>
@@ -80,8 +94,8 @@ foreach ($lista_bloqueos as $b) {
 <main class="pt-[80px] pb-[96px] px-4 max-w-[720px] mx-auto lg:ml-[240px] lg:mr-auto lg:pt-10 lg:pb-16 lg:px-10 lg:max-w-none pagina-entrada">
 
     <div class="mb-6">
-        <h1 class="text-[1.6rem] font-semibold text-[var(--tx)] leading-tight" style="font-family: var(--pf);">Bloqueos de Horario</h1>
-        <p class="text-[0.72rem] text-[var(--tx-m)] tracking-[0.04em] mt-1">Restringe días completos o tramos de horas</p>
+        <h1 class="text-[1.6rem] font-semibold text-[var(--tx)] leading-tight" style="font-family: var(--pf);">Bloqueos</h1>
+        <p class="text-[0.72rem] text-[var(--tx-m)] tracking-[0.04em] mt-1">Días o tramos donde no se aceptarán reservas</p>
     </div>
 
     <?php if ($error): ?>
@@ -90,127 +104,159 @@ foreach ($lista_bloqueos as $b) {
         </div>
     <?php endif; ?>
 
-    <!-- Mini stats -->
-    <div class="flex flex-wrap gap-3 mb-6">
-        <span class="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[0.65rem] font-medium bg-purple-500/10 border border-purple-500/20 text-purple-400">
-            <i class="bi bi-calendar-x"></i> <?= $total_dias ?> día<?= $total_dias !== 1 ? 's' : '' ?> completo<?= $total_dias !== 1 ? 's' : '' ?>
+    <!-- Mini stats con más color -->
+    <div class="flex flex-wrap gap-2 mb-7">
+        <span class="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[0.6rem] font-semibold bg-gradient-to-r from-purple-500/15 to-purple-500/5 border border-purple-500/25 text-purple-300 shadow-xs">
+            <i class="bi bi-calendar-x text-[0.7rem]"></i> <?= $total_dias ?> día<?= $total_dias !== 1 ? 's' : '' ?> completo<?= $total_dias !== 1 ? 's' : '' ?>
         </span>
-        <span class="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[0.65rem] font-medium bg-white/5 border border-white/10 text-[var(--tx-m)]">
-            <i class="bi bi-clock"></i> <?= $total_tramos ?> tramo<?= $total_tramos !== 1 ? 's' : '' ?>
+        <span class="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[0.6rem] font-semibold bg-gradient-to-r from-amber-500/15 to-amber-500/5 border border-amber-500/25 text-amber-300 shadow-xs">
+            <i class="bi bi-clock text-[0.7rem]"></i> <?= $total_tramos ?> tramo<?= $total_tramos !== 1 ? 's' : '' ?>
         </span>
-        <span class="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[0.65rem] font-medium bg-white/5 border border-white/10 text-[var(--tx-m)]">
-            <i class="bi bi-list"></i> <?= count($lista_bloqueos) ?> total<?= count($lista_bloqueos) !== 1 ? 'es' : '' ?>
+        <span class="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[0.6rem] font-semibold bg-gradient-to-r from-white/5 to-white/0 border border-white/10 text-[var(--tx-m)] shadow-xs">
+            <i class="bi bi-list text-[0.7rem]"></i> <?= count($lista_bloqueos) ?> total
         </span>
+        <?php if (count($bloqueos_activos) > 0): ?>
+        <span class="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[0.6rem] font-semibold bg-gradient-to-r from-emerald-500/15 to-emerald-500/5 border border-emerald-500/25 text-emerald-300 shadow-xs">
+            <i class="bi bi-shield-check text-[0.7rem]"></i> <?= count($bloqueos_activos) ?> activo<?= count($bloqueos_activos) !== 1 ? 's' : '' ?>
+        </span>
+        <?php endif; ?>
     </div>
 
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
 
-        <section class="lg:col-span-5 rounded-xl border border-[var(--brd)] bg-white/5 p-5 glow-card">
-            <h2 class="text-[0.95rem] font-medium text-[var(--tx)] mb-4 flex items-center gap-2" style="font-family: var(--pf);">
-                <i class="bi bi-shield-lock text-[var(--gold)]"></i> Añadir Restricción
+        <!-- ── Formulario ── -->
+        <section class="lg:col-span-4 rounded-xl border border-[var(--brd)] bg-gradient-to-b from-white/[0.04] to-white/[0.01] p-5 glow-card">
+            <h2 class="text-[0.85rem] font-semibold text-[var(--tx)] mb-4 flex items-center gap-2" style="font-family: var(--pf);">
+                <span class="w-7 h-7 rounded-lg bg-gradient-to-br from-purple-500/20 to-purple-500/5 border border-purple-500/20 flex items-center justify-center text-purple-400 text-[0.7rem]">
+                    <i class="bi bi-shield-plus"></i>
+                </span>
+                Nueva restricción
             </h2>
 
             <form action="" method="POST" class="space-y-4">
                 <input type="hidden" name="accion" value="crear">
 
                 <div>
-                    <label class="block text-[0.68rem] uppercase tracking-wider text-[var(--tx-m)] font-semibold mb-1.5">Fecha</label>
+                    <label class="block text-[0.62rem] uppercase tracking-[0.15em] text-[var(--tx-m)] font-semibold mb-1.5">Fecha</label>
                     <input type="date" name="fecha" required min="<?= date('Y-m-d') ?>"
-                           class="w-full bg-[#141414] border border-[var(--brd)] rounded-lg px-3 py-2.5 text-[0.8rem] text-[var(--tx)] focus:outline-hidden focus:border-[var(--gold-brd)]">
+                           class="w-full bg-[#0d0d0d] border border-[var(--brd)] rounded-lg px-3 py-2.5 text-[0.8rem] text-[var(--tx)] focus:outline-hidden focus:border-[var(--gold-brd)] focus:ring-1 focus:ring-[var(--gold-dim)] transition-all">
                 </div>
 
                 <div>
-                    <label class="block text-[0.68rem] uppercase tracking-wider text-[var(--tx-m)] font-semibold mb-1.5">Duración del bloqueo</label>
-                    <div class="grid grid-cols-2 gap-2 bg-[#141414] p-1 rounded-lg border border-[var(--brd)]">
-                        <label class="flex items-center justify-center gap-1.5 py-1.5 text-[0.68rem] font-medium rounded-md cursor-pointer transition-all has-[:checked]:bg-[var(--gold-dim)] has-[:checked]:text-[var(--gold)] text-[var(--tx-m)]">
+                    <label class="block text-[0.62rem] uppercase tracking-[0.15em] text-[var(--tx-m)] font-semibold mb-1.5">Duración</label>
+                    <div class="grid grid-cols-2 gap-2 bg-[#0d0d0d] p-1 rounded-lg border border-[var(--brd)]">
+                        <label class="flex items-center justify-center gap-1.5 py-2 text-[0.65rem] font-medium rounded-md cursor-pointer transition-all has-[:checked]:bg-purple-500/15 has-[:checked]:text-purple-300 has-[:checked]:border-purple-500/30 has-[:checked]:shadow-xs text-[var(--tx-m)] border border-transparent">
                             <input type="radio" name="tipo" value="completo" checked onclick="toggleSeccionHoras(false)" class="sr-only">
-                            <i class="bi bi-calendar-minus"></i> Todo el día
+                            <i class="bi bi-calendar-minus text-[0.7rem]"></i> Día completo
                         </label>
-                        <label class="flex items-center justify-center gap-1.5 py-1.5 text-[0.68rem] font-medium rounded-md cursor-pointer transition-all has-[:checked]:bg-[var(--gold-dim)] has-[:checked]:text-[var(--gold)] text-[var(--tx-m)]">
+                        <label class="flex items-center justify-center gap-1.5 py-2 text-[0.65rem] font-medium rounded-md cursor-pointer transition-all has-[:checked]:bg-amber-500/15 has-[:checked]:text-amber-300 has-[:checked]:border-amber-500/30 has-[:checked]:shadow-xs text-[var(--tx-m)] border border-transparent">
                             <input type="radio" name="tipo" value="horas" onclick="toggleSeccionHoras(true)" class="sr-only">
-                            <i class="bi bi-clock"></i> Horas sueltas
+                            <i class="bi bi-clock text-[0.7rem]"></i> Tramos
                         </label>
                     </div>
                 </div>
 
-                <div id="wrapper_horas" class="hidden grid grid-cols-2 gap-3 p-3 bg-black/20 rounded-lg border border-[var(--brd)]/50">
+                <div id="wrapper_horas" class="hidden grid grid-cols-2 gap-3 p-3 bg-[#0d0d0d] rounded-lg border border-amber-500/15">
                     <div>
-                        <label class="block text-[0.62rem] text-[var(--tx-d)] font-medium mb-1">Desde las</label>
-                        <input type="time" name="hora_inicio" class="w-full bg-[#1a1a1a] border border-[var(--brd)] rounded-md px-2 py-1.5 text-[0.75rem] text-[var(--tx)] focus:outline-hidden">
+                        <label class="block text-[0.58rem] text-[var(--tx-d)] font-medium mb-1">Desde</label>
+                        <input type="time" name="hora_inicio"
+                               class="w-full bg-[#1a1a1a] border border-[var(--brd)] rounded-md px-2 py-1.5 text-[0.75rem] text-[var(--tx)] focus:outline-hidden focus:border-amber-500/40">
                     </div>
                     <div>
-                        <label class="block text-[0.62rem] text-[var(--tx-d)] font-medium mb-1">Hasta las</label>
-                        <input type="time" name="hora_fin" class="w-full bg-[#1a1a1a] border border-[var(--brd)] rounded-md px-2 py-1.5 text-[0.75rem] text-[var(--tx)] focus:outline-hidden">
+                        <label class="block text-[0.58rem] text-[var(--tx-d)] font-medium mb-1">Hasta</label>
+                        <input type="time" name="hora_fin"
+                               class="w-full bg-[#1a1a1a] border border-[var(--brd)] rounded-md px-2 py-1.5 text-[0.75rem] text-[var(--tx)] focus:outline-hidden focus:border-amber-500/40">
                     </div>
                 </div>
 
-                <!-- Motivo presets -->
                 <div>
-                    <label class="block text-[0.68rem] uppercase tracking-wider text-[var(--tx-m)] font-semibold mb-1.5">Motivo</label>
+                    <label class="block text-[0.62rem] uppercase tracking-[0.15em] text-[var(--tx-m)] font-semibold mb-1.5">Motivo</label>
                     <div class="flex flex-wrap gap-1.5 mb-2">
                         <?php $presets = ['Cita médica', 'Vacaciones', 'Asuntos propios', 'Festivo', 'Formación', 'Personal']; ?>
-                        <?php foreach ($presets as $p): ?>
+                        <?php $colores = ['text-rose-300 bg-rose-500/10 border-rose-500/20', 'text-sky-300 bg-sky-500/10 border-sky-500/20', 'text-amber-300 bg-amber-500/10 border-amber-500/20', 'text-emerald-300 bg-emerald-500/10 border-emerald-500/20', 'text-violet-300 bg-violet-500/10 border-violet-500/20', 'text-orange-300 bg-orange-500/10 border-orange-500/20']; ?>
+                        <?php foreach ($presets as $i => $p): ?>
                             <button type="button" onclick="ponerMotivo('<?= h($p) ?>')"
-                                    class="px-2.5 py-1 rounded-full text-[0.58rem] font-medium border border-[var(--brd)] bg-white/5 text-[var(--tx-m)] hover:bg-[var(--gold-dim)] hover:text-[var(--gold)] hover:border-[var(--gold-brd)] transition-all cursor-pointer">
+                                    class="px-2.5 py-1 rounded-full text-[0.55rem] font-semibold tracking-wide border transition-all cursor-pointer <?= $colores[$i] ?> hover:opacity-80">
                                 <?= h($p) ?>
                             </button>
                         <?php endforeach; ?>
                         <button type="button" onclick="ponerMotivo('')"
-                                class="px-2.5 py-1 rounded-full text-[0.58rem] font-medium border border-[var(--brd)] bg-white/5 text-[var(--tx-m)] hover:bg-white/10 transition-all cursor-pointer">
+                                class="px-2 py-1 rounded-full text-[0.55rem] border border-[var(--brd)] text-[var(--tx-d)] hover:bg-white/5 transition-all cursor-pointer">
                             <i class="bi bi-x"></i>
                         </button>
                     </div>
-                    <input type="text" name="motivo" id="motivoInput" placeholder="Ej: Cita médica, Asuntos propios..."
-                           class="w-full bg-[#141414] border border-[var(--brd)] rounded-lg px-3 py-2 text-[0.8rem] text-[var(--tx)] placeholder:text-[var(--tx-d)]/60 focus:outline-hidden focus:border-[var(--gold-brd)]">
+                    <input type="text" name="motivo" id="motivoInput" placeholder="O escribe uno personalizado..."
+                           class="w-full bg-[#0d0d0d] border border-[var(--brd)] rounded-lg px-3 py-2 text-[0.75rem] text-[var(--tx)] placeholder:text-[var(--tx-d)]/50 focus:outline-hidden focus:border-[var(--gold-brd)] transition-all">
                 </div>
 
-                <button type="submit" class="w-full bg-[var(--gold)] hover:opacity-90 text-[#0d0d0d] font-semibold py-2.5 rounded-lg text-[0.72rem] tracking-widest uppercase transition-all mt-2 cursor-pointer">
-                    Aplicar Restricción
+                <button type="submit"
+                        class="w-full bg-gradient-to-r from-[#d4af37] to-[#e8c84a] hover:opacity-90 text-[#0d0d0d] font-bold py-2.5 rounded-lg text-[0.68rem] tracking-[0.15em] uppercase transition-all mt-2 cursor-pointer shadow-lg shadow-[#d4af37]/10">
+                    <i class="bi bi-shield-plus text-[0.75rem] mr-1.5"></i> Bloquear
                 </button>
             </form>
         </section>
 
-        <section class="lg:col-span-7 space-y-2">
-            <h2 class="text-[0.68rem] uppercase tracking-widest font-bold text-[var(--tx-d)] mb-3 px-1">
-                Bloqueos establecidos (<?= count($lista_bloqueos) ?>)
-            </h2>
+        <!-- ── Lista ── -->
+        <section class="lg:col-span-8 space-y-2">
 
             <?php if (empty($lista_bloqueos)): ?>
-                <div class="flex flex-col items-center justify-center py-16 border border-[var(--brd)] bg-white/5 rounded-xl text-center gap-3 opacity-60">
-                    <i class="bi bi-unlock text-3xl text-[var(--tx-d)]"></i>
-                    <p class="text-[0.75rem] text-[var(--tx-m)]">No hay tramos ni días bloqueados actualmente.</p>
+                <div class="flex flex-col items-center justify-center py-20 border border-dashed border-[var(--brd)] bg-white/[0.02] rounded-xl text-center gap-4">
+                    <div class="w-16 h-16 rounded-full bg-gradient-to-br from-purple-500/10 to-amber-500/5 border border-[var(--brd)] flex items-center justify-center">
+                        <i class="bi bi-unlock text-[1.6rem] text-[var(--tx-d)]"></i>
+                    </div>
+                    <div>
+                        <p class="text-[0.85rem] text-[var(--tx-m)] font-medium" style="font-family: var(--pf);">Sin restricciones</p>
+                        <p class="text-[0.65rem] text-[var(--tx-d)] mt-0.5">Todos los días están disponibles para reservar</p>
+                    </div>
                 </div>
             <?php else: ?>
-                <div class="flex flex-col gap-2 stagger-container">
-                    <?php foreach ($lista_bloqueos as $b): ?>
-                        <?php $completo = empty($b['hora_inicio']); ?>
-                        <?php $fecha_ts = strtotime($b['fecha']); ?>
-                        <?php $es_pasado = $fecha_ts < strtotime('today'); ?>
 
-                        <div class="slot-card flex items-center justify-between gap-4 px-4 py-3.5 rounded-xl border min-h-[64px] transition-all duration-150 <?= $completo ? 'border-purple-500/20 bg-purple-500/5' : 'border-[var(--brd)] bg-white/5' ?> <?= $es_pasado ? 'opacity-40' : '' ?>">
+                <!-- Activos -->
+                <?php if (count($bloqueos_activos) > 0): ?>
+                <div class="mb-1">
+                    <span class="text-[0.6rem] uppercase tracking-[0.15em] font-bold text-emerald-400/70 flex items-center gap-1.5 px-1">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                        Activos (<?= count($bloqueos_activos) ?>)
+                    </span>
+                </div>
+                <div class="flex flex-col gap-2 mb-6 stagger-container">
+                    <?php foreach ($bloqueos_activos as $b): 
+                        $completo = empty($b['hora_inicio']);
+                        $fecha_ts = strtotime($b['fecha']);
+                        $dia_semana = $dias_semana[(int)date('w', $fecha_ts)];
+                    ?>
+                        <div class="slot-card flex items-center justify-between gap-3 px-4 py-3.5 rounded-xl border transition-all duration-200 hover:-translate-y-0.5 <?= $completo ? 'border-purple-500/25 bg-gradient-to-r from-purple-500/8 to-purple-500/2 hover:border-purple-500/40 hover:shadow-lg hover:shadow-purple-500/5' : 'border-amber-500/20 bg-gradient-to-r from-amber-500/8 to-amber-500/2 hover:border-amber-500/35 hover:shadow-lg hover:shadow-amber-500/5' ?>">
 
                             <div class="flex items-center gap-3 flex-1 min-w-0">
-                                <!-- Icon/time block -->
-                                <div class="text-[0.78rem] font-semibold text-[var(--tx)] min-w-[50px] shrink-0 flex flex-col justify-center">
+                                <!-- Icon + hora -->
+                                <div class="w-[52px] shrink-0 flex flex-col items-center">
                                     <?php if ($completo): ?>
-                                        <span class="text-purple-400 font-medium text-[0.55rem] tracking-wider uppercase bg-purple-500/10 px-1.5 py-0.5 rounded-sm border border-purple-500/20 text-center w-full">Día</span>
+                                        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500/20 to-purple-500/5 border border-purple-500/20 flex items-center justify-center text-purple-400">
+                                            <i class="bi bi-calendar-x text-[1rem]"></i>
+                                        </div>
                                     <?php else: ?>
-                                        <span class="text-[0.75rem] font-semibold text-[var(--tx-m)]"><?= substr($b['hora_inicio'], 0, 5) ?></span>
-                                        <span class="text-[0.6rem] text-[var(--tx-d)] font-normal">a <?= substr($b['hora_fin'], 0, 5) ?></span>
+                                        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500/20 to-amber-500/5 border border-amber-500/20 flex items-center justify-center text-amber-400">
+                                            <i class="bi bi-clock-history text-[1rem]"></i>
+                                        </div>
                                     <?php endif; ?>
                                 </div>
 
-                                <div class="w-[2px] h-9 <?= $completo ? 'bg-purple-500/40' : 'bg-[var(--tx-d)]/40' ?> rounded-full shrink-0"></div>
-
-                                <div class="min-w-0">
-                                    <div class="flex items-center gap-2">
-                                        <span class="text-[0.78rem] font-semibold text-[var(--tx)]"><?= date('d/m/Y', $fecha_ts) ?></span>
-                                        <?php if ($es_pasado): ?>
-                                            <span class="text-[0.5rem] uppercase tracking-wider font-bold px-1.5 py-0.5 rounded-full bg-white/5 text-[var(--tx-d)] border border-white/10">Pasado</span>
+                                <div class="min-w-0 flex-1">
+                                    <div class="flex items-center gap-2 flex-wrap">
+                                        <span class="text-[0.82rem] font-semibold text-[var(--tx)]"><?= date('d/m/Y', $fecha_ts) ?></span>
+                                        <span class="text-[0.5rem] uppercase tracking-wider text-[var(--tx-d)] font-medium bg-white/[0.04] px-1.5 py-0.5 rounded border border-white/[0.06]"><?= h($dia_semana) ?></span>
+                                        <?php if (!$completo): ?>
+                                            <span class="text-[0.7rem] font-medium text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20">
+                                                <?= substr($b['hora_inicio'], 0, 5) ?> – <?= substr($b['hora_fin'], 0, 5) ?>
+                                            </span>
                                         <?php endif; ?>
                                     </div>
-                                    <div class="text-[0.65rem] text-[var(--tx-d)] mt-0.5 truncate italic">
-                                        <?= !empty($b['motivo']) ? '"' . h($b['motivo']) . '"' : 'Sin motivo' ?>
+                                    <div class="text-[0.64rem] text-[var(--tx-d)] mt-1 flex items-center gap-1.5">
+                                        <?php if (!empty($b['motivo'])): ?>
+                                            <span class="text-[var(--tx-m)]"><?= h($b['motivo']) ?></span>
+                                        <?php else: ?>
+                                            <span class="italic text-[var(--tx-d)]/50">Sin motivo</span>
+                                        <?php endif; ?>
                                     </div>
                                 </div>
                             </div>
@@ -218,14 +264,55 @@ foreach ($lista_bloqueos as $b) {
                             <form action="" method="POST" onsubmit="return confirm('¿Deseas levantar este bloqueo?');" class="shrink-0">
                                 <input type="hidden" name="accion" value="eliminar">
                                 <input type="hidden" name="id" value="<?= (int)$b['id'] ?>">
-                                <button type="submit" class="w-8 h-8 rounded-lg border border-transparent text-[var(--tx-d)] flex items-center justify-center transition-all hover:bg-rose-500/10 hover:border-rose-500/20 hover:text-rose-400 cursor-pointer">
-                                    <i class="bi bi-trash3 text-[0.85rem]"></i>
+                                <button type="submit"
+                                        class="w-8 h-8 rounded-lg border border-transparent text-[var(--tx-d)] flex items-center justify-center transition-all hover:bg-rose-500/15 hover:border-rose-500/25 hover:text-rose-400 cursor-pointer">
+                                    <i class="bi bi-trash3 text-[0.8rem]"></i>
                                 </button>
                             </form>
-
                         </div>
                     <?php endforeach; ?>
                 </div>
+                <?php endif; ?>
+
+                <!-- Pasados -->
+                <?php if (count($bloqueos_pasados) > 0): ?>
+                <div class="flex items-center gap-3 px-1 mb-1">
+                    <span class="h-px flex-1 bg-gradient-to-r from-transparent via-white/5 to-transparent"></span>
+                    <span class="text-[0.55rem] uppercase tracking-[0.15em] font-bold text-[var(--tx-d)]/50 flex items-center gap-1.5 shrink-0">
+                        <i class="bi bi-archive"></i> Pasados (<?= count($bloqueos_pasados) ?>)
+                    </span>
+                    <span class="h-px flex-1 bg-gradient-to-r from-transparent via-white/5 to-transparent"></span>
+                </div>
+                <div class="flex flex-col gap-1.5 opacity-50">
+                    <?php foreach ($bloqueos_pasados as $b): 
+                        $completo = empty($b['hora_inicio']);
+                        $fecha_ts = strtotime($b['fecha']);
+                    ?>
+                        <div class="flex items-center justify-between gap-3 px-4 py-2.5 rounded-xl border border-[var(--brd)] bg-white/[0.02]">
+                            <div class="flex items-center gap-3 flex-1 min-w-0">
+                                <span class="text-[0.65rem] font-medium text-[var(--tx-d)] w-[36px] text-center shrink-0">
+                                    <i class="bi bi-<?= $completo ? 'calendar-x' : 'clock' ?>"></i>
+                                </span>
+                                <span class="text-[0.7rem] text-[var(--tx-d)]"><?= date('d/m/Y', $fecha_ts) ?></span>
+                                <?php if (!$completo): ?>
+                                    <span class="text-[0.65rem] text-[var(--tx-d)]"><?= substr($b['hora_inicio'], 0, 5) ?>–<?= substr($b['hora_fin'], 0, 5) ?></span>
+                                <?php endif; ?>
+                                <?php if (!empty($b['motivo'])): ?>
+                                    <span class="text-[0.6rem] text-[var(--tx-d)]/60 italic"><?= h($b['motivo']) ?></span>
+                                <?php endif; ?>
+                            </div>
+                            <form action="" method="POST" onsubmit="return confirm('¿Eliminar este bloqueo pasado?');">
+                                <input type="hidden" name="accion" value="eliminar">
+                                <input type="hidden" name="id" value="<?= (int)$b['id'] ?>">
+                                <button type="submit" class="w-6 h-6 flex items-center justify-center text-[var(--tx-d)]/40 hover:text-rose-400/60 transition-all cursor-pointer">
+                                    <i class="bi bi-x text-[0.7rem]"></i>
+                                </button>
+                            </form>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+                <?php endif; ?>
+
             <?php endif; ?>
         </section>
 

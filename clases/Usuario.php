@@ -53,6 +53,7 @@ class Usuario {
     public function getPassword()        { return $this->password; }
     public function getAvatar()          { return $this->avatar; }
     public function getTelefono()        { return $this->telefono; }
+    public function setTelefono(string $telefono) { $this->telefono = $telefono; }
     public function getPuntosFidelidad() { return $this->puntos_fidelidad; }
     public function getRol()             { return $this->rol; }
     public function getNotaInterna()     { return $this->nota_interna; }
@@ -241,6 +242,22 @@ class Usuario {
         return $stmt->execute([
             ':puntos' => max(0, $puntos),
             ':id'     => $idCliente,
+        ]);
+    }
+
+    /**
+     * Cliente: guarda o actualiza su propio teléfono.
+     * Se usa desde la pantalla de inicio del panel cliente si no tiene teléfono.
+     */
+    public static function actualizarTelefono(int $id, string $telefono): bool {
+        $conexion = BD::obtenerConexion();
+        $stmt = $conexion->prepare("
+            UPDATE usuarios SET telefono = :telefono
+            WHERE id = :id
+        ");
+        return $stmt->execute([
+            ':telefono' => $telefono,
+            ':id'       => $id,
         ]);
     }
 

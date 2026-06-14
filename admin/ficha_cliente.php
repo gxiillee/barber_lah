@@ -197,7 +197,14 @@ function badgeEstado(string $estado): string {
                         </h1>
                         <p class="font-['Montserrat'] text-[0.75rem] text-[#aaaaaa] m-0 flex items-center gap-1.5">
                             <i class="bi bi-telephone text-[#d4af37]"></i>
-                            <?= h($cliente->getTelefono() ?? 'Sin teléfono') ?>
+                            <?php if ($cliente->getTelefono()): ?>
+                                <a href="https://wa.me/34<?= h(preg_replace('/\D/', '', $cliente->getTelefono())) ?>?text=<?= rawurlencode('Hola ' . $cliente->getNombre() . ', soy Hassan de Barbershop La H.') ?>" target="_blank" class="hover:opacity-80 transition-opacity inline-flex items-center gap-1" title="Enviar WhatsApp">
+                                    <?= h($cliente->getTelefono()) ?>
+                                    <i class="bi bi-whatsapp text-[#25D366] text-[0.9rem]"></i>
+                                </a>
+                            <?php else: ?>
+                                Sin teléfono
+                            <?php endif; ?>
                         </p>
                     </div>
                 </div>
@@ -213,7 +220,10 @@ function badgeEstado(string $estado): string {
                     <?php if ($cliente->getTelefono()): ?>
                         <p class="font-['Montserrat'] text-[0.8rem] text-[#aaaaaa] my-1 flex items-center gap-[0.4rem]">
                             <i class="bi bi-telephone text-[#d4af37] text-[0.85rem]"></i>
-                            <?= h($cliente->getTelefono()) ?>
+                            <a href="https://wa.me/34<?= h(preg_replace('/\D/', '', $cliente->getTelefono())) ?>?text=<?= rawurlencode('Hola ' . $cliente->getNombre() . ', soy Hassan de Barbershop La H.') ?>" target="_blank" class="hover:opacity-80 transition-opacity inline-flex items-center gap-1.5" title="Enviar WhatsApp">
+                                <?= h($cliente->getTelefono()) ?>
+                                <i class="bi bi-whatsapp text-[#25D366] text-[0.95rem]"></i>
+                            </a>
                         </p>
                     <?php endif; ?>
                     <p class="font-['Montserrat'] text-[0.8rem] text-[#aaaaaa] my-1 flex items-center gap-[0.4rem]">

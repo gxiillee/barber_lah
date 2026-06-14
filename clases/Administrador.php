@@ -194,6 +194,156 @@ class Administrador extends Usuario
     }
 
 
+    /**
+     * Ingresos mensuales (últimos N meses). Para gráfico de barras en dashboard.
+     * Rellena con ceros los meses sin datos.
+     */
+    public static function obtenerIngresosMensuales(int $ultimosMeses = 12): array
+    {
+        $conexion = BD::obtenerConexion();
+
+        $stmt = $conexion->prepare("
+            SELECT
+                EXTRACT(YEAR FROM fecha)  AS anio,
+                EXTRACT(MONTH FROM fecha) AS mes,
+                COUNT(*)                                              AS total_citas,
+                COUNT(*) FILTER (WHERE estado = 'completada')        AS completadas,
+                COALESCE(SUM(precio_historico) FILTER (WHERE estado = 'completada'), 0) AS ingresos
+            FROM reservas
+            WHERE fecha >= date_trunc('month', CURRENT_DATE) - INTERVAL '{$ultimosMeses} months' + INTERVAL '1 month'
+              AND fecha <  date_trunc('month', CURRENT_DATE) + INTERVAL '1 month'
+            GROUP BY anio, mes
+            ORDER BY anio, mes
+        ");
+        $stmt->execute();
+        $filas = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        // Indexar por "Y-m"
+        $indexados = [];
+        foreach ($filas as $f) {
+            $indexados[sprintf('%04d-%02d', (int)$f['anio'], (int)$f['mes'])] = $f;
+        }
+
+        // Rellenar meses sin datos
+        $resultado = [];
+        $hoy = new DateTimeImmutable('first day of this month');
+        for ($i = $ultimosMeses - 1; $i >= 0; $i--) {
+            $fecha = $hoy->modify("-{$i} months");
+            $clave = $fecha->format('Y-m');
+            $existe = $indexados[$clave] ?? null;
+            $resultado[] = [
+                'anio'        => (int)$fecha->format('Y'),
+                'mes'         => (int)$fecha->format('m'),
+                'mes_nombre'  => nombreMesCorto((int)$fecha->format('m')),
+                'total_citas' => (int)($existe['total_citas'] ?? 0),
+                'completadas' => (int)($existe['completadas'] ?? 0),
+                'ingresos'    => (float)($existe['ingresos'] ?? 0),
+            ];
+        }
+
+        return $resultado;
+    }
+
+    /**
+     * Servicios más vendidos (por nº de reservas completadas).
+     */
+    public static function obtenerServiciosMasVendidos(int $limite = 6): array
+    {
+        $conexion = BD::obtenerConexion();
+
+        $stmt = $conexion->prepare("
+            SELECT
+                s.id,
+                s.nombre,
+                COUNT(r.id)                                    AS total,
+                COALESCE(SUM(r.precio_historico), 0)          AS ingresos
+            FROM servicios s
+            LEFT JOIN reservas r ON r.id_servicio = s.id AND r.estado = 'completada'
+            GROUP BY s.id, s.nombre
+            ORDER BY total DESC
+            LIMIT :limite
+        ");
+        $stmt->bindValue(':limite', $limite, PDO::PARAM_INT);
+        $stmt->execute();
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * Tasa de no-shows del mes actual (0..100).
+     */
+    public static function obtenerTasaNoShows(): array
+    {
+        $conexion = BD::obtenerConexion();
+
+        $stmt = $conexion->prepare("
+            SELECT
+                COUNT(*) AS total,
+                COUNT(*) FILTER (WHERE estado = 'no_presentado') AS no_shows
+            FROM reservas
+            WHERE date_trunc('month', fecha) = date_trunc('month', CURRENT_DATE)
+        ");
+        $stmt->execute();
+        $fila = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        $total = (int)$fila['total'];
+        $noShows = (int)$fila['no_shows'];
+
+        return [
+            'total'    => $total,
+            'no_shows' => $noShows,
+            'tasa'     => $total > 0 ? round($noShows / $total * 100, 1) : 0,
+        ];
+    }
+
+    /**
+     * Clientes nuevos vs recurrentes (mes actual).
+     * - Nuevos: primera reserva completada este mes
+     * - Recurrentes: ya habían completado antes
+     */
+    public static function obtenerClientesNuevosVsRecurrentes(): array
+    {
+        $conexion = BD::obtenerConexion();
+
+        $stmt = $conexion->prepare("
+            WITH clientes_mes AS (
+                SELECT DISTINCT id_cliente
+                FROM reservas
+                WHERE estado = 'completada'
+                  AND date_trunc('month', fecha) = date_trunc('month', CURRENT_DATE)
+            ),
+            primeras AS (
+                SELECT id_cliente, MIN(fecha) AS primera_fecha
+                FROM reservas
+                WHERE estado = 'completada'
+                GROUP BY id_cliente
+            )
+            SELECT
+                COUNT(*) FILTER (
+                    WHERE date_trunc('month', pr.primera_fecha) = date_trunc('month', CURRENT_DATE)
+                ) AS nuevos,
+                COUNT(*) FILTER (
+                    WHERE date_trunc('month', pr.primera_fecha) < date_trunc('month', CURRENT_DATE)
+                ) AS recurrentes
+            FROM clientes_mes cm
+            JOIN primeras pr ON pr.id_cliente = cm.id_cliente
+        ");
+        $stmt->execute();
+        $fila = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        $nuevos = (int)($fila['nuevos'] ?? 0);
+        $recurrentes = (int)($fila['recurrentes'] ?? 0);
+        $total = $nuevos + $recurrentes;
+
+        return [
+            'nuevos'      => $nuevos,
+            'recurrentes' => $recurrentes,
+            'total'       => $total,
+            'pct_nuevos'  => $total > 0 ? round($nuevos / $total * 100, 1) : 0,
+        ];
+    }
+
+
     // =========================================================================
     // 3. GESTIÓN DE CLIENTES
     //

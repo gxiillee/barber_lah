@@ -1,14 +1,17 @@
 <?php
 
 require_once __DIR__ . '/vendor/autoload.php';
+require_once __DIR__ . '/clases/helpers.php';
 require_once 'clases/BdMongo.php';
 require_once 'clases/Galeria_corte.php';
 require_once 'clases/Producto.php';
 require_once 'clases/Servicio.php';
+require_once 'clases/ConfigWeb.php';
 
 $servicios = Servicio::obtenerTodos();
 $galeriaCortes = Corte::obtenerActivos();
 $productos = Producto::obtenerActivos();
+$config = ConfigWeb::obtener();
 ?>
 
 <!DOCTYPE html>
@@ -190,8 +193,8 @@ $productos = Producto::obtenerActivos();
         <div class="mx-auto max-w-6xl px-8">
 
             <header class="reveal-up mb-24 text-center">
-                <span class="font-montserrat text-[0.6rem] uppercase tracking-[0.5rem] text-[var(--gold)] opacity-70">Barbershop La H</span>
-                <h2 class="font-playfair mt-5 mb-5 text-5xl md:text-6xl leading-tight text-white">Sobre Nosotros</h2>
+                <span class="font-montserrat text-[0.6rem] uppercase tracking-[0.5rem] text-[var(--gold)] opacity-70"><?= h($config['sobre_subtitulo'] ?? 'Barbershop La H') ?></span>
+                <h2 class="font-playfair mt-5 mb-5 text-5xl md:text-6xl leading-tight text-white"><?= h($config['sobre_titulo'] ?? 'Sobre Nosotros') ?></h2>
                 <div class="mx-auto h-px w-12 bg-[var(--gold)]"></div>
             </header>
 
@@ -199,55 +202,69 @@ $productos = Producto::obtenerActivos();
 
                 <div class="reveal-left">
                     <div class="relative">
-                        <img src="public/assets/img/logo.jpg"
-                             alt="Hassan"
+                        <img src="<?= h($config['sobre_imagen'] ?? 'public/assets/img/logo.jpg') ?>"
+                             alt="<?= h($config['sobre_nombre'] ?? 'Hassan') ?>"
                              class="block h-[280px] md:h-[500px] w-full border-[3px] border-[var(--gold)] bg-[var(--obsidian)] object-cover shadow-[20px_20px_0_#2a2a2a] transition-transform duration-[1200ms] ease-out hover:scale-105">
 
                         <div class="pointer-events-none absolute top-5 left-5 right-[-16px] bottom-[-16px] border border-[var(--gold)] opacity-20"></div>
 
                         <div class="absolute right-[-10px] bottom-[-20px] bg-[var(--obsidian)] px-6 py-4 text-center md:right-[-20px] border border-[var(--gold)]/30 shadow-xl z-20">
-                            <span class="font-playfair block text-3xl leading-none text-[var(--gold)] font-bold">+10</span>
-                            <span class="font-montserrat mt-1 block text-[0.55rem] uppercase tracking-[0.2rem] text-white/50">Años de exp.</span>
+                            <span class="font-playfair block text-3xl leading-none text-[var(--gold)] font-bold"><?= h($config['sobre_anios'] ?? '+10') ?></span>
+                            <span class="font-montserrat mt-1 block text-[0.55rem] uppercase tracking-[0.2rem] text-white/50"><?= h($config['sobre_anios_texto'] ?? 'Años de exp.') ?></span>
                         </div>
                     </div>
                 </div>
 
                 <div class="reveal-right mt-10 md:mt-0">
                     <h3 class="font-playfair mb-8 text-3xl md:text-4xl leading-tight text-white">
-                        Hola, soy <em class="not-italic text-[var(--gold)]">Hassan</em>
+                        Hola, soy <em class="not-italic text-[var(--gold)]"><?= h($config['sobre_nombre'] ?? 'Hassan') ?></em>
                     </h3>
 
                     <div class="font-cormorant mb-10 text-lg leading-relaxed text-white/60">
-                        <p class="mb-6">
-                            Con más de <strong class="font-normal text-white">10 años de experiencia</strong> en el mundo de la barbería,
-                            me he convertido en mucho más que un barbero: soy tu aliado para
-                            encontrar el estilo que te representa.
-                        </p>
-                        <p class="mb-6">
-                            En <strong class="font-normal text-white">Barbershop La H</strong> combinamos técnica clásica
-                            con las tendencias más modernas para crear un look único que
-                            se adapte a tu personalidad y estilo de vida.
-                        </p>
-                        <p>
-                            Nuestra barbería es un espacio de confianza donde el tiempo
-                            se detiene y cada cliente recibe una atención completamente personalizada.
-                        </p>
+                        <?php if (!empty($config['sobre_texto_1'])): ?>
+                            <p class="mb-6"><?= h($config['sobre_texto_1']) ?></p>
+                        <?php else: ?>
+                            <p class="mb-6">
+                                Con más de <strong class="font-normal text-white">10 años de experiencia</strong> en el mundo de la barbería,
+                                me he convertido en mucho más que un barbero: soy tu aliado para
+                                encontrar el estilo que te representa.
+                            </p>
+                        <?php endif; ?>
+
+                        <?php if (!empty($config['sobre_texto_2'])): ?>
+                            <p class="mb-6"><?= h($config['sobre_texto_2']) ?></p>
+                        <?php else: ?>
+                            <p class="mb-6">
+                                En <strong class="font-normal text-white">Barbershop La H</strong> combinamos técnica clásica
+                                con las tendencias más modernas para crear un look único que
+                                se adapte a tu personalidad y estilo de vida.
+                            </p>
+                        <?php endif; ?>
+
+                        <?php if (!empty($config['sobre_texto_3'])): ?>
+                            <p><?= h($config['sobre_texto_3']) ?></p>
+                        <?php else: ?>
+                            <p>
+                                Nuestra barbería es un espacio de confianza donde el tiempo
+                                se detiene y cada cliente recibe una atención completamente personalizada.
+                            </p>
+                        <?php endif; ?>
                     </div>
 
                     <div class="mb-12 flex flex-wrap items-center gap-6">
                         <a href="cliente/reserva.php" class="bg-[var(--gold)] px-8 py-4 font-montserrat text-[0.72rem] font-bold uppercase tracking-[0.2rem] text-black transition-all hover:bg-white hover:-translate-y-1">
                             Reservar Cita
                         </a>
-                        <a href="https://instagram.com/barbershop_la_h" target="_blank" rel="noopener"
+                        <a href="https://instagram.com/<?= h(ltrim($config['instagram'] ?? '@barbershop_la_h', '@')) ?>" target="_blank" rel="noopener"
                            class="font-montserrat text-[0.72rem] uppercase tracking-[0.2rem] text-white/30 transition-colors duration-300 hover:text-[var(--gold)]">
-                            @barbershop_la_h ↗
+                            <?= h($config['instagram'] ?? '@barbershop_la_h') ?> ↗
                         </a>
                     </div>
 
                     <footer class="mt-12 border-t border-[var(--gold)]/20 pt-8">
 
                         <p class="font-playfair text-2xl italic text-[var(--gold)]">
-                            — Hassan
+                            — <?= h($config['sobre_nombre'] ?? 'Hassan') ?>
                         </p>
 
                         <p class="font-montserrat mt-2 text-[0.6rem] uppercase tracking-[0.2rem] text-white/60">
@@ -356,9 +373,9 @@ $productos = Producto::obtenerActivos();
 
             <p class="reveal-text font-cormorant mt-12 text-center text-base text-white/25 italic">
                 ¿Tienes dudas? Escríbenos en Instagram
-                <a href="https://instagram.com/barbershop_la_h" target="_blank" rel="noopener"
+                <a href="https://instagram.com/<?= h(ltrim($config['instagram'] ?? '@barbershop_la_h', '@')) ?>" target="_blank" rel="noopener"
                    class="text-[var(--gold)]/50 transition-colors hover:text-[var(--gold)] not-italic ml-1">
-                    @barbershop_la_h ↗
+                    <?= h($config['instagram'] ?? '@barbershop_la_h') ?> ↗
                 </a>
             </p>
 
@@ -562,9 +579,9 @@ $productos = Producto::obtenerActivos();
             <!-- Nota inferior -->
             <p class="reveal-text font-cormorant mt-12 text-center text-base text-white/25 italic">
                 Pásate por la barbería o escríbenos en
-                <a href="https://instagram.com/barbershop_la_h" target="_blank" rel="noopener"
+                <a href="https://instagram.com/<?= h(ltrim($config['instagram'] ?? '@barbershop_la_h', '@')) ?>" target="_blank" rel="noopener"
                    class="text-[var(--gold)]/50 transition-colors hover:text-[var(--gold)] not-italic ml-1">
-                    @barbershop_la_h ↗
+                    <?= h($config['instagram'] ?? '@barbershop_la_h') ?> ↗
                 </a>
             </p>
 
@@ -613,8 +630,7 @@ $productos = Producto::obtenerActivos();
                         <div>
                             <span class="font-montserrat block text-[0.55rem] uppercase tracking-[0.3rem] text-[var(--gold)]/40 mb-1">Dirección</span>
                             <p class="font-cormorant text-xl text-white/70 leading-snug">
-                                C/ Miguel Servet 24<br>
-                                50013 · Zaragoza
+                                <?= h(!empty($config['direccion']) ? str_replace("\n", '<br>', h($config['direccion'])) : 'C/ Miguel Servet 24<br>50013 · Zaragoza') ?>
                             </p>
                         </div>
                     </div>
@@ -630,9 +646,9 @@ $productos = Producto::obtenerActivos();
                         </div>
                         <div>
                             <span class="font-montserrat block text-[0.55rem] uppercase tracking-[0.3rem] text-[var(--gold)]/40 mb-1">Instagram</span>
-                            <a href="https://instagram.com/barbershop_la_h" target="_blank" rel="noopener"
+                            <a href="https://instagram.com/<?= h(ltrim($config['instagram'] ?? '@barbershop_la_h', '@')) ?>" target="_blank" rel="noopener"
                                class="font-cormorant text-xl text-white/70 transition-colors hover:text-[var(--gold)]">
-                                @barbershop_la_h ↗
+                                <?= h($config['instagram'] ?? '@barbershop_la_h') ?> ↗
                             </a>
                         </div>
                     </div>
@@ -648,10 +664,13 @@ $productos = Producto::obtenerActivos();
                         <div>
                             <span class="font-montserrat block text-[0.55rem] uppercase tracking-[0.3rem] text-[var(--gold)]/40 mb-2">Horario</span>
                             <div class="font-cormorant text-lg leading-relaxed text-white/60 space-y-1">
-                                <!-- Actualiza estos horarios cuando Hassan los confirme -->
-                                <p>Lunes — Viernes &nbsp;<span class="text-white/60">·</span>&nbsp; 10:00 – 20:00</p>
-                                <p>Sábado &nbsp;<span class="text-white/0">·</span>&nbsp; 10:00 – 14:00</p>
-                                <p class="text-white/30">Domingo &nbsp;<span>·</span>&nbsp; Cerrado</p>
+                                <?php if (!empty($config['horario_resumen'])): ?>
+                                    <p><?= h($config['horario_resumen']) ?></p>
+                                <?php else: ?>
+                                    <p>Lunes — Viernes &nbsp;<span class="text-white/60">·</span>&nbsp; 10:00 – 20:00</p>
+                                    <p>Sábado &nbsp;<span class="text-white/0">·</span>&nbsp; 10:00 – 14:00</p>
+                                    <p class="text-white/30">Domingo &nbsp;<span>·</span>&nbsp; Cerrado</p>
+                                <?php endif; ?>
                             </div>
                         </div>
                     </div>
