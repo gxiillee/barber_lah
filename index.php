@@ -77,19 +77,21 @@ $config = ConfigWeb::obtener();
             </button>
         </div>
     </nav>
+    <!-- Menu móvil backdrop -->
+    <div id="menuBackdrop" class="fixed inset-0 z-[55] bg-black/60 backdrop-blur-sm hidden" onclick="cerrarMenuMobile()"></div>
     <!-- Seccion para solo móvil -->
     <div id="mobileMenu" style="display:none;" class="fixed inset-0 z-[60] bg-[var(--obsidian)] flex-col items-center justify-center gap-10">
-        <a href="#sobre"     onclick="document.getElementById('mobileMenu').style.display='none'" class="font-montserrat text-sm uppercase tracking-[0.3rem] text-white/60 hover:text-[var(--gold)]">Nosotros</a>
-        <a href="#servicios" onclick="document.getElementById('mobileMenu').style.display='none'" class="font-montserrat text-sm uppercase tracking-[0.3rem] text-white/60 hover:text-[var(--gold)]">Servicios</a>
-        <a href="#contacto"  onclick="document.getElementById('mobileMenu').style.display='none'" class="font-montserrat text-sm uppercase tracking-[0.3rem] text-white/60 hover:text-[var(--gold)]">Encuéntranos</a>
+        <a href="#sobre"     onclick="cerrarMenuMobile()" class="font-montserrat text-sm uppercase tracking-[0.3rem] text-white/60 hover:text-[var(--gold)]">Nosotros</a>
+        <a href="#servicios" onclick="cerrarMenuMobile()" class="font-montserrat text-sm uppercase tracking-[0.3rem] text-white/60 hover:text-[var(--gold)]">Servicios</a>
+        <a href="#contacto"  onclick="cerrarMenuMobile()" class="font-montserrat text-sm uppercase tracking-[0.3rem] text-white/60 hover:text-[var(--gold)]">Encuéntranos</a>
         <!-- Nueva entrada movil para acceder al futuro panel sin pasar por reserva. -->
-        <a href="mi-cuenta.php" onclick="document.getElementById('mobileMenu').style.display='none'" class="font-montserrat text-sm uppercase tracking-[0.3rem] text-white/60 hover:text-[var(--gold)]">Mi cuenta</a>
-        <a href="cliente/reserva.php" onclick="document.getElementById('mobileMenu').style.display='none'" class="border border-[var(--gold)]/50 px-8 py-3 font-montserrat text-sm uppercase tracking-[0.2rem] text-[var(--gold)]">Reservar Cita</a>
+        <a href="mi-cuenta.php" onclick="cerrarMenuMobile()" class="font-montserrat text-sm uppercase tracking-[0.3rem] text-white/60 hover:text-[var(--gold)]">Mi cuenta</a>
+        <a href="cliente/reserva.php" onclick="cerrarMenuMobile()" class="border border-[var(--gold)]/50 px-8 py-3 font-montserrat text-sm uppercase tracking-[0.2rem] text-[var(--gold)]">Reservar Cita</a>
     </div>
 
 
     <!-- ===================== SECCIÓN VIDEO SCROLL ===================== -->
-    <section id="experiencia" class="relative w-full" style="height: 350vh;">
+    <section id="experiencia" class="relative w-full h-[350vh] max-md:h-[250vh]">
 
         <div class="sticky top-0 h-screen w-full overflow-hidden bg-black">
 
@@ -117,7 +119,7 @@ $config = ConfigWeb::obtener();
                     <p id="introTagline" class="font-cormorant mb-6 text-xs uppercase tracking-[0.5rem] text-[var(--gold)]/60">
                         Una experiencia única
                     </p>
-                    <h1 id="introTitle" class="intro-title-gradient font-playfair text-[clamp(3.5rem,10vw,7rem)] leading-none tracking-[0.4rem] uppercase transition-all duration-1000">
+                    <h1 id="introTitle" class="intro-title-gradient font-playfair text-[clamp(2.8rem,10vw,7rem)] leading-none tracking-[0.4rem] uppercase transition-all duration-1000">
                         BARBER LA H
                     </h1>
                     <p id="introCity" class="font-cormorant mt-6 text-sm uppercase tracking-[0.5rem] text-white/25">
@@ -131,11 +133,11 @@ $config = ConfigWeb::obtener();
 
             <!-- Label 1 -->
             <div id="label1" class="float-label absolute z-[15] pointer-events-none
-     left-[8%] top-[28%]
-     max-md:left-1/2 max-md:right-auto max-md:-translate-x-1/2 max-md:text-center max-md:w-[85vw]">
-                <span class="font-montserrat block text-[0.6rem] uppercase tracking-[0.4rem] text-[var(--gold)]/40">01</span>
-                <h3 class="font-playfair mt-2 mb-3 text-3xl leading-tight text-[var(--gold)] drop-shadow-[0_2px_12px_rgba(212,175,55,0.4)]">El Corte</h3>
-                <p class="font-cormorant max-w-[260px] text-base leading-relaxed text-white/55 max-md:mx-auto">
+     left-[8%] top-[22%]
+     max-md:left-1/2 max-md:right-auto max-md:-translate-x-1/2 max-md:text-center max-md:w-[85vw] max-md:top-[18%] max-md:px-4 max-md:py-3">
+                <span class="font-montserrat block text-[0.55rem] uppercase tracking-[0.4rem] text-[var(--gold)]/40 max-md:text-[0.45rem]">01</span>
+                <h3 class="font-playfair mt-1.5 mb-2 text-3xl leading-tight text-[var(--gold)] drop-shadow-[0_2px_12px_rgba(212,175,55,0.4)] max-md:text-xl max-md:mt-1 max-md:mb-1.5">El Corte</h3>
+                <p class="font-cormorant max-w-[260px] text-base leading-relaxed text-white/55 max-md:mx-auto max-md:text-sm max-md:leading-snug">
                     Precisión milimétrica en cada línea.<br>
                     La geometría que define tu estilo.
                 </p>
@@ -143,11 +145,11 @@ $config = ConfigWeb::obtener();
 
             <!-- Label 2 -->
             <div id="label2" class="float-label absolute z-[15] pointer-events-none text-right
-     right-[8%] top-[42%]
-     max-md:left-1/2 max-md:right-auto max-md:-translate-x-1/2 max-md:text-center max-md:w-[85vw]">
-                <span class="font-montserrat block text-[0.6rem] uppercase tracking-[0.4rem] text-[var(--gold)]/40">02</span>
-                <h3 class="font-playfair mt-2 mb-3 text-3xl leading-tight text-[var(--gold)] drop-shadow-[0_2px_12px_rgba(212,175,55,0.4)]">El Ambiente</h3>
-                <p class="font-cormorant ml-auto max-w-[260px] text-base leading-relaxed text-white/55 max-md:mx-auto">
+     right-[8%] top-[38%]
+     max-md:left-1/2 max-md:right-auto max-md:-translate-x-1/2 max-md:text-center max-md:w-[85vw] max-md:top-[38%] max-md:px-4 max-md:py-3">
+                <span class="font-montserrat block text-[0.55rem] uppercase tracking-[0.4rem] text-[var(--gold)]/40 max-md:text-[0.45rem]">02</span>
+                <h3 class="font-playfair mt-1.5 mb-2 text-3xl leading-tight text-[var(--gold)] drop-shadow-[0_2px_12px_rgba(212,175,55,0.4)] max-md:text-xl max-md:mt-1 max-md:mb-1.5">El Ambiente</h3>
+                <p class="font-cormorant ml-auto max-w-[260px] text-base leading-relaxed text-white/55 max-md:mx-auto max-md:text-sm max-md:leading-snug">
                     Un refugio de elegancia para el<br>
                     caballero que sabe lo que quiere.
                 </p>
@@ -155,11 +157,11 @@ $config = ConfigWeb::obtener();
 
             <!-- Label 3 -->
             <div id="label3" class="float-label absolute z-[15] pointer-events-none
-     left-[10%] top-[65%]
-     max-md:left-1/2 max-md:right-auto max-md:-translate-x-1/2 max-md:text-center max-md:w-[85vw]">
-                <span class="font-montserrat block text-[0.6rem] uppercase tracking-[0.4rem] text-[var(--gold)]/40">03</span>
-                <h3 class="font-playfair mt-2 mb-3 text-3xl leading-tight text-[var(--gold)] drop-shadow-[0_2px_12px_rgba(212,175,55,0.4)]">El Acabado</h3>
-                <p class="font-cormorant max-w-[260px] text-base leading-relaxed text-white/55 max-md:mx-auto">
+     left-[10%] top-[60%]
+     max-md:left-1/2 max-md:right-auto max-md:-translate-x-1/2 max-md:text-center max-md:w-[85vw] max-md:top-[62%] max-md:px-4 max-md:py-3">
+                <span class="font-montserrat block text-[0.55rem] uppercase tracking-[0.4rem] text-[var(--gold)]/40 max-md:text-[0.45rem]">03</span>
+                <h3 class="font-playfair mt-1.5 mb-2 text-3xl leading-tight text-[var(--gold)] drop-shadow-[0_2px_12px_rgba(212,175,55,0.4)] max-md:text-xl max-md:mt-1 max-md:mb-1.5">El Acabado</h3>
+                <p class="font-cormorant max-w-[260px] text-base leading-relaxed text-white/55 max-md:mx-auto max-md:text-sm max-md:leading-snug">
                     Productos de alta gama para un<br>
                     resultado impecable que dura días.
                 </p>
@@ -167,18 +169,22 @@ $config = ConfigWeb::obtener();
 
 
             <!-- ── BARRA DE PROGRESO INFERIOR ── -->
-            <div class="absolute bottom-8 left-12 right-12 z-[30] flex items-center gap-5">
-                <span class="font-montserrat shrink-0 text-[0.6rem] uppercase tracking-[0.3rem] text-white/20">Scroll</span>
-                <div class="relative h-px flex-1 overflow-hidden bg-white/10">
+            <div class="absolute bottom-8 left-12 right-12 z-[30] flex items-center gap-5 max-md:bottom-6 max-md:left-6 max-md:right-6 max-md:gap-3">
+                <span class="font-montserrat shrink-0 text-[0.6rem] uppercase tracking-[0.3rem] text-white/20 max-md:text-[0.7rem] max-md:tracking-[0.25rem]">Scroll</span>
+                <div class="relative h-px flex-1 overflow-hidden bg-white/10 max-md:h-[2px]">
                     <div id="progressFill" class="absolute top-0 left-0 h-full bg-[var(--gold)] transition-[width] duration-75 ease-linear" style="width:0%;"></div>
                 </div>
-                <span id="progressLabel" class="font-montserrat w-8 shrink-0 text-right text-[0.6rem] uppercase tracking-[0.2rem] text-white/20">0%</span>
+                <span id="progressLabel" class="font-montserrat w-8 shrink-0 text-right text-[0.6rem] uppercase tracking-[0.2rem] text-white/20 max-md:text-[0.7rem] max-md:w-10">0%</span>
             </div>
 
             <!-- ── INDICADOR SCROLL INICIAL ── -->
             <div id="scrollHint" class="absolute bottom-24 left-1/2 z-[30] -translate-x-1/2 text-center pointer-events-none transition-opacity duration-500">
-                <div class="scroll-mouse mx-auto"></div>
-                <span class="font-montserrat mt-3 block text-[0.55rem] uppercase tracking-[0.35rem] text-white/25">Scroll</span>
+                <div class="scroll-mouse mx-auto max-md:hidden"></div>
+                <div class="md:hidden mx-auto flex flex-col items-center gap-1">
+                    <i class="bi bi-chevron-double-down text-[var(--gold)]/50 animate-bounce text-lg"></i>
+                    <span class="font-montserrat block text-[0.5rem] uppercase tracking-[0.3rem] text-white/25">Desliza</span>
+                </div>
+                <span class="font-montserrat mt-3 block text-[0.55rem] uppercase tracking-[0.35rem] text-white/25 max-md:hidden">Scroll</span>
             </div>
 
         </div>

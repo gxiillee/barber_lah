@@ -86,6 +86,11 @@ $dias_semana = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes',
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
     <link rel="stylesheet" href="../public/assets/css/estilos.css">
+    <style>
+        .mobile-collapse { max-height: 0; overflow: hidden; transition: max-height 0.5s cubic-bezier(0.4,0,0.2,1), opacity 0.35s ease; opacity: 0.4; }
+        .mobile-collapse.expanded { max-height: 2000px; opacity: 1; }
+        @media (min-width: 1024px) { .mobile-collapse { max-height: none !important; overflow: visible !important; opacity: 1 !important; } }
+    </style>
 </head>
 <body class="min-h-screen bg-[var(--bg)] text-[var(--tx)] font-sans">
 
@@ -127,45 +132,63 @@ $dias_semana = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes',
         <!-- ── Formulario ── -->
         <section class="lg:col-span-4 rounded-xl border border-[var(--brd)] bg-gradient-to-b from-white/[0.04] to-white/[0.01] p-5 glow-card">
             <h2 class="text-[0.85rem] font-semibold text-[var(--tx)] mb-4 flex items-center gap-2" style="font-family: var(--pf);">
-                <span class="w-7 h-7 rounded-lg bg-gradient-to-br from-purple-500/20 to-purple-500/5 border border-purple-500/20 flex items-center justify-center text-purple-400 text-[0.7rem]">
+                <span class="w-7 h-7 rounded-lg bg-gradient-to-br from-[var(--gold-dim)] to-transparent border border-[var(--gold-brd)] flex items-center justify-center text-[var(--gold)] text-[0.7rem]">
                     <i class="bi bi-shield-plus"></i>
                 </span>
                 Nueva restricción
+                <button type="button" onclick="toggleForm(this)" class="lg:hidden ml-auto flex items-center gap-1.5 text-[0.6rem] text-[var(--gold)] cursor-pointer transition-all hover:opacity-80">
+                    <i class="bi bi-plus-circle text-[0.7rem]"></i>
+                    <span>Mostrar</span>
+                </button>
             </h2>
 
+            <div class="mobile-collapse">
             <form action="" method="POST" class="space-y-4">
                 <input type="hidden" name="accion" value="crear">
 
                 <div>
                     <label class="block text-[0.62rem] uppercase tracking-[0.15em] text-[var(--tx-m)] font-semibold mb-1.5">Fecha</label>
-                    <input type="date" name="fecha" required min="<?= date('Y-m-d') ?>"
-                           class="w-full bg-[#0d0d0d] border border-[var(--brd)] rounded-lg px-3 py-2.5 text-[0.8rem] text-[var(--tx)] focus:outline-hidden focus:border-[var(--gold-brd)] focus:ring-1 focus:ring-[var(--gold-dim)] transition-all">
+                    <div class="flex gap-2">
+                        <input type="date" name="fecha" id="fechaBloqueo" required min="<?= date('Y-m-d') ?>"
+                               class="flex-1 bg-[#0d0d0d] border border-[var(--brd)] rounded-lg px-3 py-2.5 text-[0.8rem] text-[var(--tx)] focus:outline-hidden focus:border-[var(--gold-brd)] focus:ring-1 focus:ring-[var(--gold-dim)] transition-all">
+                    </div>
+                    <div class="flex gap-1.5 mt-1.5">
+                        <button type="button" onclick="ponerFecha('today')" class="px-2 py-1 rounded-md text-[0.55rem] font-medium border border-[var(--brd)] text-[var(--tx-d)] bg-white/[0.03] hover:bg-white/10 hover:border-white/20 transition-all cursor-pointer">
+                            <i class="bi bi-dot"></i> Hoy
+                        </button>
+                        <button type="button" onclick="ponerFecha('tomorrow')" class="px-2 py-1 rounded-md text-[0.55rem] font-medium border border-[var(--brd)] text-[var(--tx-d)] bg-white/[0.03] hover:bg-white/10 hover:border-white/20 transition-all cursor-pointer">
+                            Mañana
+                        </button>
+                        <button type="button" onclick="ponerFecha('thisweekend')" class="px-2 py-1 rounded-md text-[0.55rem] font-medium border border-[var(--brd)] text-[var(--tx-d)] bg-white/[0.03] hover:bg-white/10 hover:border-white/20 transition-all cursor-pointer">
+                            Fin de semana
+                        </button>
+                    </div>
                 </div>
 
                 <div>
                     <label class="block text-[0.62rem] uppercase tracking-[0.15em] text-[var(--tx-m)] font-semibold mb-1.5">Duración</label>
                     <div class="grid grid-cols-2 gap-2 bg-[#0d0d0d] p-1 rounded-lg border border-[var(--brd)]">
-                        <label class="flex items-center justify-center gap-1.5 py-2 text-[0.65rem] font-medium rounded-md cursor-pointer transition-all has-[:checked]:bg-purple-500/15 has-[:checked]:text-purple-300 has-[:checked]:border-purple-500/30 has-[:checked]:shadow-xs text-[var(--tx-m)] border border-transparent">
+                        <label class="flex items-center justify-center gap-1.5 py-2 text-[0.65rem] font-medium rounded-md cursor-pointer transition-all has-[:checked]:bg-white/10 has-[:checked]:text-[var(--tx)] has-[:checked]:border-[var(--gold-brd)] has-[:checked]:shadow-xs text-[var(--tx-m)] border border-transparent">
                             <input type="radio" name="tipo" value="completo" checked onclick="toggleSeccionHoras(false)" class="sr-only">
                             <i class="bi bi-calendar-minus text-[0.7rem]"></i> Día completo
                         </label>
-                        <label class="flex items-center justify-center gap-1.5 py-2 text-[0.65rem] font-medium rounded-md cursor-pointer transition-all has-[:checked]:bg-amber-500/15 has-[:checked]:text-amber-300 has-[:checked]:border-amber-500/30 has-[:checked]:shadow-xs text-[var(--tx-m)] border border-transparent">
+                        <label class="flex items-center justify-center gap-1.5 py-2 text-[0.65rem] font-medium rounded-md cursor-pointer transition-all has-[:checked]:bg-white/10 has-[:checked]:text-[var(--tx)] has-[:checked]:border-[var(--gold-brd)] has-[:checked]:shadow-xs text-[var(--tx-m)] border border-transparent">
                             <input type="radio" name="tipo" value="horas" onclick="toggleSeccionHoras(true)" class="sr-only">
                             <i class="bi bi-clock text-[0.7rem]"></i> Tramos
                         </label>
                     </div>
                 </div>
 
-                <div id="wrapper_horas" class="hidden grid grid-cols-2 gap-3 p-3 bg-[#0d0d0d] rounded-lg border border-amber-500/15">
+                <div id="wrapper_horas" class="hidden grid grid-cols-2 gap-3 p-3 bg-[#0d0d0d] rounded-lg border border-[var(--brd)]">
                     <div>
                         <label class="block text-[0.58rem] text-[var(--tx-d)] font-medium mb-1">Desde</label>
                         <input type="time" name="hora_inicio"
-                               class="w-full bg-[#1a1a1a] border border-[var(--brd)] rounded-md px-2 py-1.5 text-[0.75rem] text-[var(--tx)] focus:outline-hidden focus:border-amber-500/40">
+                               class="w-full bg-[#1a1a1a] border border-[var(--brd)] rounded-md px-2 py-1.5 text-[0.75rem] text-[var(--tx)] focus:outline-hidden focus:border-[var(--gold-brd)]">
                     </div>
                     <div>
                         <label class="block text-[0.58rem] text-[var(--tx-d)] font-medium mb-1">Hasta</label>
                         <input type="time" name="hora_fin"
-                               class="w-full bg-[#1a1a1a] border border-[var(--brd)] rounded-md px-2 py-1.5 text-[0.75rem] text-[var(--tx)] focus:outline-hidden focus:border-amber-500/40">
+                               class="w-full bg-[#1a1a1a] border border-[var(--brd)] rounded-md px-2 py-1.5 text-[0.75rem] text-[var(--tx)] focus:outline-hidden focus:border-[var(--gold-brd)]">
                     </div>
                 </div>
 
@@ -173,10 +196,9 @@ $dias_semana = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes',
                     <label class="block text-[0.62rem] uppercase tracking-[0.15em] text-[var(--tx-m)] font-semibold mb-1.5">Motivo</label>
                     <div class="flex flex-wrap gap-1.5 mb-2">
                         <?php $presets = ['Cita médica', 'Vacaciones', 'Asuntos propios', 'Festivo', 'Formación', 'Personal']; ?>
-                        <?php $colores = ['text-rose-300 bg-rose-500/10 border-rose-500/20', 'text-sky-300 bg-sky-500/10 border-sky-500/20', 'text-amber-300 bg-amber-500/10 border-amber-500/20', 'text-emerald-300 bg-emerald-500/10 border-emerald-500/20', 'text-violet-300 bg-violet-500/10 border-violet-500/20', 'text-orange-300 bg-orange-500/10 border-orange-500/20']; ?>
-                        <?php foreach ($presets as $i => $p): ?>
+                        <?php foreach ($presets as $p): ?>
                             <button type="button" onclick="ponerMotivo('<?= h($p) ?>')"
-                                    class="px-2.5 py-1 rounded-full text-[0.55rem] font-semibold tracking-wide border transition-all cursor-pointer <?= $colores[$i] ?> hover:opacity-80">
+                                    class="px-2.5 py-1 rounded-full text-[0.55rem] font-semibold tracking-wide border border-[var(--brd)] text-[var(--tx-m)] bg-white/[0.03] hover:bg-white/10 hover:border-white/20 active:bg-white/15 transition-all cursor-pointer">
                                 <?= h($p) ?>
                             </button>
                         <?php endforeach; ?>
@@ -194,6 +216,7 @@ $dias_semana = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes',
                     <i class="bi bi-shield-plus text-[0.75rem] mr-1.5"></i> Bloquear
                 </button>
             </form>
+            </div><!-- /mobile-collapse -->
         </section>
 
         <!-- ── Lista ── -->
@@ -322,6 +345,15 @@ $dias_semana = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes',
 <?php include_once __DIR__ . '/includes/toast.php'; ?>
 
 <script>
+function toggleForm(btn) {
+    const wrapper = btn.closest('section').querySelector('.mobile-collapse');
+    if (!wrapper) return;
+    wrapper.classList.toggle('expanded');
+    const open = wrapper.classList.contains('expanded');
+    btn.querySelector('span').textContent = open ? 'Ocultar' : 'Mostrar';
+    btn.querySelector('i').className = open ? 'bi bi-dash-circle' : 'bi bi-plus-circle';
+}
+
 function toggleSeccionHoras(mostrar) {
     const wrapper = document.getElementById('wrapper_horas');
     wrapper.classList.toggle('hidden', !mostrar);
@@ -329,6 +361,21 @@ function toggleSeccionHoras(mostrar) {
 
 function ponerMotivo(texto) {
     document.getElementById('motivoInput').value = texto;
+}
+
+function ponerFecha(que) {
+    const input = document.getElementById('fechaBloqueo');
+    const hoy = new Date();
+    if (que === 'today') {
+        input.value = hoy.toISOString().slice(0,10);
+    } else if (que === 'tomorrow') {
+        const m = new Date(hoy); m.setDate(m.getDate() + 1);
+        input.value = m.toISOString().slice(0,10);
+    } else if (que === 'thisweekend') {
+        const diasHastaSab = 6 - hoy.getDay(); // 6=sábado
+        const sab = new Date(hoy); sab.setDate(sab.getDate() + diasHastaSab);
+        input.value = sab.toISOString().slice(0,10);
+    }
 }
 </script>
 

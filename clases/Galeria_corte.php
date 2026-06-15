@@ -135,6 +135,32 @@ class Corte {
     }
 
     /**
+     * Reordena las fotos según el orden recibido (array de IDs).
+     * Cada posición en el array se convierte en el valor de 'orden'.
+     */
+    public static function reordenar(array $ids): bool {
+        try {
+            $db = ConexionMongo::conectar();
+            $bulk = [];
+            foreach ($ids as $orden => $idStr) {
+                $bulk[] = [
+                    'updateOne' => [
+                        ['_id' => new MongoDB\BSON\ObjectId($idStr)],
+                        ['$set' => ['orden' => $orden]]
+                    ]
+                ];
+            }
+            if (!empty($bulk)) {
+                $db->galeria->bulkWrite($bulk);
+            }
+            return true;
+        } catch (Exception $e) {
+            error_log("Corte::reordenar error: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
      * Elimina una foto definitivamente de MongoDB.
      */
     public static function eliminar(string $id): bool {

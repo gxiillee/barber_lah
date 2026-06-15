@@ -134,6 +134,11 @@ $pagina_activa = 'productos';
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
     <link rel="stylesheet" href="../public/assets/css/estilos.css">
+    <style>
+        .mobile-collapse { max-height: 0; overflow: hidden; transition: max-height 0.5s cubic-bezier(0.4,0,0.2,1), opacity 0.35s ease; opacity: 0.4; }
+        .mobile-collapse.expanded { max-height: 2000px; opacity: 1; }
+        @media (min-width: 1024px) { .mobile-collapse { max-height: none !important; overflow: visible !important; opacity: 1 !important; } }
+    </style>
 </head>
 <body class="min-h-screen bg-[var(--bg)] text-[var(--tx)] font-sans">
 
@@ -158,7 +163,12 @@ $pagina_activa = 'productos';
         <section class="lg:col-span-5 rounded-xl border border-[var(--brd)] bg-white/5 p-5 glow-card">
             <h2 class="text-[0.95rem] font-medium text-[var(--tx)] mb-4 flex items-center gap-2" style="font-family: var(--pf);">
                 <i class="bi bi-box-seam text-[var(--gold)]"></i> Nuevo Producto
+                <button type="button" onclick="toggleForm(this)" class="lg:hidden ml-auto flex items-center gap-1.5 text-[0.6rem] text-[var(--gold)] cursor-pointer transition-all hover:opacity-80">
+                    <i class="bi bi-plus-circle text-[0.7rem]"></i>
+                    <span>Mostrar</span>
+                </button>
             </h2>
+            <div class="mobile-collapse">
             <form action="" method="POST" enctype="multipart/form-data" class="space-y-4">
                 <input type="hidden" name="accion" value="crear">
 
@@ -169,7 +179,7 @@ $pagina_activa = 'productos';
 
                 <div>
                     <label class="block text-[0.68rem] uppercase tracking-wider text-[var(--tx-m)] font-semibold mb-1.5">Precio (€) *</label>
-                    <input type="number" name="precio" required min="0.01" step="0.50" placeholder="12.00" class="w-full bg-[#141414] border border-[var(--brd)] rounded-lg px-3 py-2 text-[0.8rem] text-[var(--tx)] focus:outline-hidden focus:border-[var(--gold-brd)]">
+                    <input type="number" name="precio" required min="0.01" step="0.01" placeholder="12.00" class="w-full bg-[#141414] border border-[var(--brd)] rounded-lg px-3 py-2 text-[0.8rem] text-[var(--tx)] focus:outline-hidden focus:border-[var(--gold-brd)]">
                 </div>
 
                 <div>
@@ -179,14 +189,23 @@ $pagina_activa = 'productos';
 
                 <div>
                     <label class="block text-[0.68rem] uppercase tracking-wider text-[var(--tx-m)] font-semibold mb-1.5">Imagen *</label>
-                    <input type="file" name="imagen" accept="image/*" required
-                           class="w-full text-[0.75rem] text-[var(--tx-m)] file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border file:border-[var(--brd)] file:bg-[#141414] file:text-[0.7rem] file:text-[var(--tx)] hover:file:bg-white/5 file:cursor-pointer file:transition-all">
+                    <div class="flex gap-3 items-start">
+                        <div class="flex-1">
+                            <input type="file" name="imagen" id="prodImagen" accept="image/*" required
+                                   onchange="previewImagen(this, 'prodPreview')"
+                                   class="w-full text-[0.75rem] text-[var(--tx-m)] file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border file:border-[var(--brd)] file:bg-[#141414] file:text-[0.7rem] file:text-[var(--tx)] hover:file:bg-white/5 file:cursor-pointer file:transition-all">
+                        </div>
+                        <div id="prodPreview" class="hidden shrink-0 w-20 h-20 rounded-xl border-2 border-dashed border-[var(--brd)] overflow-hidden bg-[#141414] transition-all duration-300">
+                            <img class="w-full h-full object-cover">
+                        </div>
+                    </div>
                 </div>
 
                 <button type="submit" class="w-full bg-[var(--gold)] hover:opacity-90 text-[#0d0d0d] font-semibold py-2.5 rounded-lg text-[0.72rem] tracking-widest uppercase transition-all mt-2 cursor-pointer">
                     Añadir Producto
                 </button>
             </form>
+            </div><!-- /mobile-collapse -->
         </section>
 
         <!-- Listado productos -->
@@ -283,7 +302,7 @@ $pagina_activa = 'productos';
 
             <div>
                 <label class="block text-[0.68rem] uppercase tracking-wider text-[var(--tx-m)] font-semibold mb-1.5">Precio (€) *</label>
-                <input type="number" name="precio" id="editPrecio" required min="0.01" step="0.50" class="w-full bg-[#141414] border border-[var(--brd)] rounded-lg px-3 py-2 text-[0.8rem] text-[var(--tx)] focus:outline-hidden focus:border-[var(--gold-brd)]">
+                <input type="number" name="precio" id="editPrecio" required min="0.01" step="0.01" class="w-full bg-[#141414] border border-[var(--brd)] rounded-lg px-3 py-2 text-[0.8rem] text-[var(--tx)] focus:outline-hidden focus:border-[var(--gold-brd)]">
             </div>
 
             <div>
@@ -293,7 +312,16 @@ $pagina_activa = 'productos';
 
             <div>
                 <label class="block text-[0.68rem] uppercase tracking-wider text-[var(--tx-m)] font-semibold mb-1.5">Imagen (dejar vacío para mantener actual)</label>
-                <input type="file" name="imagen" accept="image/*" class="w-full text-[0.75rem] text-[var(--tx-m)] file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border file:border-[var(--brd)] file:bg-[#141414] file:text-[0.7rem] file:text-[var(--tx)] hover:file:bg-white/5 file:cursor-pointer file:transition-all">
+                <div class="flex gap-3 items-start">
+                    <div class="flex-1">
+                        <input type="file" name="imagen" id="editProdImagen" accept="image/*"
+                               onchange="previewImagen(this, 'editProdPreview')"
+                               class="w-full text-[0.75rem] text-[var(--tx-m)] file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border file:border-[var(--brd)] file:bg-[#141414] file:text-[0.7rem] file:text-[var(--tx)] hover:file:bg-white/5 file:cursor-pointer file:transition-all">
+                    </div>
+                    <div id="editProdPreview" class="hidden shrink-0 w-16 h-16 rounded-lg border-2 border-dashed border-[var(--brd)] overflow-hidden bg-[#141414]">
+                        <img class="w-full h-full object-cover">
+                    </div>
+                </div>
             </div>
 
             <div class="flex gap-3 pt-2">
@@ -330,6 +358,27 @@ function cerrarEditar() {
     content.classList.remove('scale-100');
     content.classList.add('scale-95');
     setTimeout(() => { modal.classList.add('hidden'); }, 200);
+}
+
+function toggleForm(btn) {
+    const wrapper = btn.closest('section').querySelector('.mobile-collapse');
+    if (!wrapper) return;
+    wrapper.classList.toggle('expanded');
+    const open = wrapper.classList.contains('expanded');
+    btn.querySelector('span').textContent = open ? 'Ocultar' : 'Mostrar';
+    btn.querySelector('i').className = open ? 'bi bi-dash-circle' : 'bi bi-plus-circle';
+}
+
+function previewImagen(input, previewId) {
+    const preview = document.getElementById(previewId);
+    const file = input.files[0];
+    if (!file || !preview) return;
+    const reader = new FileReader();
+    reader.onload = function (e) {
+        preview.classList.remove('hidden');
+        preview.querySelector('img').src = e.target.result;
+    };
+    reader.readAsDataURL(file);
 }
 </script>
 

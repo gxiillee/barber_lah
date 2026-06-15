@@ -113,6 +113,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
+// ── AJAX: reordenar ──
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion']) && $_POST['accion'] === 'reordenar') {
+    $ids = $_POST['ids'] ?? '';
+    $idsArray = json_decode($ids, true);
+    if (is_array($idsArray) && Corte::reordenar($idsArray)) {
+        echo json_encode(['ok' => true]);
+    } else {
+        echo json_encode(['ok' => false]);
+    }
+    exit;
+}
+
 $fotos = Corte::obtenerTodos();
 $pagina_activa = 'galeria';
 ?>
@@ -123,8 +135,18 @@ $pagina_activa = 'galeria';
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Galería — Panel Admin</title>
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
     <link rel="stylesheet" href="../public/assets/css/estilos.css">
+    <style>
+        .sortable-ghost { opacity: 0.25; border: 2px dashed rgba(212, 175, 55, 0.5) !important; }
+        .sortable-drag { z-index: 9999 !important; transform: scale(1.06); box-shadow: 0 20px 60px rgba(0,0,0,0.6); border-color: rgba(212, 175, 55, 0.3) !important; }
+        .sortable-item { transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.25s ease, border-color 0.25s ease; }
+        #galeriaGrid { min-height: 120px; }
+        .mobile-collapse { max-height: 0; overflow: hidden; transition: max-height 0.5s cubic-bezier(0.4,0,0.2,1), opacity 0.35s ease; opacity: 0.4; }
+        .mobile-collapse.expanded { max-height: 2000px; opacity: 1; }
+        @media (min-width: 1024px) { .mobile-collapse { max-height: none !important; overflow: visible !important; opacity: 1 !important; } }
+    </style>
 </head>
 <body class="min-h-screen bg-[var(--bg)] text-[var(--tx)] font-sans">
 
@@ -149,14 +171,27 @@ $pagina_activa = 'galeria';
         <section class="lg:col-span-5 rounded-xl border border-[var(--brd)] bg-white/5 p-5 glow-card">
             <h2 class="text-[0.95rem] font-medium text-[var(--tx)] mb-4 flex items-center gap-2" style="font-family: var(--pf);">
                 <i class="bi bi-camera text-[var(--gold)]"></i> Nueva Foto
+                <button type="button" onclick="toggleForm(this)" class="lg:hidden ml-auto flex items-center gap-1.5 text-[0.6rem] text-[var(--gold)] cursor-pointer transition-all hover:opacity-80">
+                    <i class="bi bi-plus-circle text-[0.7rem]"></i>
+                    <span>Mostrar</span>
+                </button>
             </h2>
+            <div class="mobile-collapse">
             <form action="" method="POST" enctype="multipart/form-data" class="space-y-4">
                 <input type="hidden" name="accion" value="crear">
 
                 <div>
                     <label class="block text-[0.68rem] uppercase tracking-wider text-[var(--tx-m)] font-semibold mb-1.5">Imagen *</label>
-                    <input type="file" name="imagen" accept="image/*" required
-                           class="w-full text-[0.75rem] text-[var(--tx-m)] file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border file:border-[var(--brd)] file:bg-[#141414] file:text-[0.7rem] file:text-[var(--tx)] hover:file:bg-white/5 file:cursor-pointer file:transition-all">
+                    <div class="flex gap-3 items-start">
+                        <div class="flex-1">
+                            <input type="file" name="imagen" id="galImagen" accept="image/*" required
+                                   onchange="previewImagen(this, 'galPreview')"
+                                   class="w-full text-[0.75rem] text-[var(--tx-m)] file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border file:border-[var(--brd)] file:bg-[#141414] file:text-[0.7rem] file:text-[var(--tx)] hover:file:bg-white/5 file:cursor-pointer file:transition-all">
+                        </div>
+                        <div id="galPreview" class="hidden shrink-0 w-20 h-20 rounded-xl border-2 border-dashed border-[var(--brd)] overflow-hidden bg-[#141414] transition-all duration-300">
+                            <img class="w-full h-full object-cover">
+                        </div>
+                    </div>
                 </div>
 
                 <div>
@@ -173,6 +208,7 @@ $pagina_activa = 'galeria';
                     Subir Foto
                 </button>
             </form>
+            </div><!-- /mobile-collapse -->
         </section>
 
         <!-- Grid fotos -->
@@ -190,15 +226,33 @@ $pagina_activa = 'galeria';
                     <p class="text-[0.75rem] text-[var(--tx-m)]">No hay fotos en la galería.</p>
                 </div>
             <?php else: ?>
-                <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 stagger-container">
+                <div class="flex items-center justify-between mb-3 px-1">
+                    <span class="text-[0.55rem] text-[var(--tx-d)] flex items-center gap-1.5">
+                        <i class="bi bi-arrows-move text-[0.65rem]"></i> Mantén pulsado y arrastra para reordenar
+                    </span>
+                    <button onclick="guardarOrden()" id="btnGuardarOrden"
+                            class="hidden text-[0.55rem] font-semibold uppercase tracking-wider px-3 py-1.5 rounded-lg bg-[var(--gold)] text-[#0d0d0d] hover:opacity-90 transition-all cursor-pointer">
+                        <i class="bi bi-check2 mr-1"></i> Guardar orden
+                    </button>
+                </div>
+                <div class="flex flex-wrap gap-3" id="galeriaGrid">
                     <?php foreach ($fotos as $f): ?>
-                        <?php $activo = (bool)$f['activo']; ?>
-                        <div class="slot-card rounded-xl overflow-hidden border transition-all duration-150 <?= $activo ? 'border-[var(--brd)] bg-white/5' : 'border-red-900/20 bg-red-900/5 opacity-55' ?>">
+                        <?php $activo = (bool)$f['activo'];
+                        $orden = (int)($f['orden'] ?? 0); ?>
+                        <div class="sortable-item w-[calc(50%-0.375rem)] sm:w-[calc(33.333%-0.5rem)] slot-card rounded-xl overflow-hidden border transition-all duration-150 <?= $activo ? 'border-[var(--brd)] bg-white/5' : 'border-red-900/20 bg-red-900/5 opacity-55' ?>"
+                             data-id="<?= (string)$f['_id'] ?>">
+
+                            <!-- Drag handle bar (bigger touch target on mobile) -->
+                            <div class="drag-handle flex items-center gap-2 px-3 py-2.5 sm:py-1.5 bg-black/20 border-b border-white/5 cursor-grab active:cursor-grabbing select-none touch-none">
+                                <i class="bi bi-grip-vertical text-[var(--tx-d)] sm:text-[0.65rem]"></i>
+                                <span class="text-[0.45rem] sm:text-[0.5rem] font-mono text-[var(--tx-d)] font-semibold orden-num">#<?= $orden + 1 ?></span>
+                                <span class="ml-auto text-[0.45rem] text-[var(--tx-d)]/40 sm:hidden"><i class="bi bi-arrows-move"></i> mantener</span>
+                            </div>
 
                             <!-- Image -->
                             <div class="aspect-[4/3] overflow-hidden bg-[#141414] relative group">
                                 <?php if (!empty($f['imagen'])): ?>
-                                    <img src="../<?= h($f['imagen']) ?>" alt="<?= h($f['categoria'] ?? '') ?>" class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105">
+                                    <img src="../<?= h($f['imagen']) ?>" alt="<?= h($f['categoria'] ?? '') ?>" class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105 pointer-events-none">
                                 <?php else: ?>
                                     <div class="w-full h-full flex items-center justify-center text-[var(--tx-d)]"><i class="bi bi-image text-2xl"></i></div>
                                 <?php endif; ?>
@@ -206,8 +260,8 @@ $pagina_activa = 'galeria';
                                     <div class="absolute top-2 right-2 text-[0.45rem] uppercase font-bold px-1.5 py-0.5 rounded-full bg-red-500/20 text-red-400 border border-red-500/30 backdrop-blur-sm">Inactiva</div>
                                 <?php endif; ?>
 
-                                <!-- Hover actions -->
-                                <div class="absolute inset-0 bg-black/60 flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                                <!-- Hover actions (desktop) -->
+                                <div class="absolute inset-0 bg-black/60 items-center justify-center gap-2 transition-opacity duration-200 hidden sm:hidden lg:flex opacity-0 group-hover:opacity-100">
                                     <button onclick="abrirEditar('<?= (string)$f['_id'] ?>', '<?= h(addslashes($f['categoria'] ?? '')) ?>', '<?= h(addslashes($f['descripcion'] ?? '')) ?>')"
                                             class="w-9 h-9 rounded-lg bg-white/10 border border-white/20 flex items-center justify-center text-white hover:bg-white/20 transition-all cursor-pointer" title="Editar">
                                         <i class="bi bi-pencil-square text-[0.85rem]"></i>
@@ -229,6 +283,29 @@ $pagina_activa = 'galeria';
                                         </button>
                                     </form>
                                 </div>
+                            </div>
+
+                            <!-- Mobile actions row -->
+                            <div class="flex items-center gap-1 px-2.5 py-2 border-t border-white/5 lg:hidden">
+                                <button onclick="abrirEditar('<?= (string)$f['_id'] ?>', '<?= h(addslashes($f['categoria'] ?? '')) ?>', '<?= h(addslashes($f['descripcion'] ?? '')) ?>')"
+                                        class="flex-1 flex items-center justify-center py-2 rounded-lg bg-white/5 border border-white/10 text-[var(--tx-m)] hover:bg-white/10 hover:text-[var(--tx)] transition-all cursor-pointer" title="Editar">
+                                    <i class="bi bi-pencil-square text-[0.8rem]"></i>
+                                </button>
+                                <form action="" method="POST" class="flex-1 m-0">
+                                    <input type="hidden" name="accion" value="toggle">
+                                    <input type="hidden" name="id" value="<?= (string)$f['_id'] ?>">
+                                    <button type="submit" title="<?= $activo ? 'Desactivar' : 'Activar' ?>"
+                                            class="w-full flex items-center justify-center py-2 rounded-lg border transition-all cursor-pointer <?= $activo ? 'bg-rose-500/10 border-rose-500/20 text-rose-400 hover:bg-rose-500/20' : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/20' ?>">
+                                        <i class="bi <?= $activo ? 'bi-eye-slash-fill' : 'bi-eye-fill' ?> text-[0.8rem]"></i>
+                                    </button>
+                                </form>
+                                <form action="" method="POST" onsubmit="return confirm('¿Eliminar esta foto definitivamente?')" class="flex-1 m-0">
+                                    <input type="hidden" name="accion" value="eliminar">
+                                    <input type="hidden" name="id" value="<?= (string)$f['_id'] ?>">
+                                    <button type="submit" title="Eliminar" class="w-full flex items-center justify-center py-2 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-400 hover:bg-rose-500/20 transition-all cursor-pointer">
+                                        <i class="bi bi-trash3 text-[0.8rem]"></i>
+                                    </button>
+                                </form>
                             </div>
 
                             <!-- Info -->
@@ -263,7 +340,16 @@ $pagina_activa = 'galeria';
 
             <div>
                 <label class="block text-[0.68rem] uppercase tracking-wider text-[var(--tx-m)] font-semibold mb-1.5">Nueva imagen (opcional)</label>
-                <input type="file" name="imagen" accept="image/*" class="w-full text-[0.75rem] text-[var(--tx-m)] file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border file:border-[var(--brd)] file:bg-[#141414] file:text-[0.7rem] file:text-[var(--tx)] hover:file:bg-white/5 file:cursor-pointer file:transition-all">
+                <div class="flex gap-3 items-start">
+                    <div class="flex-1">
+                        <input type="file" name="imagen" id="editGalImagen" accept="image/*"
+                               onchange="previewImagen(this, 'editGalPreview')"
+                               class="w-full text-[0.75rem] text-[var(--tx-m)] file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border file:border-[var(--brd)] file:bg-[#141414] file:text-[0.7rem] file:text-[var(--tx)] hover:file:bg-white/5 file:cursor-pointer file:transition-all">
+                    </div>
+                    <div id="editGalPreview" class="hidden shrink-0 w-16 h-16 rounded-lg border-2 border-dashed border-[var(--brd)] overflow-hidden bg-[#141414]">
+                        <img class="w-full h-full object-cover">
+                    </div>
+                </div>
             </div>
 
             <div>
@@ -287,6 +373,63 @@ $pagina_activa = 'galeria';
 <?php include_once __DIR__ . '/includes/toast.php'; ?>
 
 <script>
+let ordenCambiado = false;
+
+/* ─── SortableJS — drag & drop reorder ─── */
+const grid = document.getElementById('galeriaGrid');
+if (grid) {
+    Sortable.create(grid, {
+        handle: '.drag-handle',
+        animation: 250,
+        easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
+        ghostClass: 'sortable-ghost',
+        dragClass: 'sortable-drag',
+        delay: 200,
+        delayOnTouchOnly: true,
+        touchStartThreshold: 8,
+        direction: 'horizontal',
+        onSort: function () {
+            ordenCambiado = true;
+            actualizarNumeros();
+            const btn = document.getElementById('btnGuardarOrden');
+            if (btn) btn.classList.remove('hidden');
+            clearTimeout(window._autoSaveTimer);
+            window._autoSaveTimer = setTimeout(guardarOrden, 1500);
+        }
+    });
+}
+
+function actualizarNumeros() {
+    document.querySelectorAll('.sortable-item').forEach((el, i) => {
+        const num = el.querySelector('.orden-num');
+        if (num) num.textContent = '#' + (i + 1);
+    });
+}
+
+/* ─── Guardar orden via AJAX ─── */
+function guardarOrden() {
+    const items = document.querySelectorAll('#galeriaGrid .sortable-item');
+    const ids = [];
+    items.forEach(el => ids.push(el.dataset.id));
+
+    fetch('galeria.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: 'accion=reordenar&ids=' + encodeURIComponent(JSON.stringify(ids))
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.ok) {
+            ordenCambiado = false;
+            const btn = document.getElementById('btnGuardarOrden');
+            if (btn) btn.classList.add('hidden');
+            if (window.Toast) Toast.mostrar('success', 'Orden guardado');
+        }
+    })
+    .catch(() => {});
+}
+
+/* ─── Edit modal ─── */
 function abrirEditar(id, categoria, descripcion) {
     document.getElementById('editId').value = id;
     document.getElementById('editCategoria').value = categoria;
@@ -309,6 +452,29 @@ function cerrarEditar() {
     content.classList.remove('scale-100');
     content.classList.add('scale-95');
     setTimeout(() => { modal.classList.add('hidden'); }, 200);
+}
+
+/* ─── Mobile form toggle ─── */
+function toggleForm(btn) {
+    const wrapper = btn.closest('section').querySelector('.mobile-collapse');
+    if (!wrapper) return;
+    wrapper.classList.toggle('expanded');
+    const open = wrapper.classList.contains('expanded');
+    btn.querySelector('span').textContent = open ? 'Ocultar' : 'Mostrar';
+    btn.querySelector('i').className = open ? 'bi bi-dash-circle' : 'bi bi-plus-circle';
+}
+
+/* ─── Image preview on file select ─── */
+function previewImagen(input, previewId) {
+    const preview = document.getElementById(previewId);
+    const file = input.files[0];
+    if (!file || !preview) return;
+    const reader = new FileReader();
+    reader.onload = function (e) {
+        preview.classList.remove('hidden');
+        preview.querySelector('img').src = e.target.result;
+    };
+    reader.readAsDataURL(file);
 }
 </script>
 

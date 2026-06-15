@@ -199,8 +199,11 @@ $pagina_activa = 'config-web';
                                        class="flex-1 bg-[#0d0d0d] border border-[var(--brd)] rounded-lg px-3 py-2.5 text-[0.8rem] text-[var(--tx)] placeholder:text-[var(--tx-d)]/40 focus:outline-hidden focus:border-[var(--gold-brd)] transition-all">
                                 <label class="shrink-0 flex items-center gap-1.5 bg-[#1a1a1a] border border-[var(--brd)] rounded-lg px-3 py-2.5 text-[0.65rem] text-[var(--tx-m)] cursor-pointer hover:border-[var(--gold-brd)] transition-all active:bg-[#222]">
                                     <i class="bi bi-upload"></i>
-                                    <input type="file" name="sobre_imagen_file" accept="image/*" class="hidden" onchange="this.form.submit()">
+                                    <input type="file" name="sobre_imagen_file" id="sobreImagenFile" accept="image/*" class="hidden" onchange="previewSobreFile(this)">
                                 </label>
+                            </div>
+                            <div id="sobrePreview" class="hidden mt-2.5 w-24 h-24 rounded-lg border-2 border-dashed border-[var(--brd)] overflow-hidden bg-[#0d0d0d]">
+                                <img class="w-full h-full object-cover">
                             </div>
                             <?php if (!empty($config['sobre_imagen'])): ?>
                                 <img src="../<?= h($config['sobre_imagen']) ?>" class="mt-2.5 h-20 w-auto rounded-lg border border-[var(--brd)] object-cover shadow-md">
@@ -412,6 +415,25 @@ document.querySelectorAll('input, textarea').forEach(el => {
         if (img && imgSrc) img.src = '../' + imgSrc;
     });
 });
+
+/* ─── Image preview on file select ─── */
+function previewSobreFile(input) {
+    const preview = document.getElementById('sobrePreview');
+    const file = input.files[0];
+    if (!file || !preview) return;
+    const reader = new FileReader();
+    reader.onload = function (e) {
+        preview.classList.remove('hidden');
+        const img = preview.querySelector('img');
+        img.src = e.target.result;
+        img.onload = function () {
+            /* also update the mockup preview */
+            const mockup = document.querySelector('.preview-mockup img');
+            if (mockup) mockup.src = e.target.result;
+        };
+    };
+    reader.readAsDataURL(file);
+}
 </script>
 
 </body>

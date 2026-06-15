@@ -84,15 +84,21 @@ updateNav(); // Estado inicial
 
 /* ────────────────────────────────────────────────────────────────
    MOTOR DE SCROLL → VIDEO
-   Scrubbing suave con interpolación (lerp) para evitar saltos.
+   Scrub con lerp rápido (0.5 = alcanza el target en 1-2 frames).
+   Incluye un threshold mínimo para no forzar búsquedas cuando
+   el video ya está cerca (esencial para Safari, que se queda en
+   negro si le asignas currentTime=0 explícitamente al cargar).
    ──────────────────────────────────────────────────────────────── */
 
-// Factor de interpolación: 0.08 = movimiento suave; más alto = más rápido
-const LERP_FACTOR = 0.08;
+// 0.5 = responde en ~33ms (2 frames), imperceptible frente a los 300ms del 0.08 original
+const LERP_FACTOR = 0.5;
+const SEEK_THRESHOLD = 0.005; // no buscar si el cambio es menor a 5ms
+const ZOOM_LERP = 0.15;
 
-let targetTime = 0; // tiempo objetivo (donde debería estar)
-let currentTime = 0; // tiempo actual (interpolado)
-let rafId = null; // requestAnimationFrame id
+let rafId = null;
+let targetTime = 0;
+let currentTime = 0;
+let currentZoom = 1;
 
 /** Interpolación lineal */
 function lerp(a, b, t) {
@@ -160,13 +166,13 @@ function updateIntroTitle(p) {
 
 /**
  * [TFG] Bucle de Renderizado Principal (Motor de Animación)
- * Este es el corazón de los efectos visuales. Se ejecuta a ~60fps utilizando 
- * requestAnimationFrame (rAF), delegando la sincronización de frames al navegador.
+ * Se ejecuta a ~60fps usando requestAnimationFrame.
  * 
- * ¿Por qué usar rAF y Lerp para el video?
- * En lugar de enlazar bruscamente el fotograma del video con el píxel del scroll,
- * calculamos un "tiempo objetivo" y usamos interpolación lineal (Lerp) para
- * que el "tiempo actual" alcance al objetivo suavemente, evitando tirones (stuttering).
+ * El video usa lerp con factor 0.5 para alcanzar el target en 1-2 frames
+ * (~33ms), lo que elimina el lag perceptible del 0.08 original (~300ms).
+ * El threshold SEEK_THRESHOLD evita asignar currentTime cuando el video
+ * ya está cerca del objetivo — esto es crítico en Safari, donde asignar
+ * currentTime=0 al cargar causa que el video se quede en negro.
  */
 function renderFrame() {
   const p = getScrollProgress(); // progreso 0 → 1
@@ -175,15 +181,16 @@ function renderFrame() {
   if (DOM.mainVideo && DOM.mainVideo.duration) {
     targetTime = p * DOM.mainVideo.duration;
     currentTime = lerp(currentTime, targetTime, LERP_FACTOR);
-
-    // Solo escribimos si hay diferencia apreciable (ahorra CPU)
-    if (Math.abs(targetTime - currentTime) > 0.001) {
+    // Threshold: si la diferencia es menor a 5ms, no tocamos el video
+    // Esto evita el bug de Safari donde setear currentTime=0 da negro
+    if (Math.abs(currentTime - DOM.mainVideo.currentTime) > SEEK_THRESHOLD) {
       DOM.mainVideo.currentTime = currentTime;
     }
 
-    // Zoom sutil conforme avanza el scroll
-    const scale = 1 + p * 0.07;
-    DOM.mainVideo.style.transform = `translate(-50%, -50%) scale(${scale})`;
+    // Zoom suave (lerp bajo para transición cinematográfica)
+    const targetZoom = 1 + p * 0.07;
+    currentZoom = lerp(currentZoom, targetZoom, ZOOM_LERP);
+    DOM.mainVideo.style.transform = `translate(-50%, -50%) scale(${currentZoom})`;
   }
 
   /* ── Hint de scroll (desaparece tras el primer desplazamiento) ── */
@@ -299,24 +306,29 @@ document.querySelectorAll('a[href^="#"]').forEach((link) => {
 
 const menuToggle = document.getElementById("menuToggle");
 const mobileMenu = document.getElementById("mobileMenu");
+const menuBackdrop = document.getElementById("menuBackdrop");
+
+function cerrarMenuMobile() {
+  mobileMenu.style.display = "none";
+  mobileMenu.classList.remove("menu-open");
+  if (menuBackdrop) menuBackdrop.classList.add("hidden");
+}
+
+function abrirMenuMobile() {
+  mobileMenu.style.display = "flex";
+  mobileMenu.classList.add("menu-open");
+  if (menuBackdrop) menuBackdrop.classList.remove("hidden");
+}
 
 if (menuToggle && mobileMenu) {
   menuToggle.addEventListener("click", () => {
     const isOpen = mobileMenu.style.display === "flex";
-    if (isOpen) {
-      mobileMenu.style.display = "none";
-      mobileMenu.classList.remove("menu-open");
-    } else {
-      mobileMenu.style.display = "flex";
-      mobileMenu.classList.add("menu-open");
-    }
+    if (isOpen) cerrarMenuMobile();
+    else abrirMenuMobile();
   });
   // cierra al tocar el fondo (fuera de los links)
   mobileMenu.addEventListener("click", (e) => {
-    if (e.target === mobileMenu) {
-      mobileMenu.style.display = "none";
-      mobileMenu.classList.remove("menu-open");
-    }
+    if (e.target === mobileMenu) cerrarMenuMobile();
   });
 }
 

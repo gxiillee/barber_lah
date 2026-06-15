@@ -180,7 +180,7 @@ $usuarioConSesion = ($_SESSION['usuario'] ?? null) instanceof Usuario;
 <body class="min-h-screen overflow-x-hidden bg-[var(--obsidian)] font-[var(--font-montserrat)] text-[#f5f0e8]">
     <div class="pointer-events-none fixed inset-0 z-0 bg-[radial-gradient(ellipse_70%_50%_at_15%_0%,rgba(212,175,55,0.075)_0%,transparent_65%),linear-gradient(180deg,rgba(255,255,255,0.035),transparent_24%)]"></div>
 
-    <a href="index.php" class="fixed left-5 top-5 z-40 inline-flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.16em] text-white/45 no-underline transition hover:-translate-x-0.5 hover:text-[var(--gold)]">
+    <a href="<?= $usuarioConSesion ? 'index.php' : '../index.php' ?>" class="fixed left-5 top-5 z-40 inline-flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.16em] text-white/45 no-underline transition hover:-translate-x-0.5 hover:text-[var(--gold)]">
         <i class="bi bi-arrow-left"></i>
         Inicio
     </a>
@@ -190,7 +190,7 @@ $usuarioConSesion = ($_SESSION['usuario'] ?? null) instanceof Usuario;
             <div>
                 <p class="mb-3 font-[var(--font-playfair)] text-[11px] uppercase tracking-[0.32em] text-[var(--gold)]">Barbershop La H</p>
                 <h1 class="font-[var(--font-playfair)] text-[42px] font-bold leading-none text-[#f5f0e8] sm:text-[56px]">Reserva tu cita</h1>
-                <p class="mt-4 max-w-2xl text-sm leading-7 text-white/45">Explora servicios, dias y horas disponibles sin crear cuenta. Te pediremos login solo cuando ya tengas claro el hueco.</p>
+                <p class="mt-4 max-w-2xl text-sm leading-7 text-white/45 hidden sm:block">Explora servicios, dias y horas disponibles sin crear cuenta. Te pediremos login solo cuando ya tengas claro el hueco.</p>
             </div>
             <div class="rounded-lg border border-white/10 bg-white/[0.035] p-4">
                 <div class="flex items-center gap-3">
@@ -286,41 +286,53 @@ $usuarioConSesion = ($_SESSION['usuario'] ?? null) instanceof Usuario;
                 <!-- ═══ STEP 2: FECHA ═══ -->
                 <div class="reserve-step hidden-step" data-step="2">
                     <section class="reserve-stagger rounded-lg border border-white/10 bg-[#0d0d0d]/95 p-5 shadow-[0_18px_60px_rgba(0,0,0,0.45)] sm:p-6">
-                        <div class="mb-5 flex items-center justify-between gap-4">
-                            <div>
-                                <p class="text-[10px] font-bold uppercase tracking-[0.22em] text-[var(--gold)]">2. Fecha</p>
-                                <h2 class="mt-1 text-xl font-semibold text-white">Elige el dia</h2>
+                        <div class="flex items-center justify-between gap-3 mb-5">
+                            <div class="flex items-center gap-2 min-w-0">
+                                <i class="bi bi-calendar-week text-[var(--gold)] text-[0.9rem] shrink-0"></i>
+                                <h2 class="text-sm font-bold text-white truncate">Elige el día</h2>
                             </div>
-                            <div class="flex items-center gap-2">
+                            <div class="flex items-center gap-1 shrink-0">
+                                <div class="relative">
+                                    <button id="jumpCalendar" type="button" title="Ir a una fecha"
+                                            class="rounded-lg border border-white/10 p-1.5 text-white/35 transition hover:border-[var(--gold)]/35 hover:text-[var(--gold)] cursor-pointer">
+                                        <i class="bi bi-calendar3 text-[0.75rem]"></i>
+                                    </button>
+                                    <input type="date" id="jumpDateInput"
+                                           value="<?= $hoy->format('Y-m-d') ?>"
+                                           min="<?= $hoy->format('Y-m-d') ?>"
+                                           max="<?= $semanaMaxima->modify('+6 days')->format('Y-m-d') ?>"
+                                           class="absolute inset-0 w-full h-full text-transparent bg-transparent border-0 outline-none cursor-pointer"
+                                           style="color-scheme: dark; opacity: 0.01; font-size: 16px;">
+                                </div>
                                 <button id="weekPrev" type="button"
                                         data-week="<?= h($prevSemana->format('Y-m-d')) ?>"
-                                        class="rounded-lg border border-white/10 p-2 text-white/45 transition hover:border-[var(--gold)]/35 hover:text-[var(--gold)] disabled:cursor-not-allowed disabled:opacity-30"
+                                        class="rounded-lg border border-white/10 p-1.5 text-white/45 transition hover:border-[var(--gold)]/35 hover:text-[var(--gold)] disabled:cursor-not-allowed disabled:opacity-30"
                                         <?= !$puedeRetroceder ? 'disabled' : '' ?>>
                                     <i class="bi bi-chevron-left text-sm"></i>
                                 </button>
-                                <span class="min-w-[120px] text-center text-sm font-semibold text-white" id="weekTitle"><?= h($tituloSemana) ?></span>
+                                <span class="min-w-[100px] text-center text-[0.75rem] font-semibold text-white" id="weekTitle"><?= h($tituloSemana) ?></span>
                                 <button id="weekNext" type="button"
                                         data-week="<?= h($sigSemana->format('Y-m-d')) ?>"
-                                        class="rounded-lg border border-white/10 p-2 text-white/45 transition hover:border-[var(--gold)]/35 hover:text-[var(--gold)] disabled:cursor-not-allowed disabled:opacity-30"
+                                        class="rounded-lg border border-white/10 p-1.5 text-white/45 transition hover:border-[var(--gold)]/35 hover:text-[var(--gold)] disabled:cursor-not-allowed disabled:opacity-30"
                                         <?= !$puedeAvanzar ? 'disabled' : '' ?>>
                                     <i class="bi bi-chevron-right text-sm"></i>
                                 </button>
                             </div>
                         </div>
 
-                        <div class="grid grid-cols-7 gap-2" id="weekDays">
+                        <div class="grid grid-cols-7 gap-1.5" id="weekDays">
                             <?php foreach ($diasSemana as $dia): ?>
                                 <?php $count = count($disponibilidad[$idServicioInicial][$dia['fecha']] ?? []); ?>
                                 <button type="button"
-                                        class="day-option rounded-lg border border-white/10 bg-white/[0.025] px-1 py-3 text-center transition duration-300 hover:border-[var(--gold)]/45 hover:bg-white/[0.055] disabled:cursor-not-allowed disabled:opacity-35 aria-selected:border-[var(--gold)] aria-selected:bg-[var(--gold)]/[0.10]"
+                                        class="day-option rounded-lg border border-white/10 bg-white/[0.025] px-0 py-1.5 text-center transition duration-300 hover:border-[var(--gold)]/45 hover:bg-white/[0.055] disabled:cursor-not-allowed disabled:opacity-35 aria-selected:border-[var(--gold)] aria-selected:bg-[var(--gold)]/[0.10]"
                                         data-date="<?= h($dia['fecha']) ?>"
                                         data-past="<?= $dia['pasado'] ? '1' : '0' ?>"
                                         <?= ($count === 0 || $dia['pasado']) ? 'disabled' : '' ?>
                                         aria-selected="<?= $dia['fecha'] === $fechaInicial ? 'true' : 'false' ?>">
-                                    <span class="block text-[10px] font-bold uppercase tracking-[0.12em] text-white/38"><?= h($dia['dia_corto']) ?></span>
-                                    <span class="mt-1 block text-lg font-semibold text-white"><?= h($dia['numero']) ?></span>
-                                    <span class="mt-1 block text-[10px] text-[var(--gold)]/65" data-day-count>
-                                        <?= $count === 1 ? '1 hueco' : $count . ' huecos' ?>
+                                    <span class="block text-[9px] font-bold uppercase tracking-[0.14em] text-white/38"><?= h($dia['dia_corto']) ?></span>
+                                    <span class="mt-0.5 block text-[1.05rem] font-semibold text-white leading-tight"><?= h($dia['numero']) ?></span>
+                                    <span class="mt-0.5 block text-[8px] text-[var(--gold)]/60 leading-tight" data-day-count>
+                                        <?= $count === 1 ? '1' : $count ?>
                                     </span>
                                 </button>
                             <?php endforeach; ?>
@@ -460,18 +472,16 @@ $usuarioConSesion = ($_SESSION['usuario'] ?? null) instanceof Usuario;
             return reservaServicios[state.serviceId] ?? null;
         }
 
-        // Divide los huecos en franjas visuales tipo Booksy: mañana, mediodia y tarde.
+        // Divide los huecos en franjas visuales: mañana y tarde
         function groupSlotsByMoment(slots) {
             const groups = [
-                { key: "morning",   label: "Mañana",   icon: "bi-sunrise",          slots: [] },
-                { key: "midday",    label: "Mediodía", icon: "bi-brightness-high",  slots: [] },
-                { key: "afternoon", label: "Tarde",    icon: "bi-sunset",           slots: [] },
+                { key: "morning",   label: "Mañana", icon: "bi-sunrise", slots: [] },
+                { key: "afternoon", label: "Tarde",   icon: "bi-sunset",  slots: [] },
             ];
             slots.forEach((slot) => {
                 const [hour] = slot.split(":").map(Number);
-                if      (hour < 12) { groups[0].slots.push(slot); }
-                else if (hour < 16) { groups[1].slots.push(slot); }
-                else                { groups[2].slots.push(slot); }
+                if (hour < 15) { groups[0].slots.push(slot); }
+                else           { groups[1].slots.push(slot); }
             });
             return groups;
         }
@@ -509,15 +519,15 @@ $usuarioConSesion = ($_SESSION['usuario'] ?? null) instanceof Usuario;
                 const count  = slotsFor(state.serviceId, dia.fecha).length;
                 const button = document.createElement("button");
                 button.type      = "button";
-                button.className = "day-option rounded-lg border border-white/10 bg-white/[0.025] px-1 py-3 text-center transition duration-300 hover:border-[var(--gold)]/45 hover:bg-white/[0.055] disabled:cursor-not-allowed disabled:opacity-35 aria-selected:border-[var(--gold)] aria-selected:bg-[var(--gold)]/[0.10]";
+                button.className = "day-option rounded-lg border border-white/10 bg-white/[0.025] px-0 py-1.5 text-center transition duration-300 hover:border-[var(--gold)]/45 hover:bg-white/[0.055] disabled:cursor-not-allowed disabled:opacity-35 aria-selected:border-[var(--gold)] aria-selected:bg-[var(--gold)]/[0.10]";
                 button.dataset.date = dia.fecha;
                 button.dataset.past = dia.pasado ? "1" : "0";
                 button.disabled     = count === 0;
                 button.setAttribute("aria-selected", dia.fecha === state.date ? "true" : "false");
                 button.innerHTML = `
-                    <span class="block text-[10px] font-bold uppercase tracking-[0.12em] text-white/38">${dia.dia_corto}</span>
-                    <span class="mt-1 block text-lg font-semibold text-white">${dia.numero}</span>
-                    <span class="mt-1 block text-[10px] text-[var(--gold)]/65" data-day-count>${count === 1 ? "1 hueco" : `${count} huecos`}</span>
+                    <span class="block text-[9px] font-bold uppercase tracking-[0.14em] text-white/38">${dia.dia_corto}</span>
+                    <span class="mt-0.5 block text-[1.05rem] font-semibold text-white leading-tight">${dia.numero}</span>
+                    <span class="mt-0.5 block text-[8px] text-[var(--gold)]/60 leading-tight" data-day-count>${count === 1 ? "1" : count}</span>
                 `;
                 weekDays.appendChild(button);
             });
@@ -638,6 +648,7 @@ $usuarioConSesion = ($_SESSION['usuario'] ?? null) instanceof Usuario;
             inputService.value     = state.serviceId;
             inputDate.value        = state.date;
             inputHour.value        = state.hour;
+            if (jumpDate) jumpDate.value = state.date;
             continueButton.disabled = !(state.serviceId && state.date && state.hour);
 
             // ── Actualizar bottom bar (móvil) ──
@@ -714,6 +725,29 @@ $usuarioConSesion = ($_SESSION['usuario'] ?? null) instanceof Usuario;
             if (continueButton.disabled) { event.preventDefault(); }
         });
 
+        // ── Calendar jump ──
+        const jumpBtn  = document.getElementById("jumpCalendar");
+        const jumpDate = document.getElementById("jumpDateInput");
+        if (jumpBtn && jumpDate) {
+            jumpBtn.addEventListener("click", (e) => {
+                if (e.detail === 0) return; // synthetic
+                jumpDate.value = state.date || "<?= $hoy->format('Y-m-d') ?>";
+                jumpDate.showPicker();
+            });
+            jumpDate.addEventListener("change", () => {
+                if (!jumpDate.value) return;
+                const d = new Date(jumpDate.value + "T12:00:00");
+                const day = d.getDay();
+                const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+                const monday = new Date(d);
+                monday.setDate(diff);
+                const week = monday.toISOString().slice(0, 10);
+                state.date = jumpDate.value;
+                state.hour = "";
+                loadWeek(week);
+            });
+        }
+
         selectService(state.serviceId, <?= isset($_GET['servicio']) ? 'true' : 'false' ?>);
 
         // ── Stepper navigation (móvil) ──
@@ -777,7 +811,7 @@ $usuarioConSesion = ($_SESSION['usuario'] ?? null) instanceof Usuario;
         // Bottom bar button → submit form
         document.getElementById("rbbBtn")?.addEventListener("click", () => {
             if (!continueButton.disabled) {
-                document.getElementById("bookingForm").dispatchEvent(new Event("submit"));
+                continueButton.click();
             }
         });
 

@@ -10,9 +10,9 @@ $admin_iniciales = mb_strtoupper(mb_substr($admin_nombre, 0, 1, 'UTF-8'), 'UTF-8
 $admin_avatar = $_SESSION['usuario']->getAvatar();
 
 $items_diarios = [
-    'dashboard' => ['href' => 'dashboard.php',  'icon' => 'bi-speedometer2',  'label' => 'Dashboard'],
     'agenda'    => ['href' => 'index.php',      'icon' => 'bi-calendar3',     'label' => 'Agenda'],
-    'bloqueos'  => ['href' => 'bloqueos.php',   'icon' => 'bi-slash-circle',  'label' => 'Bloqueos']
+    'bloqueos'  => ['href' => 'bloqueos.php',   'icon' => 'bi-slash-circle',  'label' => 'Bloqueos'],
+    'dashboard' => ['href' => 'dashboard.php',  'icon' => 'bi-speedometer2',  'label' => 'Dashboard']
 ];
 
 $items_config = [
@@ -207,11 +207,6 @@ $stats_dia = $resumen_dia ?? null;
 <nav class="lg:hidden fixed bottom-0 inset-x-0 z-30 h-16 flex"
      style="background:var(--bg2); border-top:1px solid var(--brd);">
 
-    <a href="dashboard.php" class="nav-inf-lnk flex-1 flex flex-col items-center justify-center gap-0.5 <?= $pagina_activa === 'dashboard' ? 'activo' : '' ?>">
-        <i class="bi bi-speedometer2" style="font-size:1.1rem;"></i>
-        <span style="font-size:0.55rem;">Dashboard</span>
-    </a>
-
     <a href="index.php" class="nav-inf-lnk flex-1 flex flex-col items-center justify-center gap-0.5 <?= $pagina_activa === 'agenda' ? 'activo' : '' ?>">
         <i class="bi bi-calendar3" style="font-size:1.1rem;"></i>
         <span style="font-size:0.55rem;">Agenda</span>
@@ -220,6 +215,11 @@ $stats_dia = $resumen_dia ?? null;
     <a href="bloqueos.php" class="nav-inf-lnk flex-1 flex flex-col items-center justify-center gap-0.5 <?= $pagina_activa === 'bloqueos' ? 'activo' : '' ?>">
         <i class="bi bi-slash-circle" style="font-size:1.1rem;"></i>
         <span style="font-size:0.55rem;">Bloqueos</span>
+    </a>
+
+    <a href="dashboard.php" class="nav-inf-lnk flex-1 flex flex-col items-center justify-center gap-0.5 <?= $pagina_activa === 'dashboard' ? 'activo' : '' ?>">
+        <i class="bi bi-speedometer2" style="font-size:1.1rem;"></i>
+        <span style="font-size:0.55rem;">Dashboard</span>
     </a>
 
     <button onclick="toggleMenuOtros()" class="nav-inf-lnk flex-1 flex flex-col items-center justify-center gap-0.5 <?= in_array($pagina_activa, ['clientes', 'servicios']) ? 'activo' : '' ?>" style="background:none; border:none; cursor:pointer;">

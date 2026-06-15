@@ -26,11 +26,16 @@ $valores      = ['login_email' => '', 'nombre' => '', 'telefono' => '', 'email_r
 // Mensaje contextual si el usuario llego desde el selector de reservas
 $mensajeReserva = '';
 if (isset($_SESSION['reserva_pendiente']) && is_array($_SESSION['reserva_pendiente'])) {
-    $rp   = $_SESSION['reserva_pendiente'];
-    $hora = isset($rp['hora']) ? ' a las ' . substr((string)$rp['hora'], 0, 5) : '';
-    $mensajeReserva = 'Para confirmar tu cita de ' . ($rp['servicio_nombre'] ?? 'tu servicio')
-            . ' el ' . ($rp['fecha_label'] ?? ($rp['fecha'] ?? '')) . $hora
-            . ', accede a tu cuenta o crea una nueva. Solo tardas 30 segundos.';
+    $rp = $_SESSION['reserva_pendiente'];
+    // Limpiar si es stale (más de 30 min desde que se guardó)
+    if (($rp['guardada_en'] ?? 0) < time() - 1800) {
+        unset($_SESSION['reserva_pendiente']);
+    } else {
+        $hora = isset($rp['hora']) ? ' a las ' . substr((string)$rp['hora'], 0, 5) : '';
+        $mensajeReserva = 'Para confirmar tu cita de ' . ($rp['servicio_nombre'] ?? 'tu servicio')
+                . ' el ' . ($rp['fecha_label'] ?? ($rp['fecha'] ?? '')) . $hora
+                . ', accede a tu cuenta o crea una nueva. Solo tardas 30 segundos.';
+    }
 }
 
 // Procesar formulario POST
@@ -132,7 +137,7 @@ $wrapperClase = 'login-wrapper ' . ($modoActivo === 'registro' ? 'es-registro' :
 <div class="pointer-events-none fixed inset-0 z-0 bg-[radial-gradient(ellipse_60%_50%_at_20%_50%,rgba(212,175,55,0.045)_0%,transparent_70%),radial-gradient(ellipse_50%_40%_at_80%_50%,rgba(212,175,55,0.032)_0%,transparent_70%)]"></div>
 <div class="pointer-events-none fixed inset-0 z-0 opacity-55 [background-image:url('data:image/svg+xml,%3Csvg_viewBox=%270_0_200_200%27_xmlns=%27http://www.w3.org/2000/svg%27%3E%3Cfilter_id=%27n%27%3E%3CfeTurbulence_type=%27fractalNoise%27_baseFrequency=%270.85%27_numOctaves=%274%27_stitchTiles=%27stitch%27/%3E%3C/filter%3E%3Crect_width=%27100%25%27_height=%27100%25%27_filter=%27url(%23n)%27_opacity=%270.04%27/%3E%3C/svg%3E')]"></div>
 
-<a href="<?= isset($_SESSION['volver_panel']) ? 'cliente/index.php' : 'index.php' ?>"
+<a href="index.php"
    class="fixed left-6 top-6 z-40 text-[10px] font-bold uppercase tracking-[0.16em] text-white/40 no-underline transition hover:-translate-x-0.5 hover:text-[var(--gold)] max-sm:left-5 max-sm:top-5">
     ← Inicio
 </a>

@@ -79,6 +79,11 @@ $pagina_activa = 'servicios';
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
     <link rel="stylesheet" href="../public/assets/css/estilos.css">
+    <style>
+        .mobile-collapse { max-height: 0; overflow: hidden; transition: max-height 0.5s cubic-bezier(0.4,0,0.2,1), opacity 0.35s ease; opacity: 0.4; }
+        .mobile-collapse.expanded { max-height: 2000px; opacity: 1; }
+        @media (min-width: 1024px) { .mobile-collapse { max-height: none !important; overflow: visible !important; opacity: 1 !important; } }
+    </style>
 </head>
 <body class="min-h-screen bg-[var(--bg)] text-[var(--tx)] font-sans">
 
@@ -100,35 +105,91 @@ $pagina_activa = 'servicios';
         <section class="lg:col-span-5 rounded-xl border border-[var(--brd)] bg-white/5 p-5 glow-card">
             <h2 class="text-[0.95rem] font-medium text-[var(--tx)] mb-4 flex items-center gap-2" style="font-family: var(--pf);">
                 <i class="bi bi-scissors text-[var(--gold)]"></i> Nuevo Servicio
+                <button type="button" onclick="toggleForm(this)" class="lg:hidden ml-auto flex items-center gap-1.5 text-[0.6rem] text-[var(--gold)] cursor-pointer transition-all hover:opacity-80">
+                    <i class="bi bi-plus-circle text-[0.7rem]"></i>
+                    <span>Mostrar</span>
+                </button>
             </h2>
+
+            <div class="mobile-collapse">
+            <!-- Live preview card -->
+            <div class="mb-4 rounded-lg border border-[var(--brd)] bg-[#0d0d0d] p-3">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-[0.45rem] uppercase tracking-[0.2em] text-[var(--tx-d)] font-semibold">
+                        <i class="bi bi-eye"></i> Vista previa
+                    </span>
+                    <span class="text-[0.4rem] text-[var(--tx-d)]/40">Cómo se verá en la web</span>
+                </div>
+                <div class="flex items-center justify-between">
+                    <div>
+                        <div class="text-[0.75rem] font-semibold text-white" id="pv-nombre-serv">Nombre del servicio</div>
+                        <div class="flex items-center gap-3 mt-1">
+                            <span class="flex items-center gap-1 text-[0.55rem] text-white/40">
+                                <i class="bi bi-clock text-[var(--gold)]"></i> <span id="pv-duracion-serv">30</span> min
+                            </span>
+                            <span class="flex items-center gap-1 text-[0.55rem] text-white/40">
+                                <i class="bi bi-currency-euro text-[var(--gold)]"></i> <span id="pv-precio-serv">15</span>,00
+                            </span>
+                        </div>
+                    </div>
+                    <span class="text-[1.2rem] font-bold text-[var(--gold)]" style="font-family:var(--pf);">
+                        <span id="pv-precio-grande">15</span>€
+                    </span>
+                </div>
+                <div class="text-[0.5rem] text-white/25 mt-2 italic truncate" id="pv-desc-serv">Descripción opcional...</div>
+            </div>
+
             <form action="" method="POST" class="space-y-4">
                 <input type="hidden" name="accion" value="crear">
 
                 <div>
-                    <label class="block text-[0.68rem] uppercase tracking-wider text-[var(--tx-m)] font-semibold mb-1.5">Nombre del Servicio *</label>
-                    <input type="text" name="nombre" required placeholder="Ej: Corte Degradado" class="w-full bg-[#141414] border border-[var(--brd)] rounded-lg px-3 py-2 text-[0.8rem] text-[var(--tx)] focus:outline-hidden focus:border-[var(--gold-brd)]">
+                    <label class="block text-[0.68rem] uppercase tracking-wider text-[var(--tx-m)] font-semibold mb-1.5">
+                        <i class="bi bi-tag text-[var(--gold)] mr-1"></i> Nombre *
+                    </label>
+                    <input type="text" name="nombre" required placeholder="Ej: Corte Degradado"
+                           oninput="previewServicio()"
+                           class="w-full bg-[#141414] border border-[var(--brd)] rounded-lg px-3 py-2 text-[0.8rem] text-[var(--tx)] focus:outline-hidden focus:border-[var(--gold-brd)]">
                 </div>
 
                 <div class="grid grid-cols-2 gap-3">
                     <div>
-                        <label class="block text-[0.68rem] uppercase tracking-wider text-[var(--tx-m)] font-semibold mb-1.5">Duración (min) *</label>
-                        <input type="number" name="duracion" required min="5" step="5" placeholder="30" class="w-full bg-[#141414] border border-[var(--brd)] rounded-lg px-3 py-2 text-[0.8rem] text-[var(--tx)] focus:outline-hidden focus:border-[var(--gold-brd)]">
+                        <label class="block text-[0.68rem] uppercase tracking-wider text-[var(--tx-m)] font-semibold mb-1.5">
+                            <i class="bi bi-clock text-[var(--gold)] mr-1"></i> Duración *
+                        </label>
+                        <div class="relative">
+                            <input type="number" name="duracion" required min="5" step="5" placeholder="30"
+                                   oninput="previewServicio()"
+                                   class="w-full bg-[#141414] border border-[var(--brd)] rounded-lg px-3 py-2 text-[0.8rem] text-[var(--tx)] focus:outline-hidden focus:border-[var(--gold-brd)]">
+                            <span class="absolute right-3 top-1/2 -translate-y-1/2 text-[0.6rem] text-[var(--tx-d)]">min</span>
+                        </div>
                     </div>
                     <div>
-                        <label class="block text-[0.68rem] uppercase tracking-wider text-[var(--tx-m)] font-semibold mb-1.5">Precio (€) *</label>
-                        <input type="number" name="precio" required min="1" step="0.50" placeholder="15.00" class="w-full bg-[#141414] border border-[var(--brd)] rounded-lg px-3 py-2 text-[0.8rem] text-[var(--tx)] focus:outline-hidden focus:border-[var(--gold-brd)]">
+                        <label class="block text-[0.68rem] uppercase tracking-wider text-[var(--tx-m)] font-semibold mb-1.5">
+                            <i class="bi bi-currency-euro text-[var(--gold)] mr-1"></i> Precio *
+                        </label>
+                        <div class="relative">
+                            <input type="number" name="precio" required min="1" step="0.50" placeholder="15.00"
+                                   oninput="previewServicio()"
+                                   class="w-full bg-[#141414] border border-[var(--brd)] rounded-lg px-3 py-2 text-[0.8rem] text-[var(--tx)] focus:outline-hidden focus:border-[var(--gold-brd)]">
+                            <span class="absolute right-3 top-1/2 -translate-y-1/2 text-[0.6rem] text-[var(--tx-d)]">€</span>
+                        </div>
                     </div>
                 </div>
 
                 <div>
-                    <label class="block text-[0.68rem] uppercase tracking-wider text-[var(--tx-m)] font-semibold mb-1.5">Descripción (Opcional)</label>
-                    <textarea name="descripcion" rows="2" placeholder="Detalles extra del servicio..." class="w-full bg-[#141414] border border-[var(--brd)] rounded-lg px-3 py-2 text-[0.8rem] text-[var(--tx)] focus:outline-hidden focus:border-[var(--gold-brd)] resize-none"></textarea>
+                    <label class="block text-[0.68rem] uppercase tracking-wider text-[var(--tx-m)] font-semibold mb-1.5">
+                        <i class="bi bi-chat-text text-[var(--gold)] mr-1"></i> Descripción
+                    </label>
+                    <textarea name="descripcion" rows="2" placeholder="Detalles extra del servicio..."
+                              oninput="previewServicio()"
+                              class="w-full bg-[#141414] border border-[var(--brd)] rounded-lg px-3 py-2 text-[0.8rem] text-[var(--tx)] focus:outline-hidden focus:border-[var(--gold-brd)] resize-none"></textarea>
                 </div>
 
-                <button type="submit" class="w-full bg-[var(--gold)] hover:opacity-90 text-[#0d0d0d] font-semibold py-2.5 rounded-lg text-[0.72rem] tracking-widest uppercase transition-all mt-2 cursor-pointer">
-                    Añadir al Catálogo
+                <button type="submit" class="w-full bg-gradient-to-r from-[#d4af37] to-[#e8c84a] hover:opacity-90 text-[#0d0d0d] font-bold py-2.5 rounded-lg text-[0.72rem] tracking-widest uppercase transition-all mt-2 cursor-pointer shadow-lg shadow-[#d4af37]/10">
+                    <i class="bi bi-plus-circle text-[0.8rem] mr-1.5"></i> Añadir al Catálogo
                 </button>
             </form>
+            </div><!-- /mobile-collapse -->
         </section>
 
         <section class="lg:col-span-7 space-y-2">
@@ -268,6 +329,28 @@ function cerrarEditar() {
     setTimeout(() => {
         modal.classList.add('hidden');
     }, 200);
+}
+
+function toggleForm(btn) {
+    const wrapper = btn.closest('section').querySelector('.mobile-collapse');
+    if (!wrapper) return;
+    wrapper.classList.toggle('expanded');
+    const open = wrapper.classList.contains('expanded');
+    btn.querySelector('span').textContent = open ? 'Ocultar' : 'Mostrar';
+    btn.querySelector('i').className = open ? 'bi bi-dash-circle' : 'bi bi-plus-circle';
+}
+
+function previewServicio() {
+    const nombre = document.querySelector('[name="nombre"]')?.value || 'Nombre del servicio';
+    const duracion = document.querySelector('[name="duracion"]')?.value || '30';
+    const precio = document.querySelector('[name="precio"]')?.value || '15';
+    const desc = document.querySelector('[name="descripcion"]')?.value || 'Descripción opcional...';
+
+    document.getElementById('pv-nombre-serv').textContent = nombre;
+    document.getElementById('pv-duracion-serv').textContent = duracion;
+    document.getElementById('pv-precio-serv').textContent = precio.replace('.', ',');
+    document.getElementById('pv-precio-grande').textContent = Math.floor(parseFloat(precio) || 0);
+    document.getElementById('pv-desc-serv').textContent = desc || 'Descripción opcional...';
 }
 </script>
 
