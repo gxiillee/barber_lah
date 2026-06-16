@@ -12,7 +12,7 @@ require_once __DIR__ . '/../clases/Servicio.php';
 require_once __DIR__ . '/../clases/Barbero.php';
 require_once __DIR__ . '/../clases/Reserva.php';
 
-session_start();
+iniciarSesionSegura();
 
 $_SESSION['volver_panel'] = 'index.php';
 

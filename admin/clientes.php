@@ -5,7 +5,7 @@ require_once __DIR__ . '/../clases/Administrador.php';
 require_once __DIR__ . '/../clases/BD.php';
 require_once __DIR__ . '/../clases/helpers.php';
 
-session_start();
+iniciarSesionSegura();
 if (!isset($_SESSION['usuario']) || !$_SESSION['usuario']->tieneRolAdmin()) {
     redirigir('../login.php');
 }
@@ -110,6 +110,9 @@ $pagina_activa = 'clientes';
                             <div class="flex flex-col items-center justify-center">
                                 <span class="text-[0.85rem] font-bold text-[var(--gold)] leading-none"><?= (int)$c['puntos_fidelidad'] ?></span>
                                 <span class="text-[0.55rem] uppercase tracking-wider text-[var(--tx-d)] mt-0.5">Puntos</span>
+                                <?php if ((int)$c['puntos_fidelidad'] >= 10): ?>
+                                    <span class="mt-0.5 text-[0.45rem] font-bold tracking-wider uppercase text-[var(--gold)] bg-[var(--gold-dim)] border border-[var(--gold)]/30 px-1.5 py-[1px] rounded-full leading-tight">🎁 Gratis</span>
+                                <?php endif; ?>
                             </div>
 
                             <div class="flex flex-col items-center justify-center">

@@ -10,8 +10,9 @@ require_once __DIR__ . '/../clases/Reserva.php';
 require_once __DIR__ . '/../clases/Administrador.php';
 require_once __DIR__ . '/../clases/Csrf.php';
 require_once __DIR__ . '/../clases/helpers.php';
+require_once __DIR__ . '/../clases/Cliente.php';
 
-session_start();
+iniciarSesionSegura();
 if (!isset($_SESSION['usuario'])) redirigir('../login.php');
 if (!$_SESSION['usuario']->tieneRolAdmin()) redirigir('../cliente/index.php');
 
@@ -28,8 +29,29 @@ if (!defined('ID_BARBERO')) define('ID_BARBERO', 1);
             if ($motivo === '') {
                 $error_agenda = 'Debes indicar el motivo de la cancelación.';
             } else {
+                $conexion = BD::obtenerConexion();
+                $antes = $conexion->prepare(
+                    "SELECT r.id_cliente, r.hora, s.nombre AS servicio_nombre
+                     FROM reservas r JOIN servicios s ON r.id_servicio = s.id
+                     WHERE r.id_barbero = :b AND r.fecha = :f AND r.estado = 'confirmada'"
+                );
+                $antes->execute([':b' => ID_BARBERO, ':f' => $fecha_seleccionada]);
+                $aCancelar = $antes->fetchAll(PDO::FETCH_ASSOC);
+
                 $canceladas = Reserva::cancelarPorDia(ID_BARBERO, $fecha_seleccionada, $motivo);
                 if ($canceladas > 0) {
+                    require_once __DIR__ . '/../clases/NotificadorReserva.php';
+                    foreach ($aCancelar as $r) {
+                        $cli = Cliente::obtenerPorId((int)$r['id_cliente']);
+                        if ($cli) {
+                            $_f = $fecha_seleccionada;
+                            NotificadorReserva::enviarCancelacion($cli, [
+                                'servicio' => $r['servicio_nombre'] ?? '',
+                                'fecha'    => $_f !== '' ? fechaHumana($_f) : '',
+                                'hora'     => $r['hora'] ?? '',
+                            ], $motivo);
+                        }
+                    }
                     $_SESSION['toast'] = ['type' => 'success', 'message' => "$canceladas cita(s) cancelada(s) por: $motivo"];
                 } else {
                     $_SESSION['toast'] = ['type' => 'info', 'message' => 'No había citas confirmadas para cancelar en esta fecha.'];

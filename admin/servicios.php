@@ -5,7 +5,7 @@ require_once __DIR__ . '/../clases/BD.php';
 require_once __DIR__ . '/../clases/Servicio.php';
 require_once __DIR__ . '/../clases/helpers.php';
 
-session_start();
+iniciarSesionSegura();
 if (!isset($_SESSION['usuario']) || !$_SESSION['usuario']->tieneRolAdmin()) {
     redirigir('../login.php');
 }

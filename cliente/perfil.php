@@ -8,7 +8,7 @@ require_once __DIR__ . '/../clases/Usuario.php';
 require_once __DIR__ . '/../clases/Cliente.php';
 
 // ── Fase 2: Control de acceso ─────────────────────────────────────
-session_start();
+iniciarSesionSegura();
 if (!isset($_SESSION['usuario'])) {
     $_SESSION['volver_panel'] = 'index.php';
     redirigir('../login.php');
@@ -80,6 +80,7 @@ $pagina_activa = 'perfil';
 <body class="pagina-cliente min-h-screen body-panel">
 
 <?php require_once __DIR__ . '/includes/nav_cliente.php'; ?>
+<?php $puntos = (int) $usuario->getPuntosFidelidad(); ?>
 
 <main class="pt-14 pb-20 lg:pt-0 lg:pb-0 min-h-screen flex flex-col pagina-entrada panel-main">
     <div class="flex-1 w-full max-w-6xl mx-auto px-4 sm:px-8 lg:px-12 py-4 sm:py-6 lg:py-10 stagger-container">

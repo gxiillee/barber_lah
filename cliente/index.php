@@ -10,7 +10,7 @@ require_once __DIR__ . '/../clases/FotoCliente.php';
 require_once __DIR__ . '/../clases/Reserva.php';
 
 // ── Fase 2: Sesión y control de acceso ────────────────────────────
-session_start();
+iniciarSesionSegura();
 
 if (!isset($_SESSION['usuario'])) {
     $_SESSION['volver_panel'] = 'index.php';
@@ -30,6 +30,7 @@ if ($usuario->tieneRolAdmin()) {
 // ── POST: guardar teléfono ──
 $error_telefono = '';
 $telefono_ok = false;
+$id_usuario = (int) $usuario->getId();
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['accion'] ?? '') === 'guardar_telefono') {
     $tel = trim($_POST['telefono'] ?? '');
     if (preg_match('/^[\d\s\+\-]{6,20}$/', $tel)) {
@@ -46,7 +47,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['accion'] ?? '') === 'guard
 }
 
 // ── Fase 4: Carga de datos para el dashboard ─────────────────────
-$id_usuario = (int) $usuario->getId();
 $puntos     = (int) $usuario->getPuntosFidelidad();
 $nombre = $usuario->getNombre() ?? 'Cliente';
 $avatar_url = $usuario->getAvatar();
@@ -118,6 +118,8 @@ $pagina_activa = 'inicio';
 // ── Incluimos la navegación compartida ────────────────────────────
 // nav_cliente.php genera: header móvil, sidebar desktop y bottom nav móvil
 require_once __DIR__ . '/includes/nav_cliente.php';
+// Re-read points after nav refreshes session object
+$puntos = (int) $usuario->getPuntosFidelidad();
 ?>
 
 <!-- ═══════════════════════════════════════════════════════════════

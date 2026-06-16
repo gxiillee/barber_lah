@@ -7,7 +7,7 @@ require_once __DIR__ . '/clases/Usuario.php';
 require_once __DIR__ . '/clases/Cliente.php';
 require_once __DIR__ . '/clases/Administrador.php';
 
-session_start();
+iniciarSesionSegura();
 
 // Si ya hay sesion activa, redirigir sin mostrar el login
 if (($_SESSION['usuario'] ?? null) instanceof Usuario) {
@@ -51,6 +51,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($resultado['usuario'] instanceof Usuario) {
             session_regenerate_id(true);
             $_SESSION['usuario'] = $resultado['usuario'];
+            $_SESSION['pwd_updated_at'] = $resultado['usuario']->getPasswordUpdatedAt();
 
             // Redirección: reserva pendiente > index
             if (isset($_SESSION['reserva_pendiente'])) {
@@ -90,6 +91,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     if ($usuario instanceof Usuario) {
                         session_regenerate_id(true);
                         $_SESSION['usuario'] = $usuario;
+                        $_SESSION['pwd_updated_at'] = $usuario->getPasswordUpdatedAt();
 
                         // Redirección: reserva pendiente > admin > cliente/index.php
                         if (isset($_SESSION['reserva_pendiente'])) {

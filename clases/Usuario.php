@@ -25,6 +25,7 @@ class Usuario {
     protected $rol;
     protected $nota_interna;
     protected $created_at;
+    protected $password_updated_at;
 
     // ---------------------------------------------------------------
     // Constructor
@@ -57,9 +58,12 @@ class Usuario {
     public function getTelefono()        { return $this->telefono; }
     public function setTelefono(string $telefono) { $this->telefono = $telefono; }
     public function getPuntosFidelidad() { return $this->puntos_fidelidad; }
+    public function setPuntosFidelidad(int $puntos): void { $this->puntos_fidelidad = $puntos; }
     public function getRol()             { return $this->rol; }
     public function getNotaInterna()     { return $this->nota_interna; }
     public function getCreatedAt()       { return $this->created_at; }
+    public function getPasswordUpdatedAt() { return $this->password_updated_at; }
+    public function setPasswordUpdatedAt($valor): void { $this->password_updated_at = $valor; }
 
     // ---------------------------------------------------------------
     // Metodo de utilidad de rol
@@ -105,7 +109,7 @@ class Usuario {
             return null;
         }
 
-        return new Usuario(
+        $usuario = new Usuario(
             $fila['id'],
             $fila['google_id'] ?? null,
             $fila['nombre'],
@@ -118,6 +122,8 @@ class Usuario {
             $fila['nota_interna'] ?? null,
             $fila['created_at'] ?? null
         );
+        $usuario->setPasswordUpdatedAt($fila['password_updated_at'] ?? null);
+        return $usuario;
     }
 
     /**
@@ -141,7 +147,7 @@ class Usuario {
         $fila = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if ($fila) {
-            return new self(
+            $u = new self(
                 $fila['id'],
                 $fila['google_id'] ?? null,
                 $fila['nombre'],
@@ -154,6 +160,8 @@ class Usuario {
                 $fila['nota_interna'] ?? null,
                 $fila['created_at'] ?? null
             );
+            $u->setPasswordUpdatedAt($fila['password_updated_at'] ?? null);
+            return $u;
         }
 
         // Caso 2: existe por email — vincular la cuenta tradicional con Google
@@ -169,7 +177,7 @@ class Usuario {
                 ':id'        => $fila['id']
             ]);
 
-            return new self(
+            $u = new self(
                 $fila['id'],
                 $googleId,
                 $fila['nombre'],
@@ -182,6 +190,8 @@ class Usuario {
                 $fila['nota_interna'] ?? null,
                 $fila['created_at'] ?? null
             );
+            $u->setPasswordUpdatedAt($fila['password_updated_at'] ?? null);
+            return $u;
         }
 
         // Caso 3: usuario nuevo — registrar como cliente
@@ -200,7 +210,9 @@ class Usuario {
         $filaInsertada = $stmt->fetch(PDO::FETCH_ASSOC);
         $idNuevo = (int)$filaInsertada['id'];
 
-        return new self($idNuevo, $googleId, $nombre, $email, null, $avatar, null, 0, 'cliente', null, date('Y-m-d H:i:s'));
+        $u = new self($idNuevo, $googleId, $nombre, $email, null, $avatar, null, 0, 'cliente', null, date('Y-m-d H:i:s'));
+        $u->setPasswordUpdatedAt(null);
+        return $u;
     }
 
     // ---------------------------------------------------------------

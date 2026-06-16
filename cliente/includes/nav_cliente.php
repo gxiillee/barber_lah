@@ -6,7 +6,11 @@
 
 // Datos del usuario para mostrar en el nav (vienen de la sesión definida en la página que incluye este archivo)
 $nav_nombre     = $usuario->getNombre();
-$nav_puntos     = (int) $usuario->getPuntosFidelidad();
+// Refresh points from DB in case admin modified them
+$stmt = BD::obtenerConexion()->prepare("SELECT puntos_fidelidad FROM usuarios WHERE id = :id");
+$stmt->execute([':id' => $usuario->getId()]);
+$nav_puntos     = (int)$stmt->fetchColumn();
+$usuario->setPuntosFidelidad($nav_puntos);
 $nav_avatar     = $usuario->getAvatar();
 $nav_inicial    = mb_strtoupper(mb_substr($nav_nombre, 0, 1, 'UTF-8'), 'UTF-8');
 

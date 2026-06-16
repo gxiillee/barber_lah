@@ -4,8 +4,9 @@ declare(strict_types=1);
 require_once __DIR__ . '/clases/BD.php';
 require_once __DIR__ . '/clases/helpers.php';
 require_once __DIR__ . '/clases/Csrf.php';
+require_once __DIR__ . '/clases/NotificadorReserva.php';
 
-session_start();
+iniciarSesionSegura();
 
 $paso = 'formulario'; // formulario | exito
 $email = '';
@@ -22,7 +23,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } else {
             try {
                 $conexion = BD::obtenerConexion();
-                $stmt = $conexion->prepare("SELECT id FROM usuarios WHERE email = :email AND activo = true");
+                $stmt = $conexion->prepare("SELECT id, nombre FROM usuarios WHERE email = :email AND activo = true");
                 $stmt->execute([':email' => $email]);
                 $usuario = $stmt->fetch();
 
@@ -37,9 +38,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         ':token'     => $token,
                         ':expira_en' => $expiraEn,
                     ]);
-                    $proto = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https://' : 'http://';
-                    $base = rtrim(dirname($_SERVER['SCRIPT_NAME']), '/');
-                    $enlace = $proto . $_SERVER['HTTP_HOST'] . $base . '/restablecer.php?token=' . $token;
+                    $enlace = rtrim($_ENV['APP_URL'], '/') . '/restablecer.php?token=' . $token;
+
+                    NotificadorReserva::enviarRecuperarPassword(
+                        $email,
+                        $usuario['nombre'],
+                        $enlace
+                    );
                 }
 
                 $paso = 'exito';
@@ -125,20 +130,6 @@ $csrfToken = Csrf::generarToken('csrf_recuperar');
                     Si existe una cuenta con <strong class="text-white/60"><?= h($email) ?></strong>,
                     recibirás un enlace para restablecer tu contraseña.
                 </p>
-
-                <?php if ($enlace !== ''): ?>
-                    <div class="mb-6 w-full rounded-xl border border-[var(--gold)]/25 bg-[var(--gold-dim)] p-4 text-left">
-                        <div class="mb-1.5 flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--gold)]">
-                            <i class="bi bi-link-45deg"></i> Enlace de prueba (sin email real)
-                        </div>
-                        <a href="<?= h($enlace) ?>" class="break-all text-[11px] leading-relaxed text-white/70 underline underline-offset-2 transition hover:text-[var(--gold)]">
-                            <?= h($enlace) ?>
-                        </a>
-                        <p class="mt-2 text-[9px] leading-relaxed text-white/30">
-                            ⚡ En desarrollo. En producción este enlace se enviaría por email.
-                        </p>
-                    </div>
-                <?php endif; ?>
 
                 <p class="text-[10px] text-white/25 leading-relaxed">
                     El enlace expira en <strong class="text-white/40">1 hora</strong>.

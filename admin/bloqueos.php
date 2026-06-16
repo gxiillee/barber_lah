@@ -5,9 +5,13 @@ date_default_timezone_set('Europe/Madrid');
 require_once __DIR__ . '/../clases/Usuario.php';
 require_once __DIR__ . '/../clases/BD.php';
 require_once __DIR__ . '/../clases/Bloqueo.php';
+require_once __DIR__ . '/../clases/Reserva.php';
+require_once __DIR__ . '/../clases/Cliente.php';
+require_once __DIR__ . '/../clases/NotificadorReserva.php';
 require_once __DIR__ . '/../clases/helpers.php';
+require_once __DIR__ . '/../clases/Csrf.php';
 
-session_start();
+iniciarSesionSegura();
 if (!isset($_SESSION['usuario'])) redirigir('../login.php');
 if (!$_SESSION['usuario']->tieneRolAdmin()) redirigir('../cliente/index.php');
 
@@ -21,35 +25,114 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $accion = $_POST['accion'] ?? '';
 
     if ($accion === 'crear') {
-        $fecha      = $_POST['fecha'] ?? '';
-        $tipo       = $_POST['tipo'] ?? 'completo';
-        $motivo     = trim($_POST['motivo'] ?? '');
-        $horaInicio = ($tipo === 'horas') ? ($_POST['hora_inicio'] ?: null) : null;
-        $horaFin    = ($tipo === 'horas') ? ($_POST['hora_fin'] ?: null) : null;
-
-        if (!empty($fecha)) {
-            if (Bloqueo::crear(ID_BARBERO, $fecha, $horaInicio, $horaFin, $motivo)) {
-                $_SESSION['toast'] = ['type' => 'success', 'message' => 'Bloqueo guardado correctamente.'];
-                redirigir('bloqueos.php');
-            } else {
-                $error = "Error al registrar el bloqueo.";
-            }
+        if (!Csrf::validarToken('bloqueos', $_POST['csrf_token'] ?? '')) {
+            $error = 'Token de seguridad inválido. Recarga la página.';
         } else {
-            $error = "Introduce una fecha válida.";
+            $fecha      = $_POST['fecha'] ?? '';
+            $tipo       = $_POST['tipo'] ?? 'completo';
+            $motivo     = trim($_POST['motivo'] ?? '');
+            $horaInicio = ($tipo === 'horas') ? ($_POST['hora_inicio'] ?: null) : null;
+            $horaFin    = ($tipo === 'horas') ? ($_POST['hora_fin'] ?: null) : null;
+
+            if (empty($fecha)) {
+                $error = "Introduce una fecha válida.";
+            } elseif (empty($motivo)) {
+                $error = "El motivo es obligatorio para registrar el bloqueo.";
+            } else {
+                // ── Find overlapping confirmada reservations ──
+                $conexion = BD::obtenerConexion();
+                $afectadas = [];
+
+                if ($horaInicio === null) {
+                    // Full day — all confirmada reservations on that date
+                    $stmt = $conexion->prepare("
+                        SELECT r.id, r.hora, r.id_cliente, r.id_servicio, r.duracion_historica, s.nombre AS servicio_nombre
+                        FROM reservas r
+                        JOIN servicios s ON r.id_servicio = s.id
+                        WHERE r.id_barbero = :barbero AND r.fecha = :fecha AND r.estado = 'confirmada'
+                        ORDER BY r.hora
+                    ");
+                    $stmt->execute([':barbero' => ID_BARBERO, ':fecha' => $fecha]);
+                    $afectadas = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                } else {
+                    // Time range — overlapping reservations
+                    $stmt = $conexion->prepare("
+                        SELECT r.id, r.hora, r.id_cliente, r.id_servicio, r.duracion_historica, s.nombre AS servicio_nombre
+                        FROM reservas r
+                        JOIN servicios s ON r.id_servicio = s.id
+                        WHERE r.id_barbero = :barbero
+                          AND r.fecha = :fecha
+                          AND r.estado = 'confirmada'
+                          AND r.hora < :hora_fin
+                          AND (CAST(r.hora AS TIME) + (r.duracion_historica || ' minutes')::INTERVAL) > :hora_inicio::TIME
+                        ORDER BY r.hora
+                    ");
+                    $stmt->execute([
+                        ':barbero'    => ID_BARBERO,
+                        ':fecha'      => $fecha,
+                        ':hora_inicio'=> $horaInicio,
+                        ':hora_fin'   => $horaFin,
+                    ]);
+                    $afectadas = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                }
+
+                // ── Cancel overlapping reservations & notify ──
+                $canceladas = 0;
+                $conexion->beginTransaction();
+                try {
+                    foreach ($afectadas as $r) {
+                        if (Reserva::cancelar((int)$r['id'], $motivo, $conexion)) {
+                            $canceladas++;
+                            $cliente = Cliente::obtenerPorId((int)$r['id_cliente']);
+                            if ($cliente) {
+                                NotificadorReserva::enviarCancelacion($cliente, [
+                                    'servicio' => $r['servicio_nombre'] ?? '',
+                                    'fecha'    => fechaHumana($fecha),
+                                    'hora'     => $r['hora'],
+                                ], $motivo);
+                            }
+                        }
+                    }
+
+                    // ── Create bloqueo ──
+                    if (Bloqueo::crear(ID_BARBERO, $fecha, $horaInicio, $horaFin, $motivo, $conexion)) {
+                        $conexion->commit();
+                        $msg = 'Bloqueo guardado correctamente.';
+                        if ($canceladas > 0) {
+                            $msg .= " Se cancelaron $canceladas cita(s) afectadas y se notificó a los clientes.";
+                        }
+                        $_SESSION['toast'] = ['type' => 'success', 'message' => $msg];
+                        redirigir('bloqueos.php');
+                    } else {
+                        $conexion->rollBack();
+                        $error = "Error al registrar el bloqueo. No se modificó ninguna cita.";
+                    }
+                } catch (Exception $e) {
+                    $conexion->rollBack();
+                    $error = "Error del servidor. No se modificó ninguna cita.";
+                    error_log("bloqueos.php: " . $e->getMessage());
+                }
+            }
         }
     }
 
     if ($accion === 'eliminar') {
-        $idEliminar = (int)($_POST['id'] ?? 0);
-        if ($idEliminar > 0 && Bloqueo::eliminar($idEliminar)) {
-            $_SESSION['toast'] = ['type' => 'success', 'message' => 'Horario liberado.'];
-            redirigir('bloqueos.php');
+        if (!Csrf::validarToken('bloqueos_eliminar', $_POST['csrf_token'] ?? '')) {
+            $error = 'Token de seguridad inválido. Recarga la página.';
         } else {
-            $error = "No se pudo eliminar la restricción.";
+            $idEliminar = (int)($_POST['id'] ?? 0);
+            if ($idEliminar > 0 && Bloqueo::eliminar($idEliminar)) {
+                $_SESSION['toast'] = ['type' => 'success', 'message' => 'Horario liberado.'];
+                redirigir('bloqueos.php');
+            } else {
+                $error = "No se pudo eliminar la restricción.";
+            }
         }
     }
 }
 
+$token_csrf = Csrf::generarToken('bloqueos');
+$token_csrf_eliminar = Csrf::generarToken('bloqueos_eliminar');
 $lista_bloqueos = Bloqueo::listarTodos();
 $pagina_activa  = 'bloqueos';
 
@@ -144,6 +227,7 @@ $dias_semana = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes',
 
             <div class="mobile-collapse">
             <form action="" method="POST" class="space-y-4">
+                <input type="hidden" name="csrf_token" value="<?= h($token_csrf) ?>">
                 <input type="hidden" name="accion" value="crear">
 
                 <div>
@@ -285,6 +369,7 @@ $dias_semana = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes',
                             </div>
 
                             <form action="" method="POST" onsubmit="return confirm('¿Deseas levantar este bloqueo?');" class="shrink-0">
+                                <input type="hidden" name="csrf_token" value="<?= h($token_csrf_eliminar) ?>">
                                 <input type="hidden" name="accion" value="eliminar">
                                 <input type="hidden" name="id" value="<?= (int)$b['id'] ?>">
                                 <button type="submit"
@@ -325,6 +410,7 @@ $dias_semana = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes',
                                 <?php endif; ?>
                             </div>
                             <form action="" method="POST" onsubmit="return confirm('¿Eliminar este bloqueo pasado?');">
+                                <input type="hidden" name="csrf_token" value="<?= h($token_csrf_eliminar) ?>">
                                 <input type="hidden" name="accion" value="eliminar">
                                 <input type="hidden" name="id" value="<?= (int)$b['id'] ?>">
                                 <button type="submit" class="w-6 h-6 flex items-center justify-center text-[var(--tx-d)]/40 hover:text-rose-400/60 transition-all cursor-pointer">

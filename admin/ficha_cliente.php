@@ -12,11 +12,12 @@ require_once __DIR__ . '/../clases/Cliente.php';
 require_once __DIR__ . '/../clases/Reserva.php';
 require_once __DIR__ . '/../clases/FotoCliente.php';
 require_once __DIR__ . '/../clases/Csrf.php';
+require_once __DIR__ . '/../clases/NotificadorReserva.php';
 
 /* =====================================================================
  * FASE 2 — SESIÓN Y ACCESO ADMIN
  * ===================================================================== */
-session_start();
+iniciarSesionSegura();
 
 if (!isset($_SESSION['usuario'])) {
     redirigir('../login.php');
@@ -83,12 +84,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion'])) {
 
         if ($accion === 'marcar_completada') {
             $id_res = (int)($_POST['id_reserva_accion'] ?? 0);
+            // Read current points BEFORE the update (need to know old value for fidelidad notification)
+            $stmtP = BD::obtenerConexion()->prepare("SELECT puntos_fidelidad FROM usuarios WHERE id = :id");
+            $stmtP->execute([':id' => $cliente->getId()]);
+            $puntosViejos = (int)$stmtP->fetchColumn();
             $ok = Reserva::marcarComoCompletada($id_res);
             if ($ok) {
+                // Refresh client object so email uses current points
+                $cliente = Cliente::obtenerPorId($id_cliente);
                 $reserva_actual = Reserva::obtenerPorId($id_reserva);
                 $total_completadas = Reserva::contarPorEstadoYCliente($id_cliente, 'completada');
                 $historial = Reserva::obtenerHistorialPorCliente($id_cliente);
                 $ultima_visita = Reserva::obtenerUltimaCompletadaPorCliente($id_cliente);
+                $_f = $reserva_actual['fecha'] ?? '';
+                NotificadorReserva::enviarCompletada($cliente, [
+                    'servicio' => $reserva_actual['servicio_nombre'] ?? '',
+                    'fecha'    => $_f !== '' ? fechaHumana($_f) : '',
+                ], $puntosViejos >= 9);
                 $_SESSION['toast'] = ['type' => 'success', 'message' => 'Cita marcada como completada.'];
                 redirigir('ficha_cliente.php?id_reserva=' . $id_reserva . ($fecha_volver ? '&fecha=' . $fecha_volver : ''));
             } else {
@@ -102,6 +114,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion'])) {
             if ($ok) {
                 $reserva_actual = Reserva::obtenerPorId($id_reserva);
                 $historial = Reserva::obtenerHistorialPorCliente($id_cliente);
+                $_f = $reserva_actual['fecha'] ?? '';
+                NotificadorReserva::enviarNoPresentado($cliente, [
+                    'servicio' => $reserva_actual['servicio_nombre'] ?? '',
+                    'fecha'    => $_f !== '' ? fechaHumana($_f) : '',
+                    'hora'     => $reserva_actual['hora'] ?? '',
+                ]);
                 $_SESSION['toast'] = ['type' => 'success', 'message' => 'Reserva marcada como no presentado.'];
                 redirigir('ficha_cliente.php?id_reserva=' . $id_reserva . ($fecha_volver ? '&fecha=' . $fecha_volver : ''));
             } else {
@@ -119,6 +137,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion'])) {
                 if ($ok) {
                     $reserva_actual = Reserva::obtenerPorId($id_reserva);
                     $historial = Reserva::obtenerHistorialPorCliente($id_cliente);
+                    $_f = $reserva_actual['fecha'] ?? '';
+                    NotificadorReserva::enviarCancelacion($cliente, [
+                        'servicio' => $reserva_actual['servicio_nombre'] ?? '',
+                        'fecha'    => $_f !== '' ? fechaHumana($_f) : '',
+                        'hora'     => $reserva_actual['hora'] ?? '',
+                    ], $motivo);
                     $_SESSION['toast'] = ['type' => 'success', 'message' => 'Reserva cancelada con motivo registrado.'];
                     redirigir('ficha_cliente.php?id_reserva=' . $id_reserva . ($fecha_volver ? '&fecha=' . $fecha_volver : ''));
                 } else {
@@ -388,6 +412,9 @@ function badgeEstado(string $estado): string {
                 <i class="bi bi-star text-[#d4af37] text-lg sm:text-[1.25rem] mb-[0.1rem]"></i>
                 <span class="font-['Playfair_Display'] text-3xl sm:text-[2rem] font-bold leading-none text-[#f5f0e8]" id="puntos-valor"><?= (int)$cliente->getPuntosFidelidad() ?></span>
                 <span class="font-['Montserrat'] text-[0.6rem] sm:text-[0.65rem] font-semibold tracking-[0.18em] uppercase text-[#666666]">Puntos</span>
+                <?php if ((int)$cliente->getPuntosFidelidad() >= 10): ?>
+                    <span class="mt-1 text-[0.5rem] sm:text-[0.55rem] font-bold tracking-wider uppercase text-[var(--gold)] bg-[var(--gold-dim)] border border-[var(--gold)]/30 px-2 py-0.5 rounded-full leading-tight">🎁 Corte gratis</span>
+                <?php endif; ?>
                 <button onclick="abrirEditarPuntos()"
                         class="absolute top-2 right-2 w-6 h-6 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-[#888] hover:bg-[#d4af37]/20 hover:text-[#d4af37] hover:border-[#d4af37]/30 transition-all opacity-0 group-hover:opacity-100 cursor-pointer"
                         title="Editar puntos">
@@ -540,7 +567,7 @@ function badgeEstado(string $estado): string {
 
             <div>
                 <label class="font-['Montserrat'] text-[0.65rem] font-semibold uppercase tracking-wider text-[#888] block mb-1.5">Puntos de fidelidad</label>
-                <input type="number" name="puntos" id="inputPuntos" min="0" required
+                <input type="number" name="puntos" id="inputPuntos" min="0" max="10" required
                        class="w-full bg-[#0d0d0d] border border-white/[0.08] rounded-lg px-3 py-2.5 text-[0.85rem] text-[#f5f0e8] focus:outline-hidden focus:border-[#d4af37]/50 transition-all">
             </div>
 

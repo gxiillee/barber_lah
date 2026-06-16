@@ -5,7 +5,7 @@ require_once __DIR__ . '/clases/BD.php';
 require_once __DIR__ . '/clases/helpers.php';
 require_once __DIR__ . '/clases/Csrf.php';
 
-session_start();
+iniciarSesionSegura();
 
 $error = '';
 $exito = false;
@@ -43,8 +43,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $tokenValido) {
         $password = $_POST['password'] ?? '';
         $confirmar = $_POST['confirmar'] ?? '';
 
-        if (strlen($password) < 8) {
-            $error = 'La contraseña debe tener al menos 8 caracteres.';
+        if (strlen($password) < 6) {
+            $error = 'La contraseña debe tener al menos 6 caracteres.';
         } elseif ($password !== $confirmar) {
             $error = 'Las contraseñas no coinciden.';
         } else {
@@ -212,7 +212,7 @@ $csrfToken = Csrf::generarToken('csrf_restablecer');
                     <div class="relative">
                         <input type="password" name="password" id="password" required
                                class="w-full rounded-md border border-[#282828] bg-[#141414] px-3.5 py-[13px] pr-10 text-[13px] text-[#e0e0e0] outline-none transition placeholder:text-[#3a3a3a] focus:border-[var(--gold)] focus:bg-[#171717] focus:shadow-[0_0_0_2px_rgba(212,175,55,0.15)]"
-                               placeholder="Mín. 8 caracteres" autocomplete="new-password">
+                               placeholder="Mín. 6 caracteres" autocomplete="new-password">
                         <button type="button" class="toggle-pwd absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer border-0 bg-transparent p-0 text-[15px] text-[#3a3a3a] transition hover:text-[var(--gold)]" aria-label="Mostrar contraseña">
                             <i class="bi bi-eye"></i>
                         </button>

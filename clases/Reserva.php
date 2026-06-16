@@ -408,18 +408,28 @@ class Reserva {
             $conexion->beginTransaction();
 
             $stmt = $conexion->prepare("
-            UPDATE reservas
+            UPDATE reservas r
             SET estado = 'completada'
-            WHERE estado IN ('pendiente', 'confirmada')
-              AND CAST(CONCAT(fecha, ' ', hora) AS TIMESTAMP) <= :corte
-            RETURNING id_cliente
+            FROM servicios s
+            WHERE r.id_servicio = s.id
+              AND r.estado IN ('pendiente', 'confirmada')
+              AND CAST(CONCAT(r.fecha, ' ', r.hora) AS TIMESTAMP) <= :corte
+            RETURNING r.id_cliente, r.fecha, r.hora, s.nombre AS servicio_nombre, r.precio_historico
         ");
             $stmt->execute([':corte' => $corte]);
 
-            $clientesAfectados = $stmt->fetchAll(PDO::FETCH_COLUMN);
+            $afectadas = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-            if (!empty($clientesAfectados)) {
-                $clientesUnicos = array_unique($clientesAfectados);
+            if (!empty($afectadas)) {
+                $clientesUnicos = array_unique(array_column($afectadas, 'id_cliente'));
+
+                // Read current points BEFORE updating
+                $stmtRead = $conexion->prepare("SELECT puntos_fidelidad FROM usuarios WHERE id = :id");
+                $puntosViejos = [];
+                foreach ($clientesUnicos as $id) {
+                    $stmtRead->execute([':id' => $id]);
+                    $puntosViejos[(int)$id] = (int)$stmtRead->fetchColumn();
+                }
 
                 $stmtPuntos = $conexion->prepare("
                 UPDATE usuarios
@@ -433,9 +443,37 @@ class Reserva {
                 foreach ($clientesUnicos as $id) {
                     $stmtPuntos->execute([':id' => $id]);
                 }
-            }
 
-            $conexion->commit();
+                $conexion->commit();
+
+                // ── Notificaciones post-cita ──
+                $depsCargadas = false;
+                $enviadosClientes = [];
+                foreach ($afectadas as $r) {
+                    $cid = (int)$r['id_cliente'];
+                    if (isset($enviadosClientes[$cid])) continue;
+                    $enviadosClientes[$cid] = true;
+
+                    if (!$depsCargadas) {
+                        require_once __DIR__ . '/Cliente.php';
+                        require_once __DIR__ . '/NotificadorReserva.php';
+                        require_once __DIR__ . '/helpers.php';
+                        $depsCargadas = true;
+                    }
+
+                    $cli = \Cliente::obtenerPorId($cid);
+                    if (!$cli) continue;
+
+                    $_f = $r['fecha'] ?? '';
+                    $viejos = $puntosViejos[$cid] ?? 0;
+                    \NotificadorReserva::enviarCompletada($cli, [
+                        'servicio' => $r['servicio_nombre'] ?? '',
+                        'fecha'    => $_f !== '' ? \fechaHumana($_f) : '',
+                    ], $viejos >= 9);
+                }
+            } else {
+                $conexion->commit();
+            }
 
         } catch (Exception $e) {
             if ($conexion->inTransaction()) {
@@ -624,10 +662,11 @@ class Reserva {
      * Cancela una cita confirmada guardando el motivo.
      * @return bool True si se canceló correctamente
      */
-    public static function cancelar(int $id, string $motivo): bool {
-        $conexion = BD::obtenerConexion();
+    public static function cancelar(int $id, string $motivo, ?PDO $conexion = null): bool {
+        $propia = $conexion === null;
+        if ($propia) $conexion = BD::obtenerConexion();
         try {
-            $conexion->beginTransaction();
+            if ($propia) $conexion->beginTransaction();
             $stmt = $conexion->prepare("
                 UPDATE reservas
                 SET estado = 'cancelada', motivo_cancelacion = :motivo
@@ -635,10 +674,10 @@ class Reserva {
             ");
             $stmt->execute([':motivo' => $motivo, ':id' => $id]);
             $ok = $stmt->rowCount() > 0;
-            $conexion->commit();
+            if ($propia) $conexion->commit();
             return $ok;
         } catch (Exception $e) {
-            $conexion->rollBack();
+            if ($propia && $conexion->inTransaction()) $conexion->rollBack();
             error_log("Error al cancelar reserva: " . $e->getMessage());
             return false;
         }

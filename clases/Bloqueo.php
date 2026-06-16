@@ -85,8 +85,8 @@ class Bloqueo {
     /**
      * Inserta una nueva restricción de horario o día completo.
      */
-    public static function crear(int $idBarbero, string $fecha, ?string $horaInicio, ?string $horaFin, ?string $motivo): bool {
-        $conexion = BD::obtenerConexion();
+    public static function crear(int $idBarbero, string $fecha, ?string $horaInicio, ?string $horaFin, ?string $motivo, ?PDO $conexion = null): bool {
+        $conexion ??= BD::obtenerConexion();
         $stmt = $conexion->prepare("
             INSERT INTO bloqueos (id_barbero, fecha, hora_inicio, hora_fin, motivo)
             VALUES (:id_barbero, :fecha, :hora_inicio, :hora_fin, :motivo)

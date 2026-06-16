@@ -12,7 +12,7 @@ require_once __DIR__ . '/../clases/Producto.php';
 require_once __DIR__ . '/../clases/Usuario.php';
 require_once __DIR__ . '/../clases/helpers.php';
 
-session_start();
+iniciarSesionSegura();
 if (!isset($_SESSION['usuario']) || !$_SESSION['usuario']->tieneRolAdmin()) {
     redirigir('../login.php');
 }

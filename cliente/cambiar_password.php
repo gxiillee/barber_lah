@@ -7,7 +7,7 @@ require_once __DIR__ . '/../clases/helpers.php';
 require_once __DIR__ . '/../clases/Usuario.php';
 
 // ── Fase 2: Control de acceso ─────────────────────────────────────
-session_start();
+iniciarSesionSegura();
 if (!isset($_SESSION['usuario'])) {
     $_SESSION['volver_panel'] = 'index.php';
     redirigir('../login.php');
@@ -85,6 +85,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $usuario = Usuario::comprobarLogin($usuario->getEmail(), $password_nueva);
                     if ($usuario) {
                         $_SESSION['usuario'] = $usuario;
+                    $_SESSION['pwd_updated_at'] = $usuario->getPasswordUpdatedAt();
                     }
                     $exito = $tienePassword
                         ? 'Contraseña actualizada correctamente.'
@@ -263,7 +264,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <span style="font-size:0.78rem; font-weight:600; color:var(--tx);">Consejo de seguridad</span>
                     </div>
                     <ul style="font-size:0.72rem; color:var(--tx-m); line-height:1.7; padding-left:18px; margin:0;">
-                        <li>Usa al menos 8 caracteres</li>
+                        <li>Usa al menos 6 caracteres</li>
                         <li>Combina mayúsculas y minúsculas</li>
                         <li>Añade al menos un número</li>
                         <li>No uses la misma de otros sitios</li>

@@ -19,7 +19,7 @@ require_once __DIR__ . '/../clases/Barbero.php';
 require_once __DIR__ . '/../clases/Reserva.php';
 require_once __DIR__ . '/../clases/NotificadorReserva.php';
 
-session_start();
+iniciarSesionSegura();
 
 // ---------------------------------------------------------------
 // FASE 1: Configuración, Seguridad y Control de Acceso

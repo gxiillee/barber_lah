@@ -8,7 +8,7 @@ require_once __DIR__ . '/../clases/helpers.php';
 require_once __DIR__ . '/../clases/Usuario.php';
 
 // ── Fase 2: Sesión y control de acceso ────────────────────────────
-session_start();
+iniciarSesionSegura();
 
 if (!isset($_SESSION['usuario'])) {
     $_SESSION['volver_panel'] = 'index.php';
@@ -24,12 +24,6 @@ if ($usuario->tieneRolAdmin()) {
 
 // ── Fase 3: Datos para la vista ───────────────────────────────────
 $nombre = $usuario->getNombre();
-$puntos = (int) $usuario->getPuntosFidelidad();
-
-// Cálculos de presentación
-$faltan       = 10 - $puntos;
-$progreso_pct = ($puntos / 10) * 100;
-$tiene_gratis = $puntos >= 10;
 
 $pagina_activa = 'fidelidad';
 ?>
@@ -61,6 +55,10 @@ $pagina_activa = 'fidelidad';
 <?php
 // ── Incluimos la navegación compartida ────────────────────────────
 require_once __DIR__ . '/includes/nav_cliente.php';
+$puntos = (int) $usuario->getPuntosFidelidad();
+$faltan       = 10 - $puntos;
+$progreso_pct = ($puntos / 10) * 100;
+$tiene_gratis = $puntos >= 10;
 ?>
 
 <!-- ═══════════════════════════════════════════════════════════════

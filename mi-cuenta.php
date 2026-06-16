@@ -6,7 +6,7 @@ require_once __DIR__ . '/clases/helpers.php';
 require_once __DIR__ . '/clases/Usuario.php';
 
 // Inicialización de la sesión
-session_start();
+iniciarSesionSegura();
 
 // Validar si el usuario está autenticado
 if (!isset($_SESSION['usuario'])) {

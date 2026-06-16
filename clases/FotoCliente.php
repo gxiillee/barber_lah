@@ -192,7 +192,7 @@ class FotoCliente
      */
     public static function procesarSubidaMultiple(array $archivos, int $id_usuario, int $huecos_disponibles): array {
         $resultado = ['subidas' => 0, 'errores' => []];
-        $carpeta = __DIR__ . '/../public/assets/img/fotos_clientes/';
+        $carpeta = __DIR__ . '/../public/uploads/fotos_clientes/';
         $tipos_permitidos = ['image/jpeg', 'image/png', 'image/webp'];
 
         if (!is_dir($carpeta)) {
@@ -231,7 +231,7 @@ class FotoCliente
             // Generar nombre único y rutas
             $nombre = 'foto_' . $id_usuario . '_' . time() . '_' . $i . '.jpg';
             $destino = $carpeta . $nombre;
-            $ruta_bd = 'public/assets/img/fotos_clientes/' . $nombre;
+            $ruta_bd = 'public/uploads/fotos_clientes/' . $nombre;
 
             // Comprimir y guardar
             if (!self::comprimirYGuardar($tmp, $destino)) {

@@ -1074,6 +1074,11 @@ body.body-panel {
   }
 }
 
+/* ── Admin modals: force flex when visible ── */
+.fixed.inset-0.items-center.justify-center:not(.hidden) {
+  display: flex !important;
+}
+
 /* ============================================================
    ANIMACIONES PANEL DE ADMINISTRADOR ficha del cliente
    ============================================================ */

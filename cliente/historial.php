@@ -9,7 +9,7 @@ require_once __DIR__ . '/../clases/Usuario.php';
 require_once __DIR__ . '/../clases/Reserva.php';
 
 // ── Fase 2: Sesión y control de acceso ────────────────────────────
-session_start();
+iniciarSesionSegura();
 
 if (!isset($_SESSION['usuario'])) {
     $_SESSION['volver_panel'] = 'index.php';

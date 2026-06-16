@@ -1,8 +1,8 @@
 <?php
 declare(strict_types=1);
-session_start();
 
 require_once __DIR__ . '/../bootstrap.php';
+iniciarSesionSegura();
 require_once __DIR__ . '/../clases/Usuario.php';
 require_once __DIR__ . '/../clases/Helpers.php';
 
@@ -80,6 +80,7 @@ try {
 
     session_regenerate_id(true);
     $_SESSION['usuario'] = $usuario;
+    $_SESSION['pwd_updated_at'] = $usuario->getPasswordUpdatedAt();
 
     if (isset($_SESSION['reserva_pendiente']) && is_array($_SESSION['reserva_pendiente'])) {
         redirigir('../cliente/confirmar_reserva.php');
