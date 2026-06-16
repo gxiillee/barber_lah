@@ -30,6 +30,7 @@ if (!$_SESSION['usuario']->tieneRolAdmin()) {
  * FASE 3 — OBTENER RESERVA POR ID (desde URL)
  * ===================================================================== */
 $id_reserva = isset($_GET['id_reserva']) ? (int)$_GET['id_reserva'] : 0;
+$fecha_volver = isset($_GET['fecha']) ? preg_replace('/[^0-9\-]/', '', $_GET['fecha']) : '';
 
 if ($id_reserva === 0) {
     redirigir('index.php');
@@ -89,7 +90,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion'])) {
                 $historial = Reserva::obtenerHistorialPorCliente($id_cliente);
                 $ultima_visita = Reserva::obtenerUltimaCompletadaPorCliente($id_cliente);
                 $_SESSION['toast'] = ['type' => 'success', 'message' => 'Cita marcada como completada.'];
-                redirigir('ficha_cliente.php?id_reserva=' . $id_reserva);
+                redirigir('ficha_cliente.php?id_reserva=' . $id_reserva . ($fecha_volver ? '&fecha=' . $fecha_volver : ''));
             } else {
                 $mensaje_error = 'No se pudo actualizar el estado de la cita.';
             }
@@ -102,9 +103,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion'])) {
                 $reserva_actual = Reserva::obtenerPorId($id_reserva);
                 $historial = Reserva::obtenerHistorialPorCliente($id_cliente);
                 $_SESSION['toast'] = ['type' => 'success', 'message' => 'Reserva marcada como no presentado.'];
-                redirigir('ficha_cliente.php?id_reserva=' . $id_reserva);
+                redirigir('ficha_cliente.php?id_reserva=' . $id_reserva . ($fecha_volver ? '&fecha=' . $fecha_volver : ''));
             } else {
                 $mensaje_error = 'No se pudo actualizar el estado.';
+            }
+        }
+
+        if ($accion === 'cancelar_cita') {
+            $id_res = (int)($_POST['id_reserva_accion'] ?? 0);
+            $motivo = trim($_POST['motivo_cancelacion'] ?? '');
+            if ($motivo === '') {
+                $mensaje_error = 'Debes indicar el motivo de la cancelación.';
+            } else {
+                $ok = Reserva::cancelar($id_res, $motivo);
+                if ($ok) {
+                    $reserva_actual = Reserva::obtenerPorId($id_reserva);
+                    $historial = Reserva::obtenerHistorialPorCliente($id_cliente);
+                    $_SESSION['toast'] = ['type' => 'success', 'message' => 'Reserva cancelada con motivo registrado.'];
+                    redirigir('ficha_cliente.php?id_reserva=' . $id_reserva . ($fecha_volver ? '&fecha=' . $fecha_volver : ''));
+                } else {
+                    $mensaje_error = 'No se pudo cancelar la reserva.';
+                }
             }
         }
 
@@ -113,7 +132,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion'])) {
             if (Usuario::actualizarPuntos($id_cliente, $nuevos_puntos)) {
                 $cliente = Cliente::obtenerPorId($id_cliente);
                 $_SESSION['toast'] = ['type' => 'success', 'message' => "Puntos actualizados a $nuevos_puntos."];
-                redirigir('ficha_cliente.php?id_reserva=' . $id_reserva);
+                redirigir('ficha_cliente.php?id_reserva=' . $id_reserva . ($fecha_volver ? '&fecha=' . $fecha_volver : ''));
             } else {
                 $mensaje_error = 'No se pudieron actualizar los puntos.';
             }
@@ -124,7 +143,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion'])) {
             if (Usuario::actualizarNotaInterna($id_cliente, $nota)) {
                 $cliente = Cliente::obtenerPorId($id_cliente);
                 $_SESSION['toast'] = ['type' => 'success', 'message' => 'Nota interna guardada.'];
-                redirigir('ficha_cliente.php?id_reserva=' . $id_reserva);
+                redirigir('ficha_cliente.php?id_reserva=' . $id_reserva . ($fecha_volver ? '&fecha=' . $fecha_volver : ''));
             } else {
                 $mensaje_error = 'No se pudo guardar la nota.';
             }
@@ -141,8 +160,8 @@ function badgeEstado(string $estado): string {
     $base_class = "font-['Montserrat'] text-[0.6rem] font-bold tracking-[0.1em] uppercase px-[0.55rem] py-[0.2rem] rounded-full whitespace-nowrap border inline-block";
 
     $mapa = [
-            'confirmada'    => ['label' => 'Confirmada',    'clase' => 'bg-[#6fcf97]/12 text-[#6fcf97] border-[#6fcf97]/30'],
-            'completada'    => ['label' => 'Completada',    'clase' => 'bg-[#d4af37]/12 text-[#d4af37] border-[#d4af37]/30'],
+            'completada'    => ['label' => 'Completada',    'clase' => 'bg-[#6fcf97]/12 text-[#6fcf97] border-[#6fcf97]/30'],
+            'confirmada'    => ['label' => 'Confirmada',    'clase' => 'bg-[#d4af37]/12 text-[#d4af37] border-[#d4af37]/30'],
             'cancelada'     => ['label' => 'Cancelada',     'clase' => 'bg-[#e07070]/10 text-[#e07070] border-[#e07070]/25'],
             'no_presentado' => ['label' => 'No se presentó','clase' => 'bg-white/5 text-[#888888] border-white/10'],
     ];
@@ -161,6 +180,11 @@ function badgeEstado(string $estado): string {
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <link rel="stylesheet" href="../public/assets/css/estilos.css">
+    <style>
+        .mobile-collapse { max-height: 0; overflow: hidden; transition: max-height 0.5s cubic-bezier(0.4,0,0.2,1), opacity 0.35s ease; opacity: 0.4; }
+        .mobile-collapse.expanded { max-height: 2000px; opacity: 1; }
+        @media (min-width: 1024px) { .mobile-collapse { max-height: none !important; overflow: visible !important; opacity: 1 !important; } }
+    </style>
 </head>
 <body class="pagina-admin bg-[#0d0d0d] text-[#f5f0e8] font-['Montserrat'] min-h-screen">
 
@@ -171,7 +195,7 @@ function badgeEstado(string $estado): string {
 
         <header class="bg-white/[0.025] border border-white/[0.08] rounded-2xl p-5 sm:p-8 animate-[ficha-entrar_0.45s_cubic-bezier(0.16,1,0.3,1)_both]">
 
-            <a href="index.php" class="inline-flex items-center gap-2 px-3.5 py-2 mb-5 rounded-full bg-white/5 border border-white/10 font-['Montserrat'] text-[0.7rem] sm:text-[0.75rem] font-semibold tracking-wider uppercase text-[#aaaaaa] transition-all duration-200 hover:bg-white/10 hover:text-[#d4af37] w-fit">
+            <a href="index.php<?= $fecha_volver ? '?fecha=' . h($fecha_volver) : '' ?>" class="inline-flex items-center gap-2 px-3.5 py-2 mb-5 rounded-full bg-white/5 border border-white/10 font-['Montserrat'] text-[0.7rem] sm:text-[0.75rem] font-semibold tracking-wider uppercase text-[#aaaaaa] transition-all duration-200 hover:bg-white/10 hover:text-[#d4af37] w-fit">
                 <i class="bi bi-arrow-left"></i>
                 Volver a la agenda
             </a>
@@ -206,6 +230,12 @@ function badgeEstado(string $estado): string {
                                 Sin teléfono
                             <?php endif; ?>
                         </p>
+                        <?php if ($cliente->getCreatedAt()): ?>
+                            <p class="font-['Montserrat'] text-[0.7rem] text-[#888] m-0 mt-1 flex items-center gap-1.5">
+                                <i class="bi bi-calendar3 text-[#d4af37] text-[0.75rem]"></i>
+                                Cliente desde <?= h(fechaHumana(substr($cliente->getCreatedAt(), 0, 10))) ?>
+                            </p>
+                        <?php endif; ?>
                     </div>
                 </div>
 
@@ -259,6 +289,12 @@ function badgeEstado(string $estado): string {
                                 </button>
                             </form>
 
+                            <button type="button" onclick="abrirCancelarCita()"
+                                    class="w-full md:w-auto inline-flex items-center justify-center gap-[0.45rem] font-['Montserrat'] text-[0.75rem] font-semibold tracking-[0.06em] rounded-lg px-[1.1rem] py-3 md:py-[0.55rem] cursor-pointer transition-all duration-150 bg-white/5 text-[#e07070] border border-red-900/30 hover:border-red-500/50 hover:bg-red-900/10">
+                                <i class="bi bi-x-lg"></i>
+                                Cancelar cita
+                            </button>
+
                             <form method="POST" class="w-full">
                                 <input type="hidden" name="csrf_token" value="<?= h($token_csrf) ?>">
                                 <input type="hidden" name="accion" value="marcar_no_presentado">
@@ -274,6 +310,12 @@ function badgeEstado(string $estado): string {
                         <div class="flex flex-col items-center sm:items-start md:items-end gap-[0.4rem] w-full mt-2 sm:mt-0">
                             <span class="font-['Montserrat'] text-[0.65rem] font-semibold tracking-[0.2em] uppercase text-[#666666]">Estado de la cita</span>
                             <?= badgeEstado($reserva_actual['estado']) ?>
+                            <?php if ($reserva_actual['estado'] === 'cancelada' && !empty($reserva_actual['motivo_cancelacion'])): ?>
+                                <div class="flex items-start gap-1.5 mt-1.5 max-w-[220px]">
+                                    <i class="bi bi-chat-quote text-[#e07070] text-[0.65rem] mt-0.5 shrink-0"></i>
+                                    <span class="font-['Montserrat'] text-[0.65rem] text-[#e07070]/80 leading-relaxed"><?= h($reserva_actual['motivo_cancelacion']) ?></span>
+                                </div>
+                            <?php endif; ?>
                         </div>
                     <?php endif; ?>
                 </div>
@@ -334,6 +376,11 @@ function badgeEstado(string $estado): string {
                 <i class="bi bi-calendar-x text-[#e07070] text-lg sm:text-[1.25rem] mb-[0.1rem]"></i>
                 <span class="font-['Playfair_Display'] text-3xl sm:text-[2rem] font-bold leading-none text-[#f5f0e8]"><?= $total_canceladas ?></span>
                 <span class="font-['Montserrat'] text-[0.6rem] sm:text-[0.65rem] font-semibold tracking-[0.18em] uppercase text-[#666666]">Canceladas</span>
+                <?php if ($total_no_presento > 0): ?>
+                    <span class="font-['Montserrat'] text-[0.55rem] text-[#888888] mt-[-0.1rem] flex items-center gap-1">
+                        <i class="bi bi-person-x text-[0.55rem]"></i> <?= $total_no_presento ?> no show
+                    </span>
+                <?php endif; ?>
             </div>
 
             <div class="flex flex-col items-center gap-1 sm:gap-[0.35rem] py-5 sm:py-6 px-3 sm:px-4 rounded-[0.875rem] border border-white/[0.08] bg-white/[0.025] text-center transition-all duration-200 hover:border-[#d4af37]/25 hover:-translate-y-[2px] animate-[ficha-entrar_0.5s_cubic-bezier(0.16,1,0.3,1)_both] delay-[200ms] relative group"
@@ -392,8 +439,14 @@ function badgeEstado(string $estado): string {
                 <h2 class="font-['Montserrat'] text-[0.7rem] font-bold tracking-[0.22em] uppercase text-[#666666] flex items-center gap-2 m-0 mb-4 sm:mb-5 pb-[0.875rem] border-b border-white/[0.06]">
                     <i class="bi bi-clock-history text-[#d4af37] text-[0.9rem]"></i>
                     Historial de citas
+                    <button type="button" id="btnToggleHistorial" onclick="toggleHistorial()"
+                            class="lg:!hidden ml-auto flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[0.6rem] font-semibold tracking-wider border border-white/[0.08] text-[#888] hover:text-[#d4af37] hover:border-[#d4af37]/30 transition-all cursor-pointer">
+                        <i class="bi bi-chevron-down text-[0.65rem]" id="iconToggleHistorial"></i>
+                        <span id="labelToggleHistorial">Mostrar</span>
+                    </button>
                 </h2>
 
+                <div id="historialCollapse" class="mobile-collapse lg:!max-h-none lg:!overflow-visible">
                 <?php if (empty($historial)): ?>
                     <p class="font-['Montserrat'] text-[0.82rem] text-[#666666] text-center py-8 m-0">Este cliente aún no tiene citas registradas.</p>
                 <?php else: ?>
@@ -433,6 +486,7 @@ function badgeEstado(string $estado): string {
                         <?php endforeach; ?>
                     </div>
                 <?php endif; ?>
+                </div><!-- /historialCollapse -->
             </section>
 
         </div>
@@ -548,6 +602,46 @@ function badgeEstado(string $estado): string {
     </div>
 </div>
 
+<!-- Modal cancelar cita -->
+<div id="modalCancelar" class="fixed inset-0 z-[9999] bg-black/80 hidden items-center justify-center p-4 opacity-0 transition-opacity duration-200" onclick="if(event.target===this)cerrarCancelarCita()">
+    <div class="bg-[#1a1a1a] border border-white/[0.08] rounded-2xl p-6 w-full max-w-md shadow-2xl scale-95 transition-transform duration-200" id="modalCancelarContent">
+        <div class="flex items-center justify-between mb-5">
+            <h3 class="font-['Playfair_Display'] text-[1rem] font-semibold text-[#f5f0e8]">Cancelar cita</h3>
+            <button onclick="cerrarCancelarCita()" class="w-8 h-8 rounded-lg flex items-center justify-center text-[#888] hover:bg-white/10 hover:text-[#f5f0e8] transition-all cursor-pointer">
+                <i class="bi bi-x-lg text-[0.8rem]"></i>
+            </button>
+        </div>
+        <form action="" method="POST" class="space-y-4">
+            <input type="hidden" name="csrf_token" value="<?= h($token_csrf) ?>">
+            <input type="hidden" name="accion" value="cancelar_cita">
+            <input type="hidden" name="id_reserva_accion" value="<?= $id_reserva ?>">
+
+            <div>
+                <label class="font-['Montserrat'] text-[0.65rem] font-semibold uppercase tracking-wider text-[#888] block mb-1.5">Motivo de cancelación</label>
+                <textarea name="motivo_cancelacion" id="inputMotivoCancelar" rows="3" required
+                          placeholder="Ej: Cliente llamó para cancelar, no respondió mensajes..."
+                          class="w-full bg-[#0d0d0d] border border-white/[0.08] rounded-lg px-3 py-2.5 text-[0.85rem] text-[#f5f0e8] focus:outline-hidden focus:border-[#d4af37]/50 transition-all resize-none"></textarea>
+            </div>
+
+            <p class="font-['Montserrat'] text-[0.65rem] text-[#888] leading-relaxed flex items-start gap-1.5">
+                <i class="bi bi-info-circle text-[#d4af37] mt-0.5 shrink-0"></i>
+                El motivo se guardará para el historial. Pendiente: notificar al cliente vía WhatsApp.
+            </p>
+
+            <div class="flex gap-3 pt-1">
+                <button type="button" onclick="cerrarCancelarCita()"
+                        class="flex-1 px-4 py-2.5 rounded-lg border border-white/[0.08] font-['Montserrat'] text-[0.7rem] font-semibold tracking-wider text-[#888] hover:bg-white/5 transition-all cursor-pointer">
+                    Volver
+                </button>
+                <button type="submit"
+                        class="flex-1 px-4 py-2.5 rounded-lg bg-red-800 text-[#f5f0e8] font-['Montserrat'] text-[0.7rem] font-semibold tracking-wider uppercase hover:opacity-90 transition-all cursor-pointer">
+                    Cancelar cita
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <script>
 function abrirEditarPuntos() {
     const modal = document.getElementById('modalPuntos');
@@ -596,6 +690,47 @@ function cerrarEditarNota() {
     setTimeout(() => {
         modal.classList.add('hidden');
     }, 200);
+}
+
+function abrirCancelarCita() {
+    const modal = document.getElementById('modalCancelar');
+    const content = document.getElementById('modalCancelarContent');
+    const input = document.getElementById('inputMotivoCancelar');
+    input.value = '';
+    modal.classList.remove('hidden');
+    requestAnimationFrame(() => {
+        modal.classList.remove('opacity-0');
+        content.classList.remove('scale-95');
+        content.classList.add('scale-100');
+    });
+}
+
+function cerrarCancelarCita() {
+    const modal = document.getElementById('modalCancelar');
+    const content = document.getElementById('modalCancelarContent');
+    modal.classList.add('opacity-0');
+    content.classList.remove('scale-100');
+    content.classList.add('scale-95');
+    setTimeout(() => {
+        modal.classList.add('hidden');
+    }, 200);
+}
+
+function toggleHistorial() {
+    const wrapper = document.getElementById('historialCollapse');
+    const btn = document.getElementById('btnToggleHistorial');
+    const icon = document.getElementById('iconToggleHistorial');
+    const label = document.getElementById('labelToggleHistorial');
+    const isExpanded = wrapper.classList.contains('expanded');
+    if (isExpanded) {
+        wrapper.classList.remove('expanded');
+        icon.className = 'bi bi-chevron-down text-[0.65rem]';
+        label.textContent = 'Mostrar';
+    } else {
+        wrapper.classList.add('expanded');
+        icon.className = 'bi bi-chevron-up text-[0.65rem]';
+        label.textContent = 'Ocultar';
+    }
 }
 </script>
 

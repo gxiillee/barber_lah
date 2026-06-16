@@ -31,7 +31,29 @@ $id_usuario = (int)$usuario->getId();
 $historial  = Reserva::obtenerHistorialPorCliente($id_usuario);
 $pagina_activa = 'historial';
 
-?>
+// ── Fase 4: Agrupar citas por mes-año ─────────────────────────────
+$meses_es = ['', 'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+             'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+$grupos = [];
+foreach ($historial as $cita) {
+    $ts = strtotime($cita['fecha']);
+    $clave = date('Y-m', $ts);
+    $m = (int)date('n', $ts);
+    $y = date('Y', $ts);
+    $grupos[$clave]['label'] = $meses_es[$m] . " $y";
+    $grupos[$clave]['items'][] = $cita;
+}
+krsort($grupos);
+
+// Contadores globales
+$total_completadas = 0;
+$total_canceladas = 0;
+foreach ($historial as $cita) {
+    if ($cita['estado'] === 'completada') $total_completadas++;
+    elseif ($cita['estado'] === 'cancelada') $total_canceladas++;
+}
+
+?>>
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -67,31 +89,36 @@ $pagina_activa = 'historial';
             </p>
         </div>
 
-        <!-- Banner de Google Reviews -->
-        <div class="rounded-2xl bg-gradient-to-br from-[#161616] to-[#0a0a0a] border border-[var(--gold-brd)] p-5 sm:p-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div class="flex flex-col items-center sm:items-start text-center sm:text-left gap-2">
-                <div class="flex items-center gap-1 text-[var(--gold)] text-lg">
-                    <i class="bi bi-star-fill"></i>
-                    <i class="bi bi-star-fill"></i>
-                    <i class="bi bi-star-fill"></i>
-                    <i class="bi bi-star-fill"></i>
-                    <i class="bi bi-star-fill"></i>
+        <!-- Banner de Google Reviews (compacto) -->
+        <div class="flex items-center justify-between gap-3 rounded-xl border border-[var(--gold-brd)] px-4 py-3" style="background:linear-gradient(135deg,rgba(255,215,0,0.04),transparent)">
+            <div class="flex items-center gap-3 min-w-0">
+                <div class="flex items-center gap-0.5 text-[var(--gold)] text-xs shrink-0">
+                    <i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i>
                 </div>
-                <h2 class="text-[var(--tx)] font-semibold text-lg">¿Te ha gustado tu corte?</h2>
-                <p class="text-[var(--tx-m)] text-sm max-w-sm">
-                    Tu opinión nos ayuda a crecer. Valora tu experiencia con Hassan en Google.
-                </p>
+                <span class="text-[0.68rem] text-[var(--tx-m)] truncate">¿Te gustó? Valora en Google</span>
             </div>
             <a href="https://search.google.com/local/writereview?placeid=ChIJUbsCcgAVWQ0RY94kRz2CmIA" target="_blank"
-               class="px-6 py-2.5 rounded-lg bg-[var(--gold)] text-[var(--bg)] font-bold text-sm uppercase tracking-wide transition-all hover:opacity-90 hover:scale-[1.02] flex items-center gap-2">
-               <i class="bi bi-google"></i>
-               Valorar ahora
+               class="shrink-0 rounded-lg bg-[var(--gold)] px-3 py-1.5 text-[0.6rem] font-bold uppercase tracking-wider text-[var(--bg)] transition-all hover:opacity-90 flex items-center gap-1.5 no-underline">
+               <i class="bi bi-google"></i> Valorar
             </a>
         </div>
 
-        <!-- Listado de Citas — Timeline visual -->
+        <!-- Mini stats -->
+        <?php if (!empty($historial)): ?>
+        <div class="grid grid-cols-2 gap-2 sm:gap-3">
+            <div class="rounded-xl p-3 sm:p-4 border text-center" style="background:var(--card); border-color:var(--brd);">
+                <div style="font-family:var(--pf); font-size:clamp(1.4rem,4vw,1.8rem); color:#4ade80; line-height:1;"><?= $total_completadas ?></div>
+                <div style="font-size:0.55rem; color:var(--tx-d); text-transform:uppercase; letter-spacing:0.2em; margin-top:2px;">completadas</div>
+            </div>
+            <div class="rounded-xl p-3 sm:p-4 border text-center" style="background:var(--card); border-color:var(--brd);">
+                <div style="font-family:var(--pf); font-size:clamp(1.4rem,4vw,1.8rem); color:#f87171; line-height:1;"><?= $total_canceladas ?></div>
+                <div style="font-size:0.55rem; color:var(--tx-d); text-transform:uppercase; letter-spacing:0.2em; margin-top:2px;">canceladas</div>
+            </div>
+        </div>
+        <?php endif; ?>
+
+        <!-- Listado de Citas agrupado por mes -->
         <?php if (empty($historial)): ?>
-            <!-- Estado Vacío -->
             <div class="rounded-xl p-10 flex flex-col items-center text-center gap-5 border" style="background:var(--card); border-color:var(--brd); opacity:0; animation:fadeInUp 0.45s var(--ease-out) 0.1s forwards;">
                 <div class="w-16 h-16 rounded-full flex items-center justify-center border" style="background:var(--bg2); border-color:var(--brd);">
                     <i class="bi bi-calendar2-x" style="color:var(--tx-d); font-size:1.6rem;"></i>
@@ -107,10 +134,19 @@ $pagina_activa = 'historial';
                 </a>
             </div>
         <?php else: ?>
-            <!-- Timeline de citas -->
-            <div class="timeline-track">
-                <?php foreach ($historial as $cita):
-                    // Badge de estado
+            <!-- Grupos por mes -->
+            <?php foreach ($grupos as $clave => $grupo):
+                $items = $grupo['items'];
+                $label = $grupo['label'];
+            ?>
+            <section>
+                <div class="flex items-center gap-3 mb-3">
+                    <h2 style="font-family:var(--pf); font-size:clamp(0.95rem,3vw,1.1rem); font-weight:600; color:var(--tx); white-space:nowrap;"><?= h($label) ?></h2>
+                    <div class="h-px flex-1" style="background:var(--brd);"></div>
+                    <span style="font-size:0.55rem; color:var(--tx-d); text-transform:uppercase; letter-spacing:0.15em; white-space:nowrap;"><?= count($items) ?> cita<?= count($items) !== 1 ? 's' : '' ?></span>
+                </div>
+                <div class="flex flex-col gap-2 sm:gap-2.5">
+                <?php foreach ($items as $cita):
                     $badgeClass = "";
                     $estadoLabel = "";
                     $iconEstado = "";
@@ -126,7 +162,7 @@ $pagina_activa = 'historial';
                             $iconEstado = "bi-x-circle-fill";
                             break;
                         case 'no_presentado':
-                            $badgeClass = "background:rgba(251,146,60,0.12); color:#fb923c; border-color:rgba(251,146,60,0.2)";
+                            $badgeClass = "background:rgba(136,136,136,0.12); color:#888888; border-color:rgba(136,136,136,0.2)";
                             $estadoLabel = "No presentado";
                             $iconEstado = "bi-question-circle-fill";
                             break;
@@ -142,38 +178,42 @@ $pagina_activa = 'historial';
                             $iconEstado = "bi-record-circle";
                     }
                 ?>
-                    <div class="timeline-item">
-                        <div class="rounded-xl p-4 sm:p-5 border transition-all duration-200 hover:-translate-y-0.5" style="background:var(--bg2); border-color:var(--brd);">
-                            <div class="flex items-start justify-between gap-3 flex-wrap">
-                                <div class="min-w-0 flex-1">
-                                    <div class="flex items-center gap-2 mb-1">
-                                        <span style="font-size:0.95rem; font-weight:600; color:var(--tx);"><?= h($cita['nombre_servicio']) ?></span>
-                                    </div>
-                                    <div class="flex flex-wrap items-center gap-3 mt-1.5" style="font-size:0.72rem; color:var(--tx-m);">
-                                        <span class="flex items-center gap-1.5">
-                                            <i class="bi bi-calendar3" style="color:var(--gold); font-size:0.65rem;"></i>
-                                            <?= h(fechaHumana($cita['fecha'])) ?>
-                                        </span>
-                                        <span class="flex items-center gap-1.5">
-                                            <i class="bi bi-clock" style="color:var(--gold); font-size:0.65rem;"></i>
-                                            <?= h(substr($cita['hora'], 0, 5)) ?>h
-                                        </span>
-                                    </div>
-                                </div>
-                                <div class="flex flex-col items-end gap-2 shrink-0">
-                                    <span style="font-weight:700; font-size:1rem; color:var(--tx);">
-                                        <?= number_format((float)$cita['precio_historico'], 2, ',', '.') ?> €
+                    <div class="rounded-xl p-3 sm:p-4 border transition-all duration-200 hover:-translate-y-0.5" style="background:var(--bg2); border-color:var(--brd);">
+                        <div class="flex items-start justify-between gap-3 flex-wrap">
+                            <div class="min-w-0 flex-1">
+                                <div style="font-size:0.85rem; font-weight:600; color:var(--tx);"><?= h($cita['nombre_servicio']) ?></div>
+                                <div class="flex flex-wrap items-center gap-2.5 mt-1" style="font-size:0.68rem; color:var(--tx-m);">
+                                    <span class="flex items-center gap-1">
+                                        <i class="bi bi-calendar3" style="color:var(--gold); font-size:0.6rem;"></i>
+                                        <?= h(fechaHumana($cita['fecha'])) ?>
                                     </span>
-                                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[0.6rem] font-bold uppercase tracking-wider border" style="<?= $badgeClass ?>">
-                                        <i class="bi <?= $iconEstado ?>" style="font-size:0.55rem;"></i>
-                                        <?= h($estadoLabel) ?>
+                                    <span class="flex items-center gap-1">
+                                        <i class="bi bi-clock" style="color:var(--gold); font-size:0.6rem;"></i>
+                                        <?= h(substr($cita['hora'], 0, 5)) ?>h
                                     </span>
                                 </div>
+                            </div>
+                            <div class="flex flex-col items-end gap-1.5 shrink-0">
+                                <span style="font-weight:700; font-size:0.9rem; color:var(--tx);">
+                                    <?= number_format((float)$cita['precio_historico'], 2, ',', '.') ?> €
+                                </span>
+                                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[0.55rem] font-bold uppercase tracking-wider border" style="<?= $badgeClass ?>">
+                                    <i class="bi <?= $iconEstado ?>" style="font-size:0.5rem;"></i>
+                                    <?= h($estadoLabel) ?>
+                                </span>
+                                <?php if ($cita['estado'] === 'cancelada' && !empty($cita['motivo_cancelacion'])): ?>
+                                    <div class="flex items-start gap-1 max-w-[160px]">
+                                        <i class="bi bi-chat-quote" style="color:#f87171; font-size:0.5rem; margin-top:2px; flex-shrink:0;"></i>
+                                        <span style="font-size:0.55rem; color:#f87171; line-height:1.3;"><?= h($cita['motivo_cancelacion']) ?></span>
+                                    </div>
+                                <?php endif; ?>
                             </div>
                         </div>
                     </div>
                 <?php endforeach; ?>
-            </div>
+                </div>
+            </section>
+            <?php endforeach; ?>
         <?php endif; ?>
 
     </div>

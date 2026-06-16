@@ -19,6 +19,11 @@ $pagina_activa = 'perfil';
 
 // ── Detectar si el usuario tiene contraseña o viene de Google ──
 $tienePassword = $usuario->tienePassword();
+$esAdmin = $usuario->tieneRolAdmin();
+
+// Fecha del último cambio de contraseña
+$ultimoCambio = Usuario::obtenerFechaUltimoCambioPassword($usuario->getId());
+$diasDesdeCambio = $ultimoCambio ? floor((time() - strtotime($ultimoCambio)) / 86400) : null;
 
 $error = '';
 $exito = '';
@@ -58,11 +63,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
 
+        // Admin: verificar que no repita últimas 3 contraseñas
+        if (empty($error) && $esAdmin && $tienePassword) {
+            if (!Usuario::checkPasswordHistory($usuario->getId(), $password_nueva)) {
+                $error = 'Esta contraseña ya la has usado recientemente. Elige una diferente.';
+            }
+        }
+
         // Si no hay error, establecer/actualizar la contraseña
         if (empty($error)) {
             try {
                 $ok = Usuario::establecerPassword($usuario->getId(), $password_nueva);
                 if ($ok) {
+                    // Admin: guardar en historial de contraseñas
+                    if ($esAdmin && $tienePassword) {
+                        $hash = password_hash($password_nueva, PASSWORD_BCRYPT, ['cost' => 12]);
+                        Usuario::addPasswordHistory($usuario->getId(), $hash);
+                    }
+
                     // Actualizar el objeto en sesión para que tengaPassword() refleje el cambio
                     $usuario = Usuario::comprobarLogin($usuario->getEmail(), $password_nueva);
                     if ($usuario) {
@@ -221,6 +239,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             <!-- ═══ Columna lateral: tips ═══ -->
             <div class="flex flex-col gap-5">
+                <?php if ($diasDesdeCambio !== null && $tienePassword): ?>
+                <div class="rounded-xl p-6 border" style="background:var(--card); border-color:var(--brd);">
+                    <div class="flex items-center gap-2 mb-4">
+                        <i class="bi bi-clock-history" style="color:var(--gold); font-size:1.1rem;"></i>
+                        <span style="font-size:0.78rem; font-weight:600; color:var(--tx);">Último cambio</span>
+                    </div>
+                    <p style="font-size:0.82rem; color:var(--tx-m);">
+                        <?php if ($diasDesdeCambio === 0): ?>
+                            Hoy mismo
+                        <?php elseif ($diasDesdeCambio === 1): ?>
+                            Ayer
+                        <?php else: ?>
+                            Hace <strong><?= number_format($diasDesdeCambio) ?> días</strong>
+                        <?php endif; ?>
+                    </p>
+                </div>
+                <?php endif; ?>
+
                 <div class="rounded-xl p-6 border" style="background:var(--card); border-color:var(--brd);">
                     <div class="flex items-center gap-2 mb-4">
                         <i class="bi bi-shield-check" style="color:var(--gold); font-size:1.1rem;"></i>
@@ -233,6 +269,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <li>No uses la misma de otros sitios</li>
                     </ul>
                 </div>
+
+                <?php if ($esAdmin && $tienePassword): ?>
+                <div class="rounded-xl p-6 border" style="background:var(--card); border-color:var(--brd);">
+                    <div class="flex items-center gap-2 mb-4">
+                        <i class="bi bi-arrow-repeat" style="color:var(--gold); font-size:1.1rem;"></i>
+                        <span style="font-size:0.78rem; font-weight:600; color:var(--tx);">Historial</span>
+                    </div>
+                    <p style="font-size:0.72rem; color:var(--tx-m); line-height:1.6;">
+                        No puedes repetir ninguna de tus últimas 3 contraseñas.
+                    </p>
+                </div>
+                <?php endif; ?>
 
                 <div class="rounded-xl p-6 border" style="background:var(--card); border-color:var(--brd);">
                     <div class="flex items-center gap-2 mb-4">

@@ -1,38 +1,29 @@
 <?php
+require_once __DIR__ . '/../bootstrap.php';
+
 class BD {
-    // Guarda la única instancia de la conexión. Null hasta que se use por primera vez.
     private static $conexion = null;
-
-    // 🔥 Semáforo de seguridad para evitar bucles infinitos de memoria
     private static $ejecutandoCron = false;
-
-    // El constructor privado impide hacer "new BD()" desde fuera — solo existe una conexión.
     private function __construct() {}
 
     public static function obtenerConexion() {
-        // Solo crea la conexión si aún no existe (la primera vez que se llama)
         if (self::$conexion === null) {
-
-            $host      = 'localhost';
-            $puerto    = '5432';
-            $bd        = 'barberlah';
-            $usuario   = 'postgres';
-            $contrasena = '1234';
+            $host      = $_ENV['DB_HOST'] ?? 'localhost';
+            $puerto    = $_ENV['DB_PORT'] ?? '5432';
+            $bd        = $_ENV['DB_NAME'] ?? 'barberlah';
+            $usuario   = $_ENV['DB_USER'] ?? 'postgres';
+            $contrasena = $_ENV['DB_PASS'] ?? '';
 
             $dsn = "pgsql:host=$host;port=$puerto;dbname=$bd";
 
             try {
-                //guarda la conexion para que no se tenga que hacer cada vez
                 self::$conexion = new PDO($dsn, $usuario, $contrasena);
-                //si algo falla, da una excepcion al catch
                 self::$conexion->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
                 self::$conexion->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
             } catch (PDOException $e) {
                 die("Error de conexión: " . $e->getMessage());
             }
         }
-
-        // Las siguientes llamadas simplemente devuelven la conexión ya creada
         return self::$conexion;
     }
 }

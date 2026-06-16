@@ -1,5 +1,5 @@
 <?php
-require_once __DIR__ . '/../vendor/autoload.php';
+require_once __DIR__ . '/../bootstrap.php';
 
 class ConexionMongo {
     private static $cliente;
@@ -7,13 +7,12 @@ class ConexionMongo {
 
     public static function conectar() {
         if (!isset(self::$cliente)) {
-            // Pon AQUÍ tu IP fija de clase o casa
-            $ip_bd = "localhost";
+            $uri = $_ENV['MONGO_URI'] ?? 'mongodb://localhost:27017';
+            $db  = $_ENV['MONGO_DB'] ?? 'barberlah';
 
-            // Usamos la IP en lugar de localhost para que todos apunten al mismo sitio
             try {
-                self::$cliente = new MongoDB\Client("mongodb://$ip_bd:27017/");
-                self::$db = self::$cliente->barberlah;
+                self::$cliente = new MongoDB\Client($uri);
+                self::$db = self::$cliente->$db;
             } catch (Exception $e) {
                 die("Error de conexión a MongoDB: " . $e->getMessage());
             }

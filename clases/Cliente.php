@@ -12,7 +12,6 @@ require_once __DIR__ . '/Usuario.php';
 class Cliente extends Usuario {
 
     // Propiedad extra: no está en el constructor del padre, se asigna en obtenerPorId
-    private $created_at = null;
 
     // --------------------------------------------------------------
     // 1. CONSTRUCTOR
@@ -31,12 +30,12 @@ class Cliente extends Usuario {
         ?string $password = null,
         ?string $avatar = null,
         ?string $telefono = null,
-        int $puntos_fidelidad = 0
+        int $puntos_fidelidad = 0,
+        ?string $nota_interna = null,
+        ?string $created_at = null
     ) {
-        parent::__construct($id, $google_id, $nombre, $email, $password, $avatar, $telefono, $puntos_fidelidad, 'cliente');
+        parent::__construct($id, $google_id, $nombre, $email, $password, $avatar, $telefono, $puntos_fidelidad, 'cliente', $nota_interna, $created_at);
     }
-    //getter excluisvo de cliente, no hereda ded usuario
-    public function getCreatedAt()       { return $this->created_at; }
     // --------------------------------------------------------------
     // 2. MÉTODOS DE ESCRITURA (Escritura en BD)
     // --------------------------------------------------------------
@@ -119,7 +118,6 @@ class Cliente extends Usuario {
                     telefono, puntos_fidelidad, nota_interna, created_at
                FROM usuarios
               WHERE id = :id
-                AND rol = 'cliente'
                 AND activo = true"
         );
         $stmt->execute(['id' => $id]);

@@ -2,20 +2,19 @@
 declare(strict_types=1);
 session_start();
 
+require_once __DIR__ . '/../bootstrap.php';
 require_once __DIR__ . '/../clases/Usuario.php';
 require_once __DIR__ . '/../clases/Helpers.php';
 
-// En la vida real, esto se carga desde un archivo oculto (.env)
-define('GOOGLE_CLIENT_ID',     '107886896236-hg74nkhc5qvh64v0h32j7kgp0is7psrs.apps.googleusercontent.com');
-define('GOOGLE_CLIENT_SECRET', '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');
-define('GOOGLE_REDIRECT_URI',  'http://localhost/barberlah/auth/google.php');
+define('GOOGLE_CLIENT_ID',     $_ENV['GOOGLE_CLIENT_ID']);
+define('GOOGLE_CLIENT_SECRET', $_ENV['GOOGLE_CLIENT_SECRET']);
+define('GOOGLE_REDIRECT_URI',  $_ENV['GOOGLE_REDIRECT_URI']);
 
 try {
     // -------------------------------------------------------------------------
     // FASE 1: Redirigir al usuario a Google (Si no existe código de retorno)
     // -------------------------------------------------------------------------
     if (!isset($_GET['code'])) {
-        // Generamos un token anti-CSRF para el flujo OAuth y lo guardamos en sesión
         $_SESSION['oauth_state'] = bin2hex(random_bytes(16));
 
         $parametros = [
@@ -27,7 +26,6 @@ try {
             'prompt'        => 'select_account'
         ];
 
-        // Usamos la nueva función global de redirección
         redirigir('https://accounts.google.com/o/oauth2/v2/auth?' . http_build_query($parametros));
     }
 
@@ -35,13 +33,11 @@ try {
     // FASE 2: Callback de Google (Procesar la respuesta)
     // -------------------------------------------------------------------------
 
-    // Validación de seguridad obligatoria del Estado (State)
     if (empty($_GET['state']) || empty($_SESSION['oauth_state']) || $_GET['state'] !== $_SESSION['oauth_state']) {
         throw new Exception('Fallo crítico de verificación de estado OAuth.');
     }
-    unset($_SESSION['oauth_state']); // Limpieza preventiva del token de estado
+    unset($_SESSION['oauth_state']);
 
-    // 1. Intercambiar el código de autorización por el Token de Acceso (Access Token)
     $ch = curl_init('https://oauth2.googleapis.com/token');
     curl_setopt_array($ch, [
         CURLOPT_RETURNTRANSFER => true,
@@ -61,7 +57,6 @@ try {
         throw new Exception('No se pudo obtener el token de acceso de Google.');
     }
 
-    // 2. Recuperar los datos del perfil utilizando el Token de Acceso
     $accessToken = $respuestaToken['access_token'];
     $ch = curl_init('https://www.googleapis.com/oauth2/v3/userinfo?access_token=' . urlencode($accessToken));
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
@@ -72,24 +67,20 @@ try {
         throw new Exception('No se pudieron recuperar los datos de perfil de Google.');
     }
 
-    // Extracción limpia de variables
     $googleId = (string)$datosGoogle['sub'];
     $nombre   = (string)($datosGoogle['name'] ?? 'Usuario Google');
     $email    = (string)$datosGoogle['email'];
     $avatar   = $datosGoogle['picture'] ?? null;
 
-    // 3. Buscar o Registrar al usuario en PostgreSQL mediante el Modelo Limpio
     $usuario = Usuario::comprobarRegistrarGoogle($googleId, $nombre, $email, $avatar);
 
     if (!$usuario instanceof Usuario) {
         throw new Exception('El modelo no devolvió una instancia válida de Usuario.');
     }
 
-    // Autenticación exitosa: Regeneramos ID de sesión por seguridad informática
     session_regenerate_id(true);
     $_SESSION['usuario'] = $usuario;
 
-    // Redirección inteligente unificada respetando la carpeta public/
     if (isset($_SESSION['reserva_pendiente']) && is_array($_SESSION['reserva_pendiente'])) {
         redirigir('../cliente/confirmar_reserva.php');
     } else {
@@ -97,6 +88,5 @@ try {
     }
 
 } catch (Throwable $e) {
-    // Si algo falla, redirige al login público con la ruta corregida hacia la carpeta public/
     redirigir('../login.php?error_google=1');
 }

@@ -24,12 +24,13 @@ class Usuario {
     protected $puntos_fidelidad;
     protected $rol;
     protected $nota_interna;
+    protected $created_at;
 
     // ---------------------------------------------------------------
     // Constructor
     // ---------------------------------------------------------------
 
-    public function __construct($id, $google_id, $nombre, $email, $password, $avatar, $telefono, $puntos_fidelidad, $rol, $nota_interna = null) {
+    public function __construct($id, $google_id, $nombre, $email, $password, $avatar, $telefono, $puntos_fidelidad, $rol, $nota_interna = null, $created_at = null) {
         $this->id               = $id;
         $this->google_id        = $google_id;
         $this->nombre           = $nombre;
@@ -40,6 +41,7 @@ class Usuario {
         $this->puntos_fidelidad = $puntos_fidelidad;
         $this->rol              = $rol;
         $this->nota_interna     = $nota_interna;
+        $this->created_at       = $created_at;
     }
 
     // ---------------------------------------------------------------
@@ -57,6 +59,7 @@ class Usuario {
     public function getPuntosFidelidad() { return $this->puntos_fidelidad; }
     public function getRol()             { return $this->rol; }
     public function getNotaInterna()     { return $this->nota_interna; }
+    public function getCreatedAt()       { return $this->created_at; }
 
     // ---------------------------------------------------------------
     // Metodo de utilidad de rol
@@ -111,7 +114,9 @@ class Usuario {
             $fila['avatar'] ?? null,
             $fila['telefono'],
             (int)($fila['puntos_fidelidad'] ?? 0),
-            $fila['rol']
+            $fila['rol'],
+            $fila['nota_interna'] ?? null,
+            $fila['created_at'] ?? null
         );
     }
 
@@ -145,7 +150,9 @@ class Usuario {
                 $fila['avatar'] ?? null,
                 $fila['telefono'],
                 (int)($fila['puntos_fidelidad'] ?? 0),
-                $fila['rol']
+                $fila['rol'],
+                $fila['nota_interna'] ?? null,
+                $fila['created_at'] ?? null
             );
         }
 
@@ -171,7 +178,9 @@ class Usuario {
                 $fila['avatar'] ?? $avatar,
                 $fila['telefono'],
                 (int)($fila['puntos_fidelidad'] ?? 0),
-                $fila['rol']
+                $fila['rol'],
+                $fila['nota_interna'] ?? null,
+                $fila['created_at'] ?? null
             );
         }
 
@@ -191,7 +200,7 @@ class Usuario {
         $filaInsertada = $stmt->fetch(PDO::FETCH_ASSOC);
         $idNuevo = (int)$filaInsertada['id'];
 
-        return new self($idNuevo, $googleId, $nombre, $email, null, $avatar, null, 0, 'cliente');
+        return new self($idNuevo, $googleId, $nombre, $email, null, $avatar, null, 0, 'cliente', null, date('Y-m-d H:i:s'));
     }
 
     // ---------------------------------------------------------------
@@ -219,7 +228,7 @@ class Usuario {
         $hash = password_hash($password, PASSWORD_BCRYPT, ['cost' => 12]);
 
         $stmt = $conexion->prepare(
-            "UPDATE usuarios SET password = :password WHERE id = :id AND activo = true"
+            "UPDATE usuarios SET password = :password, password_updated_at = NOW() WHERE id = :id AND activo = true"
         );
         $stmt->execute([
             ':password' => $hash,
@@ -227,6 +236,61 @@ class Usuario {
         ]);
 
         return $stmt->rowCount() > 0;
+    }
+
+    /**
+     * Obtiene la fecha del último cambio de contraseña.
+     * @return string|null Fecha en formato Y-m-d H:i:s o null si nunca se cambió
+     */
+    public static function obtenerFechaUltimoCambioPassword(int $id): ?string {
+        $conexion = BD::obtenerConexion();
+        $stmt = $conexion->prepare(
+            "SELECT password_updated_at, created_at FROM usuarios WHERE id = :id"
+        );
+        $stmt->execute([':id' => $id]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        if (!$row) return null;
+        $fecha = $row['password_updated_at'];
+        $creado = $row['created_at'] ?? null;
+        // Si password_updated_at es NULL o coincide con created_at (misma registro), nunca se cambió
+        if (!$fecha || ($creado && abs(strtotime($fecha) - strtotime($creado)) < 5)) {
+            return null;
+        }
+        return $fecha;
+    }
+
+    /**
+     * Verifica que una contraseña no esté en las últimas 3 del historial (admin).
+     */
+    public static function checkPasswordHistory(int $usuarioId, string $newPassword): bool {
+        $conexion = BD::obtenerConexion();
+        $stmt = $conexion->prepare(
+            "SELECT password_hash FROM password_history WHERE usuario_id = :id ORDER BY created_at DESC LIMIT 3"
+        );
+        $stmt->execute([':id' => $usuarioId]);
+        $hashes = $stmt->fetchAll(PDO::FETCH_COLUMN);
+        foreach ($hashes as $hash) {
+            if (password_verify($newPassword, $hash)) return false;
+        }
+        return true;
+    }
+
+    /**
+     * Guarda una contraseña en el historial y mantiene solo las últimas 3 (admin).
+     */
+    public static function addPasswordHistory(int $usuarioId, string $passwordHash): void {
+        $conexion = BD::obtenerConexion();
+        $stmt = $conexion->prepare(
+            "INSERT INTO password_history (usuario_id, password_hash) VALUES (:id, :hash)"
+        );
+        $stmt->execute([':id' => $usuarioId, ':hash' => $passwordHash]);
+
+        $stmt = $conexion->prepare(
+            "DELETE FROM password_history WHERE usuario_id = :id AND id NOT IN (
+                SELECT id FROM password_history WHERE usuario_id = :id2 ORDER BY created_at DESC LIMIT 3
+            )"
+        );
+        $stmt->execute([':id' => $usuarioId, ':id2' => $usuarioId]);
     }
 
     /**

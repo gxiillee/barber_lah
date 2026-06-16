@@ -180,7 +180,7 @@ $usuarioConSesion = ($_SESSION['usuario'] ?? null) instanceof Usuario;
 <body class="min-h-screen overflow-x-hidden bg-[var(--obsidian)] font-[var(--font-montserrat)] text-[#f5f0e8]">
     <div class="pointer-events-none fixed inset-0 z-0 bg-[radial-gradient(ellipse_70%_50%_at_15%_0%,rgba(212,175,55,0.075)_0%,transparent_65%),linear-gradient(180deg,rgba(255,255,255,0.035),transparent_24%)]"></div>
 
-    <a href="<?= $usuarioConSesion ? 'index.php' : '../index.php' ?>" class="fixed left-5 top-5 z-40 inline-flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.16em] text-white/45 no-underline transition hover:-translate-x-0.5 hover:text-[var(--gold)]">
+    <a href="<?= $usuarioConSesion ? 'index.php' : '../index.php' ?>" class="fixed left-3 top-3 z-40 inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-[#0d0d0d]/80 px-3 py-2 text-[9px] font-bold uppercase tracking-[0.14em] text-white/50 no-underline backdrop-blur-sm transition hover:-translate-x-0.5 hover:border-[var(--gold)]/35 hover:text-[var(--gold)] sm:left-5 sm:top-5 sm:gap-2 sm:border-transparent sm:bg-transparent sm:px-0 sm:py-0 sm:text-[10px] sm:backdrop-blur-none">
         <i class="bi bi-arrow-left"></i>
         Inicio
     </a>

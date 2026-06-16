@@ -402,29 +402,25 @@ class Reserva {
 
     public static function actualizarCitasPasadas(): void {
         $conexion = BD::obtenerConexion();
+        $corte = date('Y-m-d H:i:s', strtotime('-30 minutes'));
 
         try {
             $conexion->beginTransaction();
 
-            // 1. Marcamos como completadas las citas pasadas
             $stmt = $conexion->prepare("
             UPDATE reservas
             SET estado = 'completada'
             WHERE estado IN ('pendiente', 'confirmada')
-              AND NOW() >= (fecha + hora + (duracion_historica * INTERVAL '1 minute') + INTERVAL '30 minutes')
+              AND CAST(CONCAT(fecha, ' ', hora) AS TIMESTAMP) <= :corte
             RETURNING id_cliente
         ");
-            $stmt->execute();
+            $stmt->execute([':corte' => $corte]);
 
-            // Devuelve los IDs de los clientes afectados (puede contener duplicados si tenían varias citas)
             $clientesAfectados = $stmt->fetchAll(PDO::FETCH_COLUMN);
 
             if (!empty($clientesAfectados)) {
-                // CORRECCIÓN 2: Eliminamos duplicados para que si un cliente tenía varias citas juntas, solo le sume 1 vez
                 $clientesUnicos = array_unique($clientesAfectados);
 
-                // Preparar la consulta de actualización de puntos
-                // CORRECCIÓN 1: Si llega a 10 o más, reinicia a 1 (no a 0) para contar la cita actual
                 $stmtPuntos = $conexion->prepare("
                 UPDATE usuarios
                 SET puntos_fidelidad = CASE
@@ -434,7 +430,6 @@ class Reserva {
                 WHERE id = :id
             ");
 
-                // Ejecutamos la actualización solo para los clientes únicos
                 foreach ($clientesUnicos as $id) {
                     $stmtPuntos->execute([':id' => $id]);
                 }
@@ -488,6 +483,36 @@ class Reserva {
     }
 
     /**
+     * Devuelve todas las reservas (incluyendo canceladas) en un rango de fechas.
+     */
+    public static function obtenerEnRango(int $idBarbero, string $inicio, string $fin): array {
+        $conexion = BD::obtenerConexion();
+        $stmt = $conexion->prepare("
+        SELECT r.id,
+               r.fecha,
+               r.hora,
+               r.duracion_historica,
+               r.precio_historico,
+               r.estado,
+               r.nota,
+               r.motivo_cancelacion,
+               r.id_cliente,
+               u.nombre  AS cliente_nombre,
+               u.email   AS cliente_email,
+               s.nombre  AS servicio_nombre
+        FROM   reservas r
+        JOIN   usuarios  u ON r.id_cliente  = u.id
+        JOIN   servicios s ON r.id_servicio = s.id
+        WHERE  r.id_barbero = :barbero
+          AND  r.fecha     >= :inicio
+          AND  r.fecha     <= :fin
+        ORDER  BY r.fecha ASC, r.hora ASC
+    ");
+        $stmt->execute([':barbero' => $idBarbero, ':inicio' => $inicio, ':fin' => $fin]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /**
      * Devuelve los datos completos de una reserva concreta, con JOIN a servicios y usuarios.
      * Se usa en la ficha del cliente del admin al clicar una tarjeta de la agenda.
      *
@@ -503,6 +528,7 @@ class Reserva {
                r.precio_historico,
                r.estado,
                r.nota,
+               r.motivo_cancelacion,
                r.id_cliente,
                u.nombre  AS cliente_nombre,
                u.email   AS cliente_email,
@@ -574,6 +600,7 @@ class Reserva {
         $stmt = $conexion->prepare(
             "SELECT r.id, r.fecha, r.hora, r.estado,
                 r.precio_historico, r.duracion_historica,
+                r.motivo_cancelacion,
                 s.nombre AS nombre_servicio
            FROM reservas r
       LEFT JOIN servicios s ON r.id_servicio = s.id
@@ -590,6 +617,60 @@ class Reserva {
     }
 
 // -----------------------------------------------------------------------
+// -----------------------------------------------------------------------
+// Cancelar una reserva (Hassan cancela con motivo)
+// -----------------------------------------------------------------------
+    /**
+     * Cancela una cita confirmada guardando el motivo.
+     * @return bool True si se canceló correctamente
+     */
+    public static function cancelar(int $id, string $motivo): bool {
+        $conexion = BD::obtenerConexion();
+        try {
+            $conexion->beginTransaction();
+            $stmt = $conexion->prepare("
+                UPDATE reservas
+                SET estado = 'cancelada', motivo_cancelacion = :motivo
+                WHERE id = :id AND estado = 'confirmada'
+            ");
+            $stmt->execute([':motivo' => $motivo, ':id' => $id]);
+            $ok = $stmt->rowCount() > 0;
+            $conexion->commit();
+            return $ok;
+        } catch (Exception $e) {
+            $conexion->rollBack();
+            error_log("Error al cancelar reserva: " . $e->getMessage());
+            return false;
+        }
+    }
+
+// -----------------------------------------------------------------------
+// Cancelar TODAS las citas de un día completo (ej: el barbero no puede ir)
+// -----------------------------------------------------------------------
+    /**
+     * Cancela todas las confirmadas de un día con un mismo motivo.
+     * @return int Número de citas canceladas
+     */
+    public static function cancelarPorDia(int $idBarbero, string $fecha, string $motivo): int {
+        $conexion = BD::obtenerConexion();
+        try {
+            $stmt = $conexion->prepare("
+                UPDATE reservas
+                SET estado = 'cancelada', motivo_cancelacion = :motivo
+                WHERE id_barbero = :barbero AND fecha = :fecha AND estado = 'confirmada'
+            ");
+            $stmt->execute([
+                ':motivo'  => $motivo,
+                ':barbero' => $idBarbero,
+                ':fecha'   => $fecha,
+            ]);
+            return $stmt->rowCount();
+        } catch (Exception $e) {
+            error_log("Error al cancelar día: " . $e->getMessage());
+            return 0;
+        }
+    }
+
 // Marcar una reserva como completada (Hassan cierra la cita)
 // Solo se puede marcar si estaba en estado 'confirmada'
 // -----------------------------------------------------------------------

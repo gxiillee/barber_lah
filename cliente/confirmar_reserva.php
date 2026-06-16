@@ -118,11 +118,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion']) && $_POST['
                 // Envío del correo de confirmación de forma segura
                 $detalle['email_enviado'] = NotificadorReserva::enviarConfirmacion($usuario, $detalle);
 
-                // Guardamos el éxito en la sesión y destruimos de forma limpia la reserva pendiente
-                $_SESSION['reserva_confirmada'] = $detalle;
+                // Destruimos la reserva pendiente y mostramos toast de éxito
                 unset($_SESSION['reserva_pendiente']);
 
-                redirigir('reserva_exito.php');
+                $_SESSION['toast'] = ['type' => 'success', 'message' => 'Cita confirmada correctamente.'];
+                redirigir('index.php');
             } else {
                 // El cerrojo transaccional detectó un solapamiento en el último milisegundo
                 $_SESSION['error_reserva'] = 'Lo sentimos, el turno elegido ya no está disponible. Por favor, selecciona otra hora.';
@@ -161,16 +161,16 @@ $csrfToken = Csrf::generarToken('csrf_confirmar_reserva');
 <body class="min-h-screen bg-[var(--obsidian)] font-[var(--font-montserrat)] text-[#f5f0e8]">
 <div class="pointer-events-none fixed inset-0 z-0 bg-[radial-gradient(ellipse_65%_45%_at_50%_0%,rgba(212,175,55,0.085)_0%,transparent_70%)]"></div>
 
-<a href="<?= h($urlModificar) ?>" class="fixed left-5 top-5 z-40 inline-flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.16em] text-white/45 no-underline transition hover:-translate-x-0.5 hover:text-[var(--gold)]">
+<a href="<?= h($urlModificar) ?>" class="fixed left-3 top-3 z-40 inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-[#0d0d0d]/80 px-3 py-2 text-[9px] font-bold uppercase tracking-[0.14em] text-white/50 no-underline backdrop-blur-sm transition hover:-translate-x-0.5 hover:border-[var(--gold)]/35 hover:text-[var(--gold)] sm:left-5 sm:top-5 sm:gap-2 sm:border-transparent sm:bg-transparent sm:px-0 sm:py-0 sm:text-[10px] sm:backdrop-blur-none">
     <i class="bi bi-arrow-left"></i>
     Cambiar hora
 </a>
 
-<main class="reserve-shell relative z-10 mx-auto flex min-h-screen w-full max-w-5xl items-center px-5 py-20 sm:px-8">
-    <section class="grid w-full overflow-hidden rounded-lg border border-white/10 bg-[#0d0d0d] shadow-[0_28px_90px_rgba(0,0,0,0.65)] lg:grid-cols-[1fr_360px]">
-        <div class="p-6 sm:p-9">
+<main class="reserve-shell relative z-10 mx-auto flex min-h-screen w-full max-w-5xl items-center px-4 py-14 sm:px-8 sm:py-20">
+    <section class="grid w-full overflow-hidden rounded-lg border border-white/10 bg-[#0d0d0d] shadow-[0_28px_90px_rgba(0,0,0,0.65)] lg:grid-cols-[1fr_240px]">
+        <div class="p-4 sm:p-9">
             <p class="text-[10px] font-bold uppercase tracking-[0.28em] text-[var(--gold)]">Ultimo paso</p>
-            <h1 class="mt-3 font-[var(--font-playfair)] text-[40px] font-bold leading-none text-white sm:text-[54px]">Confirma tu reserva</h1>
+            <h1 class="mt-3 font-[var(--font-playfair)] text-[clamp(1.6rem,8vw,3.375rem)] font-bold leading-none text-white">Confirma tu reserva</h1>
             <p class="mt-4 max-w-xl text-sm leading-7 text-white/45">No se crea ninguna cita hasta que pulses el boton de confirmacion. Revisa servicio, dia y cuenta antes de guardar.</p>
 
             <?php if ($errorConfirmacion !== ''): ?>
@@ -187,51 +187,51 @@ $csrfToken = Csrf::generarToken('csrf_confirmar_reserva');
                 </div>
             <?php endif; ?>
 
-            <div class="mt-8 grid gap-3 sm:grid-cols-2">
-                <div class="rounded-lg border border-white/10 bg-white/[0.025] p-4">
-                    <p class="text-[10px] font-bold uppercase tracking-[0.18em] text-white/30">Servicio</p>
-                    <p class="mt-2 text-lg font-semibold text-white"><?= h($servicio->getNombre()) ?></p>
-                    <p class="mt-1 text-sm text-white/40"><?= $duracion ?> min · <?= h($precioFormateado) ?></p>
+            <div class="mt-6 grid gap-2 sm:mt-8 sm:gap-3 sm:grid-cols-2">
+                <div class="rounded-lg border border-white/10 bg-white/[0.025] p-3 sm:p-4">
+                    <p class="text-[9px] font-bold uppercase tracking-[0.18em] text-white/30 sm:text-[10px]">Servicio</p>
+                    <p class="mt-1.5 text-base font-semibold text-white sm:mt-2 sm:text-lg"><?= h($servicio->getNombre()) ?></p>
+                    <p class="mt-1 text-xs text-white/40 sm:text-sm"><?= $duracion ?> min · <?= h($precioFormateado) ?></p>
                 </div>
-                <div class="rounded-lg border border-white/10 bg-white/[0.025] p-4">
-                    <p class="text-[10px] font-bold uppercase tracking-[0.18em] text-white/30">Fecha</p>
-                    <p class="mt-2 text-lg font-semibold text-white"><?= h($fechaHumana) ?></p>
-                    <p class="mt-1 text-sm text-white/40">A las <?= h($hora) ?></p>
+                <div class="rounded-lg border border-white/10 bg-white/[0.025] p-3 sm:p-4">
+                    <p class="text-[9px] font-bold uppercase tracking-[0.18em] text-white/30 sm:text-[10px]">Fecha</p>
+                    <p class="mt-1.5 text-base font-semibold text-white sm:mt-2 sm:text-lg"><?= h($fechaHumana) ?></p>
+                    <p class="mt-1 text-xs text-white/40 sm:text-sm">A las <?= h($hora) ?></p>
                 </div>
-                <div class="rounded-lg border border-white/10 bg-white/[0.025] p-4">
-                    <p class="text-[10px] font-bold uppercase tracking-[0.18em] text-white/30">Barbero</p>
-                    <div class="mt-3 flex items-center gap-3">
-                        <img src="../public/assets/img/logo.jpg" alt="Hassan" class="h-11 w-11 rounded-full border border-[var(--gold)]/25 object-cover">
-                        <p class="font-semibold text-white"><?= h($barbero->getNombre()) ?></p>
+                <div class="rounded-lg border border-white/10 bg-white/[0.025] p-3 sm:p-4">
+                    <p class="text-[9px] font-bold uppercase tracking-[0.18em] text-white/30 sm:text-[10px]">Barbero</p>
+                    <div class="mt-2 flex items-center gap-2.5 sm:mt-3 sm:gap-3">
+                        <img src="../public/assets/img/logo.jpg" alt="Hassan" class="h-9 w-9 rounded-full border border-[var(--gold)]/25 object-cover sm:h-11 sm:w-11">
+                        <p class="text-sm font-semibold text-white sm:text-base"><?= h($barbero->getNombre()) ?></p>
                     </div>
                 </div>
-                <div class="rounded-lg border border-[var(--gold)]/20 bg-[var(--gold)]/[0.06] p-4">
-                    <p class="text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--gold)]">Cuenta</p>
-                    <p class="mt-2 text-lg font-semibold text-white"><?= h($usuario->getEmail()) ?></p>
-                    <p class="mt-1 text-sm text-white/40"><?= h($usuario->getNombre()) ?></p>
+                <div class="rounded-lg border border-[var(--gold)]/20 bg-[var(--gold)]/[0.06] p-3 sm:p-4">
+                    <p class="text-[9px] font-bold uppercase tracking-[0.18em] text-[var(--gold)] sm:text-[10px]">Cuenta</p>
+                    <p class="mt-1.5 text-sm font-semibold text-white sm:mt-2 sm:text-lg"><?= h($usuario->getEmail()) ?></p>
+                    <p class="mt-0.5 text-xs text-white/40 sm:mt-1 sm:text-sm"><?= h($usuario->getNombre()) ?></p>
                 </div>
             </div>
         </div>
 
-        <aside class="border-t border-white/10 bg-[#111] p-6 sm:p-8 lg:border-l lg:border-t-0">
-            <div class="flex h-full flex-col justify-between gap-8">
+        <aside class="border-t border-white/10 bg-[#111] px-4 py-5 sm:p-8 lg:border-l lg:border-t-0">
+            <div class="flex h-full flex-row items-center justify-between gap-4 sm:flex-col sm:items-stretch sm:justify-between sm:gap-8">
                 <div>
-                    <p class="text-[10px] font-bold uppercase tracking-[0.22em] text-white/30">Total a reservar</p>
-                    <p class="mt-2 font-[var(--font-playfair)] text-5xl font-bold text-[var(--gold)]"><?= h($precioFormateado) ?></p>
-                    <p class="mt-5 text-sm leading-7 text-white/42">Si todo esta correcto, confirma y guardamos la reserva en tu cuenta.</p>
+                    <p class="text-[9px] font-bold uppercase tracking-[0.22em] text-white/30 sm:text-[10px]">Total</p>
+                    <p class="mt-1 font-[var(--font-playfair)] text-3xl font-bold text-[var(--gold)] sm:mt-2 sm:text-5xl"><?= h($precioFormateado) ?></p>
+                    <p class="mt-1 hidden max-w-xs text-sm leading-7 text-white/42 sm:mt-5 sm:block">Si todo esta correcto, confirma y guardamos la reserva en tu cuenta.</p>
                 </div>
 
-                <div>
+                <div class="w-auto shrink-0 sm:w-full">
                     <form method="post">
                         <input type="hidden" name="accion" value="confirmar">
                         <input type="hidden" name="csrf_token" value="<?= h($csrfToken) ?>">
-                        <button type="submit" class="w-full rounded-lg bg-[var(--gold)] px-4 py-4 text-[12px] font-extrabold uppercase tracking-[0.18em] text-[var(--obsidian)] transition hover:-translate-y-0.5 hover:bg-[var(--gold-light)] disabled:cursor-not-allowed disabled:opacity-40" <?= !$disponibleAhora ? 'disabled' : '' ?>>
-                            Confirmar reserva
+                        <button type="submit" class="w-full rounded-lg bg-[var(--gold)] px-4 py-3 text-[11px] font-extrabold uppercase tracking-[0.18em] text-[var(--obsidian)] transition hover:-translate-y-0.5 hover:bg-[var(--gold-light)] disabled:cursor-not-allowed disabled:opacity-40 sm:py-4 sm:text-[12px]" <?= !$disponibleAhora ? 'disabled' : '' ?>>
+                            Confirmar
                         </button>
                     </form>
 
-                    <a href="<?= h($urlModificar) ?>" class="mt-3 inline-flex w-full items-center justify-center rounded-lg border border-white/10 px-4 py-3 text-[11px] font-bold uppercase tracking-[0.14em] text-white/45 no-underline transition hover:border-[var(--gold)]/35 hover:text-[var(--gold)]">
-                        Cambiar seleccion
+                    <a href="<?= h($urlModificar) ?>" class="mt-2 inline-flex w-full items-center justify-center rounded-lg border border-white/10 px-4 py-2.5 text-[10px] font-bold uppercase tracking-[0.14em] text-white/45 no-underline transition hover:border-[var(--gold)]/35 hover:text-[var(--gold)] sm:mt-3 sm:py-3 sm:text-[11px]">
+                        Cambiar
                     </a>
                 </div>
             </div>

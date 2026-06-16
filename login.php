@@ -54,7 +54,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             // Redirección: reserva pendiente > index
             if (isset($_SESSION['reserva_pendiente'])) {
-                redirigir('/cliente/confirmar_reserva.php');
+                redirigir('cliente/confirmar_reserva.php');
             } else {
                 redirigir('index.php');
             }
@@ -93,7 +93,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                         // Redirección: reserva pendiente > admin > cliente/index.php
                         if (isset($_SESSION['reserva_pendiente'])) {
-                            redirigir('/cliente/confirmar_reserva.php');
+                            redirigir('cliente/confirmar_reserva.php');
                         } elseif ($usuario->tieneRolAdmin()) {
                             redirigir('admin/index.php');
                         } else {

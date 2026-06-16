@@ -25,7 +25,7 @@ $telefono    = $usuario->getTelefono() ?? '';
 $avatar      = $usuario->getAvatar();
 $inicial     = mb_strtoupper(mb_substr($nombre, 0, 1, 'UTF-8'), 'UTF-8');
 $puntos      = (int) $usuario->getPuntosFidelidad();
-$fecha_reg   = $usuario instanceof \Cliente ? $usuario->getCreatedAt() : null;
+$fecha_reg   = $usuario->getCreatedAt();
 
 // ── Cálculo de días desde el registro ──
 $dias_miembro = 0;
@@ -51,7 +51,19 @@ foreach ($historial_reciente as $cita) {
 }
 
 $tienePassword = $usuario->tienePassword();
-$total_citas   = count($historial_reciente);
+$total_citas   = 0;
+foreach ($historial_reciente as $c) {
+    if ($c['estado'] === 'completada') $total_citas++;
+}
+
+// ── Último cambio de contraseña ──
+$diasPass = null;
+if ($tienePassword) {
+    $ultimoCambio = Usuario::obtenerFechaUltimoCambioPassword($id_usuario);
+    if ($ultimoCambio) {
+        $diasPass = floor((time() - strtotime($ultimoCambio)) / 86400);
+    }
+}
 
 $pagina_activa = 'perfil';
 ?>
@@ -135,8 +147,15 @@ $pagina_activa = 'perfil';
                             <i class="bi bi-award" style="color:var(--gold); font-size:0.95rem;"></i>
                             <span style="font-size:0.6rem; text-transform:uppercase; letter-spacing:0.16em; color:var(--tx-m);">Fidelidad</span>
                         </div>
-                        <span style="font-family:var(--pf); font-size:1.8rem; color:var(--tx);"><?= $puntos >= 10 ? '🎉' : (10 - $puntos) . '✕' ?></span>
-                        <span style="font-size:0.68rem; color:var(--tx-d); margin-left:8px;"><?= $puntos >= 10 ? '¡Corte gratis!' : 'para gratis' ?></span>
+                        <div class="flex items-baseline gap-1.5">
+                            <?php if ($puntos >= 10): ?>
+                                <span style="font-size:1.5rem;">🎉</span>
+                            <?php else: ?>
+                                <span style="font-family:var(--pf); font-size:1.8rem; color:var(--tx);"><?= 10 - $puntos ?></span>
+                                <i class="bi bi-scissors" style="font-size:0.9rem; color:var(--gold);"></i>
+                                <span style="font-size:0.68rem; color:var(--tx-d);">para gratis</span>
+                            <?php endif; ?>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -159,8 +178,15 @@ $pagina_activa = 'perfil';
                             <i class="bi bi-award" style="color:var(--gold); font-size:0.85rem;"></i>
                             <span style="font-size:0.56rem; text-transform:uppercase; letter-spacing:0.16em; color:var(--tx-m);">Fidelidad</span>
                         </div>
-                        <span style="font-family:var(--pf); font-size:1.5rem; color:var(--tx);"><?= $puntos >= 10 ? '🎉' : (10 - $puntos) . '✕' ?></span>
-                        <span style="font-size:0.62rem; color:var(--tx-d); margin-left:6px;"><?= $puntos >= 10 ? '¡Corte gratis!' : 'para gratis' ?></span>
+                        <div class="flex items-baseline gap-1">
+                            <?php if ($puntos >= 10): ?>
+                                <span style="font-size:1.3rem;">🎉</span>
+                            <?php else: ?>
+                                <span style="font-family:var(--pf); font-size:1.5rem; color:var(--tx);"><?= 10 - $puntos ?></span>
+                                <i class="bi bi-scissors" style="font-size:0.75rem; color:var(--gold);"></i>
+                                <span style="font-size:0.62rem; color:var(--tx-d);">para gratis</span>
+                            <?php endif; ?>
+                        </div>
                     </div>
                 </div>
 
@@ -181,7 +207,13 @@ $pagina_activa = 'perfil';
                                         Cambiar contraseña
                                     <?php endif; ?>
                                 </span>
-                                <span style="font-size:0.7rem; color:var(--tx-d);">Seguridad de la cuenta</span>
+                                <span style="font-size:0.7rem; color:var(--tx-d);">
+                                    <?php if ($diasPass !== null): ?>
+                                        Cambiada hace <?= $diasPass === 0 ? 'hoy' : ($diasPass === 1 ? 'ayer' : number_format($diasPass) . ' días') ?>
+                                    <?php else: ?>
+                                        Seguridad de la cuenta
+                                    <?php endif; ?>
+                                </span>
                             </div>
                         </div>
                         <i class="bi bi-chevron-right" style="color:var(--tx-d); font-size:0.85rem;"></i>

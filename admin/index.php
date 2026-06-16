@@ -18,28 +18,42 @@ if (!$_SESSION['usuario']->tieneRolAdmin()) redirigir('../cliente/index.php');
 // Auto-completar citas pasadas
 Reserva::actualizarCitasPasadas();
 
-// ── POST: Quick actions ──
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion_rapida'])) {
-    if (!Csrf::validarToken('agenda', $_POST['csrf_token'] ?? '')) {
-        $error_agenda = 'Token de seguridad inválido. Recarga la página.';
-    } else {
-        $id_res = (int)($_POST['id_reserva'] ?? 0);
-        $accion = $_POST['accion_rapida'];
-        $ok = false;
+if (!defined('ID_BARBERO')) define('ID_BARBERO', 1);
 
-        if ($accion === 'completar') {
-            $ok = Reserva::marcarComoCompletada($id_res);
-        } elseif ($accion === 'no_show') {
-            $ok = Reserva::marcarComoNoPresentado($id_res);
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion'])) {
+        if (!Csrf::validarToken('agenda', $_POST['csrf_token'] ?? '')) {
+            $error_agenda = 'Token de seguridad inválido.';
+        } elseif ($_POST['accion'] === 'cancelar_dia') {
+            $motivo = trim($_POST['motivo_cancelacion'] ?? '');
+            if ($motivo === '') {
+                $error_agenda = 'Debes indicar el motivo de la cancelación.';
+            } else {
+                $canceladas = Reserva::cancelarPorDia(ID_BARBERO, $fecha_seleccionada, $motivo);
+                if ($canceladas > 0) {
+                    $_SESSION['toast'] = ['type' => 'success', 'message' => "$canceladas cita(s) cancelada(s) por: $motivo"];
+                } else {
+                    $_SESSION['toast'] = ['type' => 'info', 'message' => 'No había citas confirmadas para cancelar en esta fecha.'];
+                }
+                redirigir('index.php?fecha=' . $fecha_seleccionada);
+            }
         }
-
-        if ($ok) {
-            $_SESSION['toast'] = ['type' => 'success', 'message' => $accion === 'completar' ? 'Cita completada' : 'Marcado como no presentado'];
-        } else {
-            $_SESSION['toast'] = ['type' => 'error', 'message' => 'No se pudo actualizar la cita'];
-        }
-        redirigir('index.php?fecha=' . ($_GET['fecha'] ?? date('Y-m-d')));
     }
+
+// ── Password banner (solo si tiene contraseña, no Google auth) ──
+$diasPass = null;
+$passBanner = '';
+if ($_SESSION['usuario']->tienePassword()) {
+    try {
+        $ultimoCambio = Usuario::obtenerFechaUltimoCambioPassword((int)$_SESSION['usuario']->getId());
+        if ($ultimoCambio) {
+            $diasPass = floor((time() - strtotime($ultimoCambio)) / 86400);
+            if ($diasPass >= 90) {
+                $passBanner = 'danger';
+            } elseif ($diasPass >= 80) {
+                $passBanner = 'warning';
+            }
+        }
+    } catch (Exception $e) {}
 }
 
 // ── Fecha ──
@@ -56,7 +70,6 @@ $es_hoy    = $fecha_seleccionada === $hoy->format('Y-m-d');
 $es_pasado = $dt_seleccionada < $hoy;
 
 // ── Datos ──
-const ID_BARBERO = 1;
 $dia_bloqueado_completo = Bloqueo::esDiaBloqueadoCompleto(ID_BARBERO, $fecha_seleccionada);
 $tramos_del_dia         = Horario::obtenerTramosPorFecha(ID_BARBERO, $fecha_seleccionada);
 $trabaja_hoy            = !$dia_bloqueado_completo && !empty($tramos_del_dia);
@@ -171,6 +184,9 @@ $token_csrf    = Csrf::generarToken('agenda');
         </div>
 
         <nav class="flex items-center gap-2">
+            <input type="date" value="<?= h($fecha_seleccionada) ?>"
+                   onchange="window.location.href='?fecha='+this.value"
+                   class="w-[140px] sm:w-[155px] h-9 rounded-lg border border-[var(--brd)] bg-white/5 text-[var(--tx-m)] text-[0.72rem] px-2.5 cursor-pointer transition-all hover:border-[var(--gold-brd)] focus:border-[var(--gold)] focus:outline-hidden [color-scheme:dark]">
             <a href="?fecha=<?= h($fecha_anterior) ?>"
                class="w-9 h-9 rounded-lg border border-[var(--brd)] bg-white/5 text-[var(--tx-m)] flex items-center justify-center transition-all hover:bg-[var(--gold-dim)] hover:border-[var(--gold-brd)] hover:text-[var(--gold)]">
                 <i class="bi bi-chevron-left"></i>
@@ -188,13 +204,36 @@ $token_csrf    = Csrf::generarToken('agenda');
         </nav>
     </div>
 
+    <?php if ($passBanner !== ''): ?>
+    <div class="mb-5 px-4 py-3 rounded-xl border flex items-start gap-3 text-[0.75rem] leading-relaxed <?= $passBanner === 'danger'
+        ? 'bg-red-500/10 border-red-500/20 text-red-400'
+        : 'bg-amber-500/10 border-amber-500/20 text-amber-300' ?>">
+        <i class="bi bi-shield-exclamation mt-0.5 text-sm shrink-0"></i>
+        <div>
+            <strong class="block text-[0.65rem] uppercase tracking-widest mb-0.5">
+                <?= $passBanner === 'danger' ? '⚠️ Contraseña sin cambiar' : '⏳ Cambio de contraseña pendiente' ?>
+            </strong>
+            <span>No cambias tu contraseña desde hace <strong><?= number_format($diasPass) ?> días</strong>.
+            <a href="../cliente/cambiar_password.php" class="underline underline-offset-2 transition <?= $passBanner === 'danger' ? 'text-red-300 hover:text-red-100' : 'text-amber-200 hover:text-amber-100' ?>">
+                Cambiarla ahora
+            </a></span>
+        </div>
+    </div>
+    <?php endif; ?>
+
+    <?php
+    $lunes_semana = obtenerLunesDeSemanaStr($fecha_seleccionada);
+    $label_dia = $es_hoy ? 'hoy' : ucfirst(nombreDiaCorto((int)date('N', strtotime($fecha_seleccionada))));
+    $ruta_semanal = 'historial_semanal.php?semana=' . h($lunes_semana);
+    ?>
+
     <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
-        <div class="glow-card flex flex-col gap-1 px-4 py-3.5 rounded-xl border border-[var(--brd)] bg-white/[0.03]">
-            <span class="text-[0.6rem] uppercase tracking-widest font-semibold text-[var(--tx-d)]">Citas hoy</span>
+        <div onclick="window.location.href='<?= $ruta_semanal ?>'" class="glow-card flex flex-col gap-1 px-4 py-3.5 rounded-xl border border-[var(--brd)] bg-white/[0.03] cursor-pointer transition-all duration-200 hover:border-[#d4af37]/30 hover:-translate-y-[1px]">
+            <span class="text-[0.6rem] uppercase tracking-widest font-semibold text-[var(--tx-d)]">Citas · <?= $label_dia ?></span>
             <span class="text-[1.6rem] font-semibold leading-none text-[var(--tx)]" style="font-family: var(--pf);"><?= $resumen_dia['total'] ?></span>
             <span class="text-[0.62rem] text-[var(--tx-d)]"><?= $resumen_dia['confirmadas'] ?> confirmada<?= $resumen_dia['confirmadas'] !== 1 ? 's' : '' ?></span>
         </div>
-        <div class="glow-card flex flex-col gap-1 px-4 py-3.5 rounded-xl border border-[var(--brd)] bg-white/[0.03]">
+        <div onclick="window.location.href='<?= $ruta_semanal ?>'" class="glow-card flex flex-col gap-1 px-4 py-3.5 rounded-xl border border-[var(--brd)] bg-white/[0.03] cursor-pointer transition-all duration-200 hover:border-[#d4af37]/30 hover:-translate-y-[1px]">
             <span class="text-[0.6rem] uppercase tracking-widest font-semibold text-[var(--tx-d)]">Completadas</span>
             <span class="text-[1.6rem] font-semibold leading-none text-[var(--tx)]" style="font-family: var(--pf);"><?= $resumen_dia['completadas'] ?></span>
             <?php if ($resumen_dia['no_presentados'] > 0): ?>
@@ -203,25 +242,33 @@ $token_csrf    = Csrf::generarToken('agenda');
                 <span class="text-[0.62rem] text-[var(--tx-d)]">de <?= $resumen_dia['total'] ?> totales</span>
             <?php endif; ?>
         </div>
-        <div class="glow-card flex flex-col gap-1 px-4 py-3.5 rounded-xl border border-[var(--gold-brd)] bg-[var(--gold-dim)]">
-            <span class="text-[0.6rem] uppercase tracking-widest font-semibold text-[var(--gold)]/70">Ingresos hoy</span>
+        <div onclick="window.location.href='<?= $ruta_semanal ?>'" class="glow-card flex flex-col gap-1 px-4 py-3.5 rounded-xl border border-[var(--gold-brd)] bg-[var(--gold-dim)] cursor-pointer transition-all duration-200 hover:opacity-80 hover:-translate-y-[1px]">
+            <span class="text-[0.6rem] uppercase tracking-widest font-semibold text-[var(--gold)]/70">Ingresos · <?= $label_dia ?></span>
             <span class="text-[1.6rem] font-semibold leading-none text-[var(--gold)]" style="font-family: var(--pf);"><?= number_format($resumen_dia['ingresos'], 0, ',', '.') ?>€</span>
             <span class="text-[0.62rem] text-[var(--gold)]/60">de citas completadas</span>
         </div>
         <?php if ($resumen_semana !== null): ?>
-            <div class="glow-card flex flex-col gap-1 px-4 py-3.5 rounded-xl border border-[var(--brd)] bg-white/[0.03]">
+            <div onclick="window.location.href='<?= $ruta_semanal ?>'" class="glow-card flex flex-col gap-1 px-4 py-3.5 rounded-xl border border-[var(--brd)] bg-white/[0.03] cursor-pointer transition-all duration-200 hover:border-[#d4af37]/30 hover:-translate-y-[1px]">
                 <span class="text-[0.6rem] uppercase tracking-widest font-semibold text-[var(--tx-d)]">Esta semana</span>
                 <span class="text-[1.6rem] font-semibold leading-none text-[var(--tx)]" style="font-family: var(--pf);"><?= $resumen_semana['total'] ?></span>
                 <span class="text-[0.62rem] text-[var(--tx-d)]"><?= number_format($resumen_semana['ingresos'], 0, ',', '.') ?>€ completados</span>
             </div>
         <?php else: ?>
-            <div class="glow-card flex flex-col gap-1 px-4 py-3.5 rounded-xl border border-[var(--brd)] bg-white/[0.03]">
-                <span class="text-[0.6rem] uppercase tracking-widest font-semibold text-[var(--tx-d)]">Canceladas</span>
+            <div onclick="window.location.href='<?= $ruta_semanal ?>'" class="glow-card flex flex-col gap-1 px-4 py-3.5 rounded-xl border border-[var(--brd)] bg-white/[0.03] cursor-pointer transition-all duration-200 hover:border-[#d4af37]/30 hover:-translate-y-[1px]">
+                <span class="text-[0.6rem] uppercase tracking-widest font-semibold text-[var(--tx-d)]">Canceladas · <?= $label_dia ?></span>
                 <span class="text-[1.6rem] font-semibold leading-none text-[var(--tx)]" style="font-family: var(--pf);"><?= $resumen_dia['canceladas'] ?></span>
                 <span class="text-[0.62rem] text-[var(--tx-d)]">ese día</span>
             </div>
         <?php endif; ?>
     </div>
+
+    <?php if (!$es_pasado && !$dia_bloqueado_completo && $total_reservados > 0): ?>
+        <button type="button" onclick="abrirCancelarDia()"
+                class="mb-5 w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-red-900/30 bg-red-900/10 text-[#e07070] text-[0.7rem] font-semibold tracking-wider hover:bg-red-900/20 hover:border-red-500/40 transition-all cursor-pointer">
+            <i class="bi bi-x-lg text-[0.75rem]"></i>
+            Cancelar todo el día
+        </button>
+    <?php endif; ?>
 
     <?php if ($error_agenda ?? false): ?>
         <div class="mb-5 px-4 py-3 rounded-xl border border-rose-500/20 bg-rose-500/10 text-rose-400 text-[0.75rem] flex items-center gap-2">
@@ -270,7 +317,7 @@ $token_csrf    = Csrf::generarToken('agenda');
 
                 <?php if ($slot['estado'] === 'reservado'): ?>
                     <?php $res = $slot['reserva']; ?>
-                    <div onclick="window.location.href='ficha_cliente.php?id_reserva=<?= (int)$res['id'] ?>'"
+                    <div onclick="window.location.href='ficha_cliente.php?id_reserva=<?= (int)$res['id'] ?>&amp;fecha=<?= h($fecha_seleccionada) ?>'"
                          class="slot-card glow-card flex items-center gap-4 px-4 py-3.5 rounded-xl border min-h-[64px] cursor-pointer transition-all duration-150 <?= $res['estado'] === 'confirmada' ? 'border-[var(--gold-brd)] bg-[var(--gold-dim)]' : ($res['estado'] === 'completada' ? 'border-emerald-500/20 bg-emerald-500/5' : 'border-[var(--brd)] bg-white/5') ?>">
 
                         <div class="text-[0.78rem] font-semibold text-[var(--tx)] min-w-[42px] shrink-0"><?= h($slot['hora']) ?></div>
@@ -293,27 +340,6 @@ $token_csrf    = Csrf::generarToken('agenda');
                                 <span class="flex items-center gap-1 text-[0.6rem] text-[var(--tx-m)]"><i class="bi bi-currency-euro text-[0.7rem]"></i> <?= number_format((float)$res['precio_historico'], 2, ',', '.') ?></span>
                             </div>
                         </div>
-
-                        <?php if ($res['estado'] === 'confirmada' && !$es_pasado): ?>
-                            <div class="flex flex-col gap-1.5 shrink-0">
-                                <form method="POST" onsubmit="event.stopPropagation(); return confirm('¿Completar cita de <?= h(addslashes($res['cliente_nombre'])) ?>?')">
-                                    <input type="hidden" name="csrf_token" value="<?= h($token_csrf) ?>">
-                                    <input type="hidden" name="accion_rapida" value="completar">
-                                    <input type="hidden" name="id_reserva" value="<?= (int)$res['id'] ?>">
-                                    <button type="submit" onclick="event.stopPropagation()" class="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[0.58rem] font-bold uppercase tracking-wider bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20 transition-all cursor-pointer whitespace-nowrap">
-                                        <i class="bi bi-check-lg"></i> Hecho
-                                    </button>
-                                </form>
-                                <form method="POST" onsubmit="event.stopPropagation(); return confirm('¿Marcar como no presentado?')">
-                                    <input type="hidden" name="csrf_token" value="<?= h($token_csrf) ?>">
-                                    <input type="hidden" name="accion_rapida" value="no_show">
-                                    <input type="hidden" name="id_reserva" value="<?= (int)$res['id'] ?>">
-                                    <button type="submit" onclick="event.stopPropagation()" class="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[0.58rem] font-bold uppercase tracking-wider bg-white/5 text-[var(--tx-d)] border border-white/10 hover:bg-white/10 transition-all cursor-pointer whitespace-nowrap">
-                                        <i class="bi bi-x-lg"></i> No show
-                                    </button>
-                                </form>
-                            </div>
-                        <?php endif; ?>
 
                     </div>
 
@@ -342,6 +368,72 @@ $token_csrf    = Csrf::generarToken('agenda');
 
     </div>
 </main>
+
+<!-- Modal cancelar día -->
+<div id="modalCancelarDia" class="fixed inset-0 z-[9999] bg-black/80 hidden items-center justify-center p-4 opacity-0 transition-opacity duration-200" onclick="if(event.target===this)cerrarCancelarDia()">
+    <div class="bg-[#1a1a1a] border border-white/[0.08] rounded-2xl p-6 w-full max-w-md shadow-2xl scale-95 transition-transform duration-200" id="modalCancelarDiaContent">
+        <div class="flex items-center justify-between mb-5">
+            <h3 class="font-['Playfair_Display'] text-[1rem] font-semibold text-[#f5f0e8]">Cancelar todo el día</h3>
+            <button onclick="cerrarCancelarDia()" class="w-8 h-8 rounded-lg flex items-center justify-center text-[#888] hover:bg-white/10 hover:text-[#f5f0e8] transition-all cursor-pointer">
+                <i class="bi bi-x-lg text-[0.8rem]"></i>
+            </button>
+        </div>
+        <form action="" method="POST" class="space-y-4">
+            <input type="hidden" name="csrf_token" value="<?= h($token_csrf) ?>">
+            <input type="hidden" name="accion" value="cancelar_dia">
+
+            <div class="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-[0.75rem] text-red-400 space-y-1">
+                <p class="font-semibold"><i class="bi bi-exclamation-triangle-fill mr-1.5"></i>Se cancelarán todas las citas confirmadas del <strong><?= h(fechaHumana($fecha_seleccionada)) ?></strong>.</p>
+                <p class="text-[0.65rem] text-red-400/70">Esta acción no se puede deshacer.</p>
+            </div>
+
+            <div>
+                <label class="font-['Montserrat'] text-[0.65rem] font-semibold uppercase tracking-wider text-[#888] block mb-1.5">Motivo de cancelación</label>
+                <textarea name="motivo_cancelacion" id="inputMotivoCancelarDia" rows="3" required
+                          placeholder="Ej: Cierre por vacaciones, emergencia personal..."
+                          class="w-full bg-[#0d0d0d] border border-white/[0.08] rounded-lg px-3 py-2.5 text-[0.85rem] text-[#f5f0e8] focus:outline-hidden focus:border-[#d4af37]/50 transition-all resize-none"></textarea>
+            </div>
+
+            <div class="flex gap-3 pt-1">
+                <button type="button" onclick="cerrarCancelarDia()"
+                        class="flex-1 px-4 py-2.5 rounded-lg border border-white/[0.08] font-['Montserrat'] text-[0.7rem] font-semibold tracking-wider text-[#888] hover:bg-white/5 transition-all cursor-pointer">
+                    Volver
+                </button>
+                <button type="submit"
+                        class="flex-1 px-4 py-2.5 rounded-lg bg-red-800 text-[#f5f0e8] font-['Montserrat'] text-[0.7rem] font-semibold tracking-wider uppercase hover:opacity-90 transition-all cursor-pointer"
+                        onclick="return confirm('¿Estás seguro de cancelar TODAS las citas de este día?')">
+                    Cancelar día
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function abrirCancelarDia() {
+    const modal = document.getElementById('modalCancelarDia');
+    const content = document.getElementById('modalCancelarDiaContent');
+    const input = document.getElementById('inputMotivoCancelarDia');
+    input.value = '';
+    modal.classList.remove('hidden');
+    requestAnimationFrame(() => {
+        modal.classList.remove('opacity-0');
+        content.classList.remove('scale-95');
+        content.classList.add('scale-100');
+    });
+}
+
+function cerrarCancelarDia() {
+    const modal = document.getElementById('modalCancelarDia');
+    const content = document.getElementById('modalCancelarDiaContent');
+    modal.classList.add('opacity-0');
+    content.classList.remove('scale-100');
+    content.classList.add('scale-95');
+    setTimeout(() => {
+        modal.classList.add('hidden');
+    }, 200);
+}
+</script>
 
 <?php include_once __DIR__ . '/includes/toast.php'; ?>
 
