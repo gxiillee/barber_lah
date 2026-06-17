@@ -80,7 +80,7 @@ $config = ConfigWeb::obtener();
     <!-- Menu móvil backdrop -->
     <div id="menuBackdrop" class="fixed inset-0 z-[55] bg-black/60 backdrop-blur-sm hidden" onclick="cerrarMenuMobile()"></div>
     <!-- Seccion para solo móvil -->
-    <div id="mobileMenu" style="display:none;" class="fixed inset-0 z-[60] bg-[var(--obsidian)] flex-col items-center justify-center gap-10">
+    <div id="mobileMenu" style="display:none;" class="fixed inset-0 z-[60] bg-[var(--obsidian)] gap-10">
         <a href="#sobre"     onclick="cerrarMenuMobile()" class="font-montserrat text-sm uppercase tracking-[0.3rem] text-white/60 hover:text-[var(--gold)]">Nosotros</a>
         <a href="#servicios" onclick="cerrarMenuMobile()" class="font-montserrat text-sm uppercase tracking-[0.3rem] text-white/60 hover:text-[var(--gold)]">Servicios</a>
         <a href="#contacto"  onclick="cerrarMenuMobile()" class="font-montserrat text-sm uppercase tracking-[0.3rem] text-white/60 hover:text-[var(--gold)]">Encuéntranos</a>

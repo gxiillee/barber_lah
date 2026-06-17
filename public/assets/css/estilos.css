@@ -117,6 +117,13 @@
    MENÚ MOBILE — drawer fullscreen
    ================================================================ */
 
+#mobileMenu {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+}
+
 /* Animación de entrada del menú */
 @keyframes menuSlideIn {
   from {
