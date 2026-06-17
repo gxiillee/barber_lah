@@ -28,6 +28,8 @@ $config = ConfigWeb::obtener();
 
     <!-- Tailwind CSS v4 — Browser CDN -->
     <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <!-- Estilos personalizados (animaciones, efectos, video) -->
     <link rel="stylesheet" href="public/assets/css/estilos.css">
 </head>
@@ -80,13 +82,35 @@ $config = ConfigWeb::obtener();
     <!-- Menu móvil backdrop -->
     <div id="menuBackdrop" class="fixed inset-0 z-[55] bg-black/60 backdrop-blur-sm hidden" onclick="cerrarMenuMobile()"></div>
     <!-- Seccion para solo móvil -->
-    <div id="mobileMenu" style="display:none;" class="fixed inset-0 z-[60] bg-[var(--obsidian)] gap-10">
-        <a href="#sobre"     onclick="cerrarMenuMobile()" class="font-montserrat text-sm uppercase tracking-[0.3rem] text-white/60 hover:text-[var(--gold)]">Nosotros</a>
-        <a href="#servicios" onclick="cerrarMenuMobile()" class="font-montserrat text-sm uppercase tracking-[0.3rem] text-white/60 hover:text-[var(--gold)]">Servicios</a>
-        <a href="#contacto"  onclick="cerrarMenuMobile()" class="font-montserrat text-sm uppercase tracking-[0.3rem] text-white/60 hover:text-[var(--gold)]">Encuéntranos</a>
-        <!-- Nueva entrada movil para acceder al futuro panel sin pasar por reserva. -->
-        <a href="mi-cuenta.php" onclick="cerrarMenuMobile()" class="font-montserrat text-sm uppercase tracking-[0.3rem] text-white/60 hover:text-[var(--gold)]">Mi cuenta</a>
-        <a href="cliente/reserva.php" onclick="cerrarMenuMobile()" class="border border-[var(--gold)]/50 px-8 py-3 font-montserrat text-sm uppercase tracking-[0.2rem] text-[var(--gold)]">Reservar Cita</a>
+    <div id="mobileMenu" style="display:none;" class="fixed inset-0 z-[60] bg-gradient-to-b from-[var(--obsidian)] via-[var(--charcoal)] to-[var(--obsidian)]">
+        <!-- Header: logo + cerrar -->
+        <div class="flex items-center justify-between px-8 pt-10">
+            <span class="font-playfair text-lg uppercase tracking-[0.3rem] text-[var(--gold)]">LA H</span>
+            <button onclick="cerrarMenuMobile()" class="text-white/30 hover:text-[var(--gold)] transition-colors duration-300 text-2xl leading-none" aria-label="Cerrar menú">✕</button>
+        </div>
+
+        <!-- Enlaces de navegación centrados -->
+        <div class="flex-1 flex flex-col items-center justify-center gap-12 px-8 pb-4">
+            <a href="#sobre" onclick="cerrarMenuMobile()" class="menu-link font-montserrat text-sm uppercase tracking-[0.3rem] text-white/60 hover:text-[var(--gold)] flex items-center gap-3">
+                <i class="bi bi-shop"></i> Nosotros
+            </a>
+            <a href="#servicios" onclick="cerrarMenuMobile()" class="menu-link font-montserrat text-sm uppercase tracking-[0.3rem] text-white/60 hover:text-[var(--gold)] flex items-center gap-3">
+                <i class="bi bi-scissors"></i> Servicios
+            </a>
+            <a href="#contacto" onclick="cerrarMenuMobile()" class="menu-link font-montserrat text-sm uppercase tracking-[0.3rem] text-white/60 hover:text-[var(--gold)] flex items-center gap-3">
+                <i class="bi bi-geo-alt"></i> Encuéntranos
+            </a>
+            <a href="mi-cuenta.php" onclick="cerrarMenuMobile()" class="menu-link font-montserrat text-sm uppercase tracking-[0.3rem] text-white/60 hover:text-[var(--gold)] flex items-center gap-3">
+                <i class="bi bi-person"></i> Mi cuenta
+            </a>
+        </div>
+
+        <!-- Botón reserva destacado -->
+        <div class="px-8 pb-12">
+            <a href="cliente/reserva.php" onclick="cerrarMenuMobile()" class="block w-full text-center bg-[var(--gold)] text-[var(--obsidian)] font-montserrat text-sm font-bold uppercase tracking-[0.2rem] py-4 rounded-xl hover:bg-[var(--gold-light)] transition-all duration-300 shadow-lg shadow-[var(--gold)]/20">
+                Reservar Cita
+            </a>
+        </div>
     </div>
 
 
