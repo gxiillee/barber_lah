@@ -109,7 +109,7 @@ $config = ConfigWeb::obtener();
 
             <!-- Overlay de transición (fade a negro al final) -->
             <div id="transitionOverlay"
-                 class="absolute inset-0 z-[25] pointer-events-none bg-[var(--obsidian)] opacity-0 transition-opacity duration-700">
+                 class="absolute inset-0 z-[25] pointer-events-none bg-[var(--obsidian)] opacity-0">
             </div>
 
 
@@ -119,7 +119,7 @@ $config = ConfigWeb::obtener();
                     <p id="introTagline" class="font-cormorant mb-6 text-xs uppercase tracking-[0.5rem] text-[var(--gold)]/60">
                         Una experiencia única
                     </p>
-                    <h1 id="introTitle" class="intro-title-gradient font-playfair text-[clamp(2.8rem,10vw,7rem)] leading-none tracking-[0.4rem] uppercase transition-all duration-1000">
+                     <h1 id="introTitle" class="intro-title-gradient font-playfair text-[clamp(2.8rem,10vw,7rem)] leading-none tracking-[0.4rem] uppercase">
                         BARBER LA H
                     </h1>
                     <p id="introCity" class="font-cormorant mt-6 text-sm uppercase tracking-[0.5rem] text-white/25">
@@ -172,7 +172,7 @@ $config = ConfigWeb::obtener();
             <div class="absolute bottom-8 left-12 right-12 z-[30] flex items-center gap-5 max-md:bottom-6 max-md:left-6 max-md:right-6 max-md:gap-3">
                 <span class="font-montserrat shrink-0 text-[0.6rem] uppercase tracking-[0.3rem] text-white/20 max-md:text-[0.7rem] max-md:tracking-[0.25rem]">Scroll</span>
                 <div class="relative h-px flex-1 overflow-hidden bg-white/10 max-md:h-[2px]">
-                    <div id="progressFill" class="absolute top-0 left-0 h-full bg-[var(--gold)] transition-[width] duration-75 ease-linear" style="width:0%;"></div>
+                    <div id="progressFill" class="absolute top-0 left-0 h-full bg-[var(--gold)]" style="width:0%;"></div>
                 </div>
                 <span id="progressLabel" class="font-montserrat w-8 shrink-0 text-right text-[0.6rem] uppercase tracking-[0.2rem] text-white/20 max-md:text-[0.7rem] max-md:w-10">0%</span>
             </div>

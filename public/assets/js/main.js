@@ -90,9 +90,9 @@ updateNav(); // Estado inicial
    negro si le asignas currentTime=0 explícitamente al cargar).
    ──────────────────────────────────────────────────────────────── */
 
-// 0.5 = responde en ~33ms (2 frames), imperceptible frente a los 300ms del 0.08 original
-const LERP_FACTOR = 0.5;
-const SEEK_THRESHOLD = 0.005; // no buscar si el cambio es menor a 5ms
+// 0.25 = responde en ~66ms (4 frames), interpolación suave y sin lag perceptible
+const LERP_FACTOR = 0.25;
+const SEEK_THRESHOLD = 0.015; // no buscar si el cambio es menor a 15ms
 const ZOOM_LERP = 0.15;
 
 let rafId = null;
