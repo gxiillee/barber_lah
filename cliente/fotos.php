@@ -147,11 +147,11 @@ $pagina_activa = 'fotos';
 
                     <!-- Botón eliminar: aparece en hover sobre la foto -->
                     <div class="foto-overlay-btn absolute top-2 right-2 opacity-0 transition-opacity duration-200">
-                        <form method="POST" action="eliminar_foto.php"
-                              onsubmit="return confirm('¿Eliminar esta foto? Esta acción no se puede deshacer.')">
+                        <form data-ajax-delete-foto action="eliminar_foto.php" method="POST" class="m-0">
                             <input type="hidden" name="csrf_token" value="<?= h($csrf_token) ?>">
                             <input type="hidden" name="id_foto"    value="<?= (int) $foto['id'] ?>">
-                            <button type="submit"
+                            <input type="hidden" name="ajax"       value="1">
+                            <button type="button"
                                     class="flex items-center justify-center w-8 h-8 rounded-lg"
                                     style="background:rgba(220,38,38,.85); color:#fff; border:none; cursor:pointer;"
                                     title="Eliminar foto">
@@ -195,6 +195,36 @@ $pagina_activa = 'fotos';
 
     </div>
 </main>
+
+<!-- AJAX delete: eliminar sin recargar -->
+<script>
+document.addEventListener('click', function (e) {
+    const btn = e.target.closest('[data-ajax-delete-foto] button[type="button"]');
+    if (!btn) return;
+    const form = btn.closest('[data-ajax-delete-foto]');
+    if (!form) return;
+    if (!confirm('¿Eliminar esta foto? Esta acción no se puede deshacer.')) return;
+
+    const formData = new FormData(form);
+    fetch('eliminar_foto.php', {
+        method: 'POST',
+        body: formData
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.ok) {
+            const item = form.closest('.foto-item');
+            if (item) item.remove();
+            if (window.Toast) Toast.mostrar('success', 'Foto eliminada');
+        } else {
+            if (window.Toast) Toast.mostrar('error', 'No se pudo eliminar');
+        }
+    })
+    .catch(() => {
+        if (window.Toast) Toast.mostrar('error', 'Error de conexión');
+    });
+});
+</script>
 
 <!-- Lightbox: visor de fotos a pantalla completa -->
 <script>

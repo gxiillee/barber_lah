@@ -175,10 +175,39 @@
   .galeria-slide:hover img {
     transform: none;
   }
+  .galeria-slide.overlay-visible .galeria-overlay {
+    opacity: 1;
+  }
+  .galeria-slide.overlay-visible .galeria-border {
+    border-color: rgba(212, 175, 55, 0.35);
+  }
+  .galeria-slide.overlay-visible img {
+    transform: scale(1.04);
+  }
 }
 /* ================================================================
    SECCIÓN VIDEO SCROLL
    ================================================================ */
+
+/* Fallback por si Tailwind CDN no aplica h-[350vh] */
+#experiencia {
+  height: 100vh;
+  transition: height 0.8s ease;
+}
+#experiencia.video-ready {
+  height: 350vh;
+}
+@media (max-width: 768px) {
+  #experiencia {
+    height: 100vh;
+  }
+  #experiencia.video-ready {
+    height: 250vh;
+  }
+}
+#experiencia .sticky {
+  height: 100vh;
+}
 
 /* Viñeta cinematográfica personalizada */
 .video-vignette {
@@ -393,33 +422,58 @@
    ================================================================ */
 
 .galeria-slide {
-  width: clamp(280px, 38vw, 520px); /* en pc — se ve perfecto grande */
+  width: clamp(280px, 38vw, 520px);
 }
 
-/* Hover sobre cada slide: muestra el overlay y el borde dorado */
-.galeria-slide:hover .galeria-overlay {
+/* Hover + tap muestran el overlay y borde dorado */
+.galeria-slide:hover .galeria-overlay,
+.galeria-slide.overlay-visible .galeria-overlay {
   opacity: 1;
 }
 
-.galeria-slide:hover .galeria-border {
+.galeria-slide:hover .galeria-border,
+.galeria-slide.overlay-visible .galeria-border {
   border-color: rgba(212, 175, 55, 0.35);
 }
 
-/* Zoom sutil de la imagen al hacer hover */
-.galeria-slide:hover img {
+.galeria-slide:hover img,
+.galeria-slide.overlay-visible img {
   transform: scale(1.04);
 }
 
 /* Punto activo del carrusel */
 .galeria-dot.active {
   background-color: var(--gold);
-  width: 2rem; /* w-8 */
+  transform: scale(1.3);
+  box-shadow: 0 0 8px rgba(212, 175, 55, 0.3);
+}
+
+/* Slide activo: glow sutil */
+.galeria-slide.active .galeria-border {
+  border-color: rgba(212, 175, 55, 0.6);
+  box-shadow: 0 0 24px rgba(212, 175, 55, 0.12);
 }
 
 @media (max-width: 768px) {
   .galeria-slide {
-    width: 84vw; /* móvil — casi pantalla completa */
+    width: 75vw;
   }
+}
+
+/* ================================================================
+   RESEÑAS — scroll horizontal con snap
+   ================================================================ */
+
+.reviews-scroll {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.reviews-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+#resenasCarrusel {
+  padding: 0 2rem;
 }
 
 /* ================================================================
@@ -1853,3 +1907,5 @@ body.body-panel {
     transform: none;
   }
 }
+
+

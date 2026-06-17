@@ -120,12 +120,12 @@ $config = ConfigWeb::obtener();
         <div class="sticky top-0 h-screen w-full overflow-hidden bg-black">
 
             <!-- Video principal -->
-            <!-- Añadir un poster si no carga: poster="assets/img/poster_hero.jpg" -->
             <video id="mainVideo"
                    class="absolute min-w-full min-h-full w-auto h-auto object-cover"
                    style="top: 50%; left: 50%; transform: translate(-50%, -50%); will-change: transform;"
-                   playsinline muted preload="metadata">
-                <source src="public/assets/video/video_intro.mp4" type="video/mp4">
+                   playsinline muted preload="metadata"
+                   poster="public/assets/img/poster_video.jpg">
+                <source src="public/assets/video/video_intro_web.mp4" type="video/mp4">
             </video>
 
             <!-- Degradado viñeta cinematográfico -->
@@ -445,8 +445,8 @@ $config = ConfigWeb::obtener();
                  style="will-change: transform;">
 
                 <?php foreach ($galeriaCortes as $i => $foto) { ?>
-                    <div class="galeria-slide relative shrink-0 cursor-pointer select-none overflow-hidden"
-                         style="margin-right: 2px;"
+                    <div class="galeria-slide relative shrink-0 cursor-pointer select-none overflow-hidden rounded-2xl shadow-xl shadow-black/30"
+                          style="margin-right: 2px;"
                          data-index="<?= $i ?>"
                          data-src="<?= htmlspecialchars($foto['imagen']) ?>"
                          data-categoria="<?= htmlspecialchars($foto['categoria']) ?>"
@@ -455,7 +455,7 @@ $config = ConfigWeb::obtener();
                         <!-- Imagen -->
                         <img src="<?= htmlspecialchars($foto['imagen']) ?>"
                              alt="<?= htmlspecialchars($foto['categoria']) ?>"
-                             class="block h-[480px] w-full object-cover transition-transform duration-700 ease-out"
+                             class="block h-[480px] w-full object-cover transition-transform duration-700 ease-out rounded-2xl max-md:h-[300px]"
                              loading="lazy">
 
                         <!-- Overlay info (aparece en hover vía CSS) -->
@@ -468,7 +468,7 @@ $config = ConfigWeb::obtener();
                             <p class="font-cormorant text-lg text-white/80">
                                 <?= htmlspecialchars($foto['descripcion']) ?>
                             </p>
-                            <span class="font-montserrat mt-4 block text-[0.5rem] uppercase tracking-[0.3rem] text-white/30">
+                            <span class="font-montserrat mt-4 block text-[0.5rem] uppercase tracking-[0.3rem] text-white/30 galeria-open-lightbox">
                         Clic para ampliar
                     </span>
                         </div>
@@ -510,13 +510,132 @@ $config = ConfigWeb::obtener();
             <!-- Puntos indicadores -->
             <div class="mt-10 flex justify-center gap-3" id="galeriaDots">
                 <?php foreach ($galeriaCortes as $i => $foto) { ?>
-                    <button class="galeria-dot h-px w-6 bg-white/20 transition-all duration-300"
+                    <button class="galeria-dot h-2.5 w-2.5 rounded-full bg-white/20 transition-all duration-300 hover:bg-white/40"
                             data-index="<?= $i ?>"
                             aria-label="Ir a imagen <?= $i + 1 ?>"></button>
                 <?php } ?>
             </div>
 
         </div><!-- /carrusel -->
+
+    </section>
+
+    <!-- ══════════════════════════════════════════════════════════════
+     SECCIÓN RESEÑAS — Google Reviews
+     ══════════════════════════════════════════════════════════════ -->
+
+    <section id="resenas" class="relative overflow-hidden bg-[var(--charcoal)] py-32">
+
+        <div class="absolute top-0 left-1/2 h-[80px] w-px -translate-x-1/2 bg-[var(--gold)] opacity-10"></div>
+
+        <div class="mx-auto max-w-6xl px-8">
+
+            <header class="reveal-text mb-16 text-center">
+                <span class="font-montserrat text-[0.6rem] uppercase tracking-[0.5rem] text-[var(--gold)] opacity-70">Testimonios</span>
+                <h2 class="font-playfair mt-5 mb-5 text-4xl md:text-5xl leading-tight text-white">Lo que dicen nuestros clientes</h2>
+                <div class="mx-auto h-px w-12 bg-[var(--gold)]"></div>
+            </header>
+
+            <div class="relative" id="resenasCarrusel">
+
+                <div class="flex gap-6 md:gap-8 reviews-scroll" id="resenasTrack"
+                     style="overflow-x: auto; overflow-y: hidden; scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch; scroll-padding: 0 2rem;">
+
+                <div class="review-card reveal-up group relative flex flex-col rounded-2xl border border-white/5 bg-white/[0.03] p-8 transition-all duration-500 hover:border-[var(--gold)]/30 hover:bg-white/[0.06] shrink-0"
+                     style="width: clamp(280px, 78vw, 400px); min-height: 17rem; scroll-snap-align: center;">
+                    <div class="flex justify-center gap-1 mb-5 text-lg text-[var(--gold)]">★★★★★</div>
+                    <p class="font-cormorant text-lg italic leading-relaxed text-white/70 text-center flex-1">
+                        "Aparte de un buen corte con calidad, muy buen trato con el cliente y muy buen ambiente"
+                    </p>
+                    <div class="mt-6 flex items-center justify-center flex-wrap gap-x-4">
+                        <span class="font-montserrat text-xs uppercase tracking-[0.15rem] text-white/40">— Lorién Galindo Embid</span>
+                        <a href="https://maps.app.goo.gl/YNokG5wohqesHasp6" target="_blank" class="font-montserrat text-[0.55rem] uppercase tracking-[0.2rem] text-[var(--gold)]/50 transition-colors duration-300 hover:text-[var(--gold)]">Google →</a>
+                    </div>
+                </div>
+
+                <div class="review-card reveal-up group relative flex flex-col rounded-2xl border border-white/5 bg-white/[0.03] p-8 transition-all duration-500 hover:border-[var(--gold)]/30 hover:bg-white/[0.06] shrink-0"
+                     style="width: clamp(280px, 78vw, 400px); min-height: 17rem; scroll-snap-align: center;">
+                    <div class="flex justify-center gap-1 mb-5 text-lg text-[var(--gold)]">★★★★★</div>
+                    <p class="font-cormorant text-lg italic leading-relaxed text-white/70 text-center flex-1">
+                        "peluqueria perfecta por si quieres meterla en kenbo , recomendable 100% buenos degradados y precio ideal . 10/10"
+                    </p>
+                    <div class="mt-6 flex items-center justify-center flex-wrap gap-x-4">
+                        <span class="font-montserrat text-xs uppercase tracking-[0.15rem] text-white/40">— Miguel Sucunza</span>
+                        <a href="https://maps.app.goo.gl/gvsoUaZfFnmz1sWQ6" target="_blank" class="font-montserrat text-[0.55rem] uppercase tracking-[0.2rem] text-[var(--gold)]/50 transition-colors duration-300 hover:text-[var(--gold)]">Google →</a>
+                    </div>
+                </div>
+
+                <div class="review-card reveal-up group relative flex flex-col rounded-2xl border border-white/5 bg-white/[0.03] p-8 transition-all duration-500 hover:border-[var(--gold)]/30 hover:bg-white/[0.06] shrink-0"
+                     style="width: clamp(280px, 78vw, 400px); min-height: 17rem; scroll-snap-align: center;">
+                    <div class="flex justify-center gap-1 mb-5 text-lg text-[var(--gold)]">★★★★★</div>
+                    <p class="font-cormorant text-lg italic leading-relaxed text-white/70 text-center flex-1">
+                        "Primera vez y quedé muy conforme. Fue muy amable y detallista con barba y cejas. Volveré, lo recomiendo."
+                    </p>
+                    <div class="mt-6 flex items-center justify-center flex-wrap gap-x-4">
+                        <span class="font-montserrat text-xs uppercase tracking-[0.15rem] text-white/40">— Nehuén Agurto</span>
+                        <a href="https://maps.app.goo.gl/a7WLJ1K5cQhnEdWY7" target="_blank" class="font-montserrat text-[0.55rem] uppercase tracking-[0.2rem] text-[var(--gold)]/50 transition-colors duration-300 hover:text-[var(--gold)]">Google →</a>
+                    </div>
+                </div>
+
+                <!-- Fila 2 -->
+                <div class="review-card reveal-up group relative flex flex-col rounded-2xl border border-white/5 bg-white/[0.03] p-8 transition-all duration-500 hover:border-[var(--gold)]/30 hover:bg-white/[0.06] shrink-0"
+                     style="width: clamp(280px, 78vw, 400px); min-height: 17rem; scroll-snap-align: center;">
+                    <div class="flex justify-center gap-1 mb-5 text-lg text-[var(--gold)]">★★★★★</div>
+                    <p class="font-cormorant text-lg italic leading-relaxed text-white/70 text-center flex-1">
+                        "¡Fue una experiencia muy buena! Corte de pelo perfecto y ambiente genial."
+                    </p>
+                    <div class="mt-6 flex items-center justify-center flex-wrap gap-x-4">
+                        <span class="font-montserrat text-xs uppercase tracking-[0.15rem] text-white/40">— Abel Soto</span>
+                        <a href="https://maps.app.goo.gl/wB71nNH46YWfXWuK6" target="_blank" class="font-montserrat text-[0.55rem] uppercase tracking-[0.2rem] text-[var(--gold)]/50 transition-colors duration-300 hover:text-[var(--gold)]">Google →</a>
+                    </div>
+                </div>
+
+                <div class="review-card reveal-up group relative flex flex-col rounded-2xl border border-white/5 bg-white/[0.03] p-8 transition-all duration-500 hover:border-[var(--gold)]/30 hover:bg-white/[0.06] shrink-0"
+                     style="width: clamp(280px, 78vw, 400px); min-height: 17rem; scroll-snap-align: center;">
+                    <div class="flex justify-center gap-1 mb-5 text-lg text-[var(--gold)]">★★★★★</div>
+                    <p class="font-cormorant text-lg italic leading-relaxed text-white/70 text-center flex-1">
+                        "Muy contento con el corte moderno y elegante. Me atendieron genial, rápido y agradables. Precio imbatible, volveré."
+                    </p>
+                    <div class="mt-6 flex items-center justify-center flex-wrap gap-x-4">
+                        <span class="font-montserrat text-xs uppercase tracking-[0.15rem] text-white/40">— Liam Shadownight</span>
+                        <a href="https://maps.app.goo.gl/3G9PWi4RY1Xdykoz7" target="_blank" class="font-montserrat text-[0.55rem] uppercase tracking-[0.2rem] text-[var(--gold)]/50 transition-colors duration-300 hover:text-[var(--gold)]">Google →</a>
+                    </div>
+                </div>
+
+                <div class="review-card reveal-up group relative flex flex-col rounded-2xl border border-white/5 bg-white/[0.03] p-8 transition-all duration-500 hover:border-[var(--gold)]/30 hover:bg-white/[0.06] shrink-0"
+                     style="width: clamp(280px, 78vw, 400px); min-height: 17rem; scroll-snap-align: center;">
+                    <div class="flex justify-center gap-1 mb-5 text-lg text-[var(--gold)]">★★★★★</div>
+                    <p class="font-cormorant text-lg italic leading-relaxed text-white/70 text-center flex-1">
+                        "El dueño es profesional y afable, hace su trabajo perfectamente sin posturear. Precios muy competitivos. Ya tengo barbero de confianza."
+                    </p>
+                    <div class="mt-6 flex items-center justify-center flex-wrap gap-x-4">
+                        <span class="font-montserrat text-xs uppercase tracking-[0.15rem] text-white/40">— Alejandro Montero</span>
+                        <a href="https://maps.app.goo.gl/onjni3Zh5kz7qTi47" target="_blank" class="font-montserrat text-[0.55rem] uppercase tracking-[0.2rem] text-[var(--gold)]/50 transition-colors duration-300 hover:text-[var(--gold)]">Google →</a>
+                    </div>
+                </div>
+
+            </div><!-- /track -->
+
+            <!-- Flechas -->
+            <button id="resenasPrev" class="absolute left-0 top-1/2 z-10 -translate-y-1/2 flex h-10 w-10 items-center justify-center border border-[var(--gold)]/30 bg-black/50 backdrop-blur-sm text-[var(--gold)] transition-all duration-300 hover:bg-[var(--gold)] hover:text-black" aria-label="Anterior">
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5"/></svg>
+            </button>
+            <button id="resenasNext" class="absolute right-0 top-1/2 z-10 -translate-y-1/2 flex h-10 w-10 items-center justify-center border border-[var(--gold)]/30 bg-black/50 backdrop-blur-sm text-[var(--gold)] transition-all duration-300 hover:bg-[var(--gold)] hover:text-black" aria-label="Siguiente">
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12h15m0 0l-6.75-6.75M19.5 12l-6.75 6.75"/></svg>
+            </button>
+
+        </div><!-- /carrusel -->
+
+            <div class="mt-14 text-center reveal-text">
+                <a href="https://www.google.com/search?num=10&hl=es-ES&gl=es&tbm=lcl&sxsrf=ANbL-n5jwhep31gT2GMubHKjucIvhWKc7g:1781692516476&q=Barbershop+La+H+Rese%C3%B1as#rlfi=hd:;si:9266299433013010019,l,ChhCYXJiZXJzaG9wIExhIEggUmVzZcOxYXMiAjgBkgELYmFyYmVyX3Nob3A,y,a0T6sc5qPVw;mv:[[41.647828477319024,-0.8743664457266237],[41.64746852268096,-0.8748481542733764]]" target="_blank" class="inline-flex items-center gap-3 border border-[var(--gold)]/40 px-8 py-4 font-montserrat text-[0.65rem] uppercase tracking-[0.25rem] text-[var(--gold)] transition-all duration-500 hover:bg-[var(--gold)] hover:text-[var(--obsidian)] group">
+                    Ver todas en Google
+                    <svg class="h-3.5 w-3.5 transition-transform duration-300 group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"/>
+                    </svg>
+                </a>
+            </div>
+
+        </div>
 
     </section>
 

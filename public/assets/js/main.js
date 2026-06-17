@@ -62,11 +62,12 @@ function quitarCarga() {
   }
 }
 
+// Oculta cuando todo ha cargado (load = incluye videos, fuentes, etc.)
 window.addEventListener("load", () => {
   setTimeout(quitarCarga, 1000);
 });
 
-// Failsafe: SI algo falla, lo oculta en 5s
+// Failsafe: si algo falla, lo oculta en 5s
 setTimeout(quitarCarga, 5000);
 
 /* ────────────────────────────────────────────────────────────────
@@ -90,42 +91,32 @@ updateNav(); // Estado inicial
    negro si le asignas currentTime=0 explícitamente al cargar).
    ──────────────────────────────────────────────────────────────── */
 
-// 0.25 = responde en ~66ms (4 frames), interpolación suave y sin lag perceptible
 const LERP_FACTOR = 0.25;
-const SEEK_THRESHOLD = 0.015; // no buscar si el cambio es menor a 15ms
+const SEEK_THRESHOLD = 0.03;
 const ZOOM_LERP = 0.15;
 
 let rafId = null;
 let targetTime = 0;
 let currentTime = 0;
 let currentZoom = 1;
+let lastScrollY = -1;
+let cachedProgress = -1;
 
-/** Interpolación lineal */
 function lerp(a, b, t) {
   return a + (b - a) * t;
 }
 
-/**
- *  Cálculo de Scroll VIDEO
- * Calcula dinámicamente qué porcentaje de la sección de video se ha desplazado.
- * 
- * ¿Cómo funciona?
- * 1. Obtiene las dimensiones de la sección del video respecto al viewport.
- * 2. Calcula el espacio total disponible para hacer scroll (altura total - viewport).
- * 3. Mapea la posición negativa del top respecto al total para obtener un porcentaje.
- * 
- * @returns {number} Progreso normalizado entre 0 (inicio) y 1 (fin de la sección).
- */
 function getScrollProgress() {
   if (!DOM.videoSection) return 0;
-
+  if (window.scrollY === lastScrollY && cachedProgress >= 0) {
+    return cachedProgress;
+  }
+  lastScrollY = window.scrollY;
   const rect = DOM.videoSection.getBoundingClientRect();
-  // Altura disponible para el scroll (total - viewport)
   const scrollable = DOM.videoSection.offsetHeight - window.innerHeight;
-
   if (scrollable <= 0) return 0;
-
-  return Math.max(0, Math.min(1, -rect.top / scrollable));
+  cachedProgress = Math.max(0, Math.min(1, -rect.top / scrollable));
+  return cachedProgress;
 }
 
 /**
@@ -178,7 +169,7 @@ function renderFrame() {
   const p = getScrollProgress(); // progreso 0 → 1
 
   /* ── Video scrubbing ── */
-  if (DOM.mainVideo && DOM.mainVideo.duration) {
+  if (DOM.mainVideo && DOM.mainVideo.duration && DOM.mainVideo.readyState >= 2) {
     targetTime = p * DOM.mainVideo.duration;
     currentTime = lerp(currentTime, targetTime, LERP_FACTOR);
     // Threshold: si la diferencia es menor a 5ms, no tocamos el video
@@ -229,8 +220,58 @@ function renderFrame() {
   rafId = requestAnimationFrame(renderFrame);
 }
 
-/* Arranca el bucle */
-rafId = requestAnimationFrame(renderFrame);
+/* Arranca el bucle solo si la sección es visible */
+if (DOM.videoSection) {
+  const visObs = new IntersectionObserver(
+    (entries) => {
+      if (entries[0].isIntersecting) {
+        if (!rafId) rafId = requestAnimationFrame(renderFrame);
+      } else {
+        if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+      }
+    },
+    { threshold: 0 },
+  );
+  visObs.observe(DOM.videoSection);
+}
+
+/* Si el video no ha cargado metadata aún, reintenta cuando esté listo */
+if (DOM.mainVideo) {
+  DOM.mainVideo.addEventListener("loadedmetadata", () => {
+    if (!rafId) {
+      rafId = requestAnimationFrame(renderFrame);
+    }
+  });
+}
+
+/* ── Fuerza primer frame en móvil ──
+   En móvil, los navegadores no decodifican frames hasta que no hay
+   una llamada a play(). Hacemos play+immediate pause para forzar
+   la decodificación del frame 0. Con playsinline+muted funciona
+   sin necesidad de gesto del usuario. */
+if (DOM.mainVideo) {
+  DOM.mainVideo.play().then(() => DOM.mainVideo.pause()).catch(() => {});
+}
+
+/* ── Expande sección si el video carga ──
+   #experiencia empieza en 100vh. Si el video consigue datos en los
+   primeros 2 segundos, se expande a 350vh para scroll scrubbing.
+   Si no (ngrok lento, móvil sin datos), se queda en 100vh y solo
+   se ve el poster — sin scroll innecesario. */
+if (DOM.videoSection && DOM.mainVideo) {
+  function expandSection() {
+    DOM.videoSection.classList.add("video-ready");
+  }
+  function checkReady() {
+    if (DOM.mainVideo.readyState >= 2) expandSection();
+  }
+  // Si ya está listo, expande ya
+  checkReady();
+  // Si no, espera 2s para ver si carga
+  setTimeout(checkReady, 2000);
+  // Evento loadeddata por si llega antes del timeout
+  DOM.mainVideo.addEventListener("loadeddata", expandSection, { once: true });
+}
 
 /* ────────────────────────────────────────────────────────────────
    REVEAL DE SECCIÓN "SOBRE" — IntersectionObserver
@@ -428,6 +469,10 @@ document.addEventListener("DOMContentLoaded", () => {
     dots.forEach((dot, i) => {
       dot.classList.toggle("active", i === current);
     });
+
+    slides.forEach((slide, i) => {
+      slide.classList.toggle("active", i === current);
+    });
   }
 
   /* ── Auto-play ── */
@@ -474,7 +519,129 @@ document.addEventListener("DOMContentLoaded", () => {
   /* ── Recalcula posición si cambia el tamaño de ventana ── */
   window.addEventListener("resize", () => goTo(current));
 
+  /* ── Overlay toggle on tap (mobile + desktop) ── */
+  slides.forEach((slide, idx) => {
+    slide.addEventListener("click", function(e) {
+      const ampliar = e.target.closest(".galeria-open-lightbox");
+      if (ampliar) {
+        openLightbox(parseInt(this.dataset.index));
+        return;
+      }
+      slides.forEach(s => s.classList.remove("overlay-visible"));
+      this.classList.toggle("overlay-visible");
+    });
+  });
+
+  /* ── Lightbox ── */
+  function openLightbox(index) {
+    if (index >= slides.length) index = 0;
+    if (index < 0) index = slides.length - 1;
+
+    stopAuto();
+
+    const overlay = document.createElement("div");
+    overlay.className = "lightbox-overlay";
+
+    const img = document.createElement("img");
+    img.src = slides[index].dataset.src;
+    img.alt = "";
+    overlay.appendChild(img);
+
+    const closeBtn = document.createElement("button");
+    closeBtn.className = "lightbox-close bi bi-x";
+    closeBtn.innerHTML = "✕";
+    closeBtn.setAttribute("aria-label", "Cerrar");
+    closeBtn.addEventListener("click", function() { closeLightbox(overlay); });
+    overlay.appendChild(closeBtn);
+
+    const prevBtn = document.createElement("button");
+    prevBtn.className = "lightbox-nav lightbox-prev bi bi-chevron-left";
+    prevBtn.innerHTML = "‹";
+    prevBtn.setAttribute("aria-label", "Anterior");
+    prevBtn.addEventListener("click", function(e) {
+      e.stopPropagation();
+      overlay.remove();
+      openLightbox(index - 1);
+    });
+    overlay.appendChild(prevBtn);
+
+    const nextBtn = document.createElement("button");
+    nextBtn.className = "lightbox-nav lightbox-next bi bi-chevron-right";
+    nextBtn.innerHTML = "›";
+    nextBtn.setAttribute("aria-label", "Siguiente");
+    nextBtn.addEventListener("click", function(e) {
+      e.stopPropagation();
+      overlay.remove();
+      openLightbox(index + 1);
+    });
+    overlay.appendChild(nextBtn);
+
+    const counter = document.createElement("span");
+    counter.className = "lightbox-counter";
+    counter.textContent = (index + 1) + " / " + slides.length;
+    overlay.appendChild(counter);
+
+    overlay.addEventListener("click", function(e) {
+      if (e.target === overlay) closeLightbox(overlay);
+    });
+
+    document.body.appendChild(overlay);
+  }
+
+  function closeLightbox(overlay) {
+    overlay.classList.add("closing");
+    setTimeout(function() {
+      overlay.remove();
+      startAuto();
+    }, 250);
+  }
+
+  /* ── Touch swipe ── */
+  let touchStartX = 0;
+
+  carrusel.addEventListener("touchstart", function(e) {
+    touchStartX = e.changedTouches[0].screenX;
+  }, { passive: true });
+
+  carrusel.addEventListener("touchend", function(e) {
+    const diff = touchStartX - e.changedTouches[0].screenX;
+    if (Math.abs(diff) > 50) {
+      stopAuto();
+      goTo(current + (diff > 0 ? 1 : -1));
+      startAuto();
+    }
+  }, { passive: true });
+
   /* ── Arranca ── */
   goTo(0);
   startAuto();
+})();
+
+/* ================================================================
+   RESEÑAS — carrusel simple con flechas
+   ================================================================ */
+
+(function initResenas() {
+  const track = document.getElementById("resenasTrack");
+  const prev = document.getElementById("resenasPrev");
+  const next = document.getElementById("resenasNext");
+  if (!track || !prev || !next) {
+    setTimeout(initResenas, 300);
+    return;
+  }
+
+  let current = 0;
+
+  function goTo(i) {
+    const total = track.children.length;
+    if (i >= total) i = total - 1;
+    if (i < 0) i = 0;
+    current = i;
+    const card = track.children[current];
+    const scrollTarget = card.offsetLeft - (track.clientWidth - card.offsetWidth) / 2;
+    track.scrollTo({ left: scrollTarget, behavior: "smooth" });
+  }
+
+  prev.addEventListener("click", function() { goTo(current - 1); });
+  next.addEventListener("click", function() { goTo(current + 1); });
 })();

@@ -158,6 +158,19 @@ class FotoCliente
             return false;
         }
 
+        // Corregir orientación EXIF (fotos de móvil giradas)
+        if ($tipo === 'image/jpeg' && function_exists('exif_read_data')) {
+            $exif = @exif_read_data($archivo_tmp);
+            if (!empty($exif['Orientation'])) {
+                match ((int)$exif['Orientation']) {
+                    3 => $img = imagerotate($img, 180, 0),
+                    6 => $img = imagerotate($img, -90, 0),
+                    8 => $img = imagerotate($img, 90, 0),
+                    default => null,
+                };
+            }
+        }
+
         // Redimensionar si el ancho supera 1200px
         if ($ancho > 1200) {
             $ancho_max = 1200;

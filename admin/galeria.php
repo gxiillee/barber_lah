@@ -38,6 +38,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $nombre_archivo = 'gal_' . time() . '_' . bin2hex(random_bytes(4)) . '.' . $ext;
             if (move_uploaded_file($_FILES['imagen']['tmp_name'], "$dir_uploads/$nombre_archivo")) {
                 $imagen = 'public/uploads/galeria/' . $nombre_archivo;
+                corregirOrientacionImagen("$dir_uploads/$nombre_archivo");
             } else {
                 $error = 'Error al subir la imagen.';
             }
@@ -76,6 +77,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $nombre_archivo = 'gal_' . time() . '_' . bin2hex(random_bytes(4)) . '.' . $ext;
             if (move_uploaded_file($_FILES['imagen']['tmp_name'], "$dir_uploads/$nombre_archivo")) {
                 $datos['imagen'] = 'public/uploads/galeria/' . $nombre_archivo;
+                corregirOrientacionImagen("$dir_uploads/$nombre_archivo");
             }
         }
 
@@ -104,7 +106,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($accion === 'eliminar') {
         $id = $_POST['id'] ?? '';
-        if (!empty($id) && Corte::eliminar($id)) {
+        if (!empty($id)) {
+            $foto = Corte::obtenerPorId($id);
+            if ($foto && !empty($foto['imagen'])) {
+                $ruta_fisica = __DIR__ . '/../' . $foto['imagen'];
+                if (file_exists($ruta_fisica)) {
+                    @unlink($ruta_fisica);
+                }
+            }
+            $ok = Corte::eliminar($id);
+        } else {
+            $ok = false;
+        }
+        if (!empty($_POST['ajax'])) {
+            echo json_encode(['ok' => $ok]);
+            exit;
+        }
+        if ($ok) {
             $_SESSION['toast'] = ['type' => 'success', 'message' => 'Foto eliminada definitivamente.'];
         } else {
             $_SESSION['toast'] = ['type' => 'error', 'message' => 'No se pudo eliminar.'];
@@ -275,10 +293,11 @@ $pagina_activa = 'galeria';
                                             <i class="bi <?= $activo ? 'bi-eye-slash-fill' : 'bi-eye-fill' ?> text-[0.85rem]"></i>
                                         </button>
                                     </form>
-                                    <form action="" method="POST" onsubmit="return confirm('¿Eliminar esta foto definitivamente?')" class="m-0">
+                                    <form data-ajax-delete class="m-0">
                                         <input type="hidden" name="accion" value="eliminar">
                                         <input type="hidden" name="id" value="<?= (string)$f['_id'] ?>">
-                                        <button type="submit" class="w-9 h-9 rounded-lg bg-rose-500/20 border border-rose-500/30 text-rose-400 flex items-center justify-center hover:bg-rose-500/30 transition-all cursor-pointer" title="Eliminar">
+                                        <input type="hidden" name="ajax" value="1">
+                                        <button type="button" class="w-9 h-9 rounded-lg bg-rose-500/20 border border-rose-500/30 text-rose-400 flex items-center justify-center hover:bg-rose-500/30 transition-all cursor-pointer" title="Eliminar">
                                             <i class="bi bi-trash3 text-[0.85rem]"></i>
                                         </button>
                                     </form>
@@ -299,10 +318,11 @@ $pagina_activa = 'galeria';
                                         <i class="bi <?= $activo ? 'bi-eye-slash-fill' : 'bi-eye-fill' ?> text-[0.8rem]"></i>
                                     </button>
                                 </form>
-                                <form action="" method="POST" onsubmit="return confirm('¿Eliminar esta foto definitivamente?')" class="flex-1 m-0">
+                                <form data-ajax-delete class="flex-1 m-0">
                                     <input type="hidden" name="accion" value="eliminar">
                                     <input type="hidden" name="id" value="<?= (string)$f['_id'] ?>">
-                                    <button type="submit" title="Eliminar" class="w-full flex items-center justify-center py-2 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-400 hover:bg-rose-500/20 transition-all cursor-pointer">
+                                    <input type="hidden" name="ajax" value="1">
+                                    <button type="button" title="Eliminar" class="w-full flex items-center justify-center py-2 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-400 hover:bg-rose-500/20 transition-all cursor-pointer">
                                         <i class="bi bi-trash3 text-[0.8rem]"></i>
                                     </button>
                                 </form>
@@ -463,6 +483,34 @@ function toggleForm(btn) {
     btn.querySelector('span').textContent = open ? 'Ocultar' : 'Mostrar';
     btn.querySelector('i').className = open ? 'bi bi-dash-circle' : 'bi bi-plus-circle';
 }
+
+/* ─── AJAX delete (no recarga) ─── */
+document.addEventListener('click', function (e) {
+    const btn = e.target.closest('[data-ajax-delete] button[type="button"]');
+    if (!btn) return;
+    const form = btn.closest('[data-ajax-delete]');
+    if (!form) return;
+    if (!confirm('¿Eliminar esta foto definitivamente?')) return;
+
+    const formData = new FormData(form);
+    fetch('galeria.php', {
+        method: 'POST',
+        body: formData
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.ok) {
+            const card = form.closest('.sortable-item');
+            if (card) card.remove();
+            if (window.Toast) Toast.mostrar('success', 'Foto eliminada');
+        } else {
+            if (window.Toast) Toast.mostrar('error', 'No se pudo eliminar');
+        }
+    })
+    .catch(() => {
+        if (window.Toast) Toast.mostrar('error', 'Error de conexión');
+    });
+});
 
 /* ─── Image preview on file select ─── */
 function previewImagen(input, previewId) {

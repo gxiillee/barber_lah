@@ -144,7 +144,10 @@ $pagina_activa = 'fotos';
                 </label>
 
                 <!-- Feedback visual de selección -->
-                <p id="resumen" class="hidden text-center mb-4 font-medium" style="font-size:0.85rem; color:var(--gold-l);"></p>
+                <p id="resumen" class="hidden text-center mb-3 font-medium" style="font-size:0.85rem; color:var(--gold-l);"></p>
+
+                <!-- Miniaturas de previsualización -->
+                <div id="preview-thumbs" class="flex flex-wrap gap-2 mb-4 justify-center"></div>
 
                 <!-- Botón de envío -->
                 <button type="submit" id="btn-subir" class="w-full rounded-lg py-3 font-semibold transition-opacity" style="background:var(--gold); color:var(--bg); font-size:0.85rem; opacity:0.4; cursor:not-allowed;" disabled>
@@ -167,13 +170,18 @@ $pagina_activa = 'fotos';
     const btnSubir    = document.getElementById('btn-subir');
     const btnTexto    = document.getElementById('btn-texto');
     const formulario  = document.getElementById('form-subida');
+    const previewThumbs = document.getElementById('preview-thumbs');
 
     // [TFG] Variable inyectada desde PHP — puente servidor → cliente
     const huecosDisponibles = <?= $huecos ?>;
 
     if (inputFotos) {
         inputFotos.addEventListener('change', function(e) {
-            const numArchivos = e.target.files.length;
+            const files = Array.from(e.target.files);
+            const numArchivos = files.length;
+
+            // Limpiar previews anteriores
+            previewThumbs.innerHTML = '';
 
             if (numArchivos > 0) {
                 let mensaje = '';
@@ -190,6 +198,29 @@ $pagina_activa = 'fotos';
                 resumen.textContent = mensaje;
                 resumen.classList.remove('hidden');
 
+                // [TFG] Generar miniaturas con FileReader
+                const aMostrar = Math.min(numArchivos, huecosDisponibles);
+                for (let i = 0; i < aMostrar; i++) {
+                    const reader = new FileReader();
+                    const thumb = document.createElement('div');
+                    thumb.className = 'relative rounded-lg overflow-hidden border';
+                    thumb.style.cssText = 'width:64px;height:64px;border-color:var(--brd);background:var(--bg3);';
+                    thumb.innerHTML = '<img class="w-full h-full object-cover">';
+                    previewThumbs.appendChild(thumb);
+                    reader.onload = (function(img) {
+                        return function(e) { img.src = e.target.result; };
+                    })(thumb.querySelector('img'));
+                    reader.readAsDataURL(files[i]);
+                }
+
+                if (numArchivos > huecosDisponibles) {
+                    const extra = document.createElement('div');
+                    extra.className = 'flex items-center justify-center rounded-lg border';
+                    extra.style.cssText = 'width:64px;height:64px;border-color:var(--brd);background:var(--bg3);font-size:0.65rem;color:var(--tx-d);';
+                    extra.textContent = '+' + (numArchivos - huecosDisponibles);
+                    previewThumbs.appendChild(extra);
+                }
+
                 btnSubir.disabled = false;
                 btnSubir.style.opacity = '1';
                 btnSubir.style.cursor = 'pointer';
@@ -199,6 +230,7 @@ $pagina_activa = 'fotos';
                 btnTexto.textContent = 'Subir ' + aSubir + ' foto' + (aSubir > 1 ? 's' : '');
             } else {
                 resumen.classList.add('hidden');
+                previewThumbs.innerHTML = '';
                 btnSubir.disabled = true;
                 btnSubir.style.opacity = '0.4';
                 btnSubir.style.cursor = 'not-allowed';

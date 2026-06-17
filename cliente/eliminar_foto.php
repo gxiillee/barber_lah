@@ -31,14 +31,19 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     redirigir('fotos.php');
 }
 
+// Detectar si es petición AJAX
+$es_ajax = !empty($_POST['ajax']);
+
 // 3.1 Validar token CSRF
 if (!Csrf::validarToken('eliminar_foto', $_POST['csrf_token'] ?? '')) {
+    if ($es_ajax) { echo json_encode(['ok' => false, 'error' => 'CSRF']); exit; }
     redirigir('fotos.php');
 }
 
 // 3.2 Obtener el id de la foto
 $id_foto = (int) ($_POST['id_foto'] ?? 0);
 if ($id_foto <= 0) {
+    if ($es_ajax) { echo json_encode(['ok' => false, 'error' => 'ID inválido']); exit; }
     redirigir('fotos.php');
 }
 
@@ -46,7 +51,7 @@ if ($id_foto <= 0) {
 // (la query en FotoCliente::obtenerPorIdYUsuario filtra por ambos campos)
 $foto = FotoCliente::obtenerPorIdYUsuario($id_foto, $id_usuario);
 if ($foto === null) {
-    // La foto no existe o no es suya → no hacer nada y volver
+    if ($es_ajax) { echo json_encode(['ok' => false, 'error' => 'No encontrada']); exit; }
     redirigir('fotos.php');
 }
 
@@ -59,7 +64,11 @@ if (file_exists($ruta_absoluta)) {
 }
 
 // 3.5 Eliminar de la BD
-FotoCliente::eliminar($id_foto, $id_usuario);
+$ok = FotoCliente::eliminar($id_foto, $id_usuario);
 
-// 3.6 Redirigir de vuelta a la galería
+// 3.6 Devolver respuesta
+if ($es_ajax) {
+    echo json_encode(['ok' => $ok]);
+    exit;
+}
 redirigir('fotos.php');

@@ -139,27 +139,6 @@ $pagina_activa = '';
         </div>
     </div>
 
-    <!-- Quick links -->
-    <h3 class="text-[0.7rem] font-bold uppercase tracking-widest text-[var(--tx-d)] mb-3">Accesos directos</h3>
-    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <a href="index.php" class="flex flex-col items-center gap-2 px-3 py-4 rounded-xl border border-[var(--brd)] bg-white/[0.02] hover:bg-[var(--gold-dim)] hover:border-[var(--gold-brd)] transition-all text-center">
-            <i class="bi bi-calendar3 text-[1.2rem] text-[var(--gold)]"></i>
-            <span class="text-[0.6rem] font-semibold text-[var(--tx-m)] uppercase tracking-wider">Agenda</span>
-        </a>
-        <a href="clientes.php" class="flex flex-col items-center gap-2 px-3 py-4 rounded-xl border border-[var(--brd)] bg-white/[0.02] hover:bg-[var(--gold-dim)] hover:border-[var(--gold-brd)] transition-all text-center">
-            <i class="bi bi-people text-[1.2rem] text-[var(--gold)]"></i>
-            <span class="text-[0.6rem] font-semibold text-[var(--tx-m)] uppercase tracking-wider">Clientes</span>
-        </a>
-        <a href="servicios.php" class="flex flex-col items-center gap-2 px-3 py-4 rounded-xl border border-[var(--brd)] bg-white/[0.02] hover:bg-[var(--gold-dim)] hover:border-[var(--gold-brd)] transition-all text-center">
-            <i class="bi bi-scissors text-[1.2rem] text-[var(--gold)]"></i>
-            <span class="text-[0.6rem] font-semibold text-[var(--tx-m)] uppercase tracking-wider">Servicios</span>
-        </a>
-        <a href="bloqueos.php" class="flex flex-col items-center gap-2 px-3 py-4 rounded-xl border border-[var(--brd)] bg-white/[0.02] hover:bg-[var(--gold-dim)] hover:border-[var(--gold-brd)] transition-all text-center">
-            <i class="bi bi-slash-circle text-[1.2rem] text-[var(--gold)]"></i>
-            <span class="text-[0.6rem] font-semibold text-[var(--tx-m)] uppercase tracking-wider">Bloqueos</span>
-        </a>
-    </div>
-
 </main>
 
 <?php include_once __DIR__ . '/includes/toast.php'; ?>

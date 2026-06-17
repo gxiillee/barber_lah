@@ -104,6 +104,42 @@ function fechaHumana(string $fecha): string
  * Necesario porque PHP interpola fechas inválidas como '2025-02-31'
  * sin lanzar error; createFromFormat con '!' previene ese comportamiento.
  */
+/**
+ * Corrige la orientación EXIF de una imagen JPEG (fotos de móvil giradas).
+ * Lee los metadatos de orientación, rota el recurso GD y sobrescribe el archivo.
+ * Compatible con JPEG, PNG y WebP; solo aplica rotación a JPEG con datos EXIF.
+ */
+function corregirOrientacionImagen(string $ruta): void {
+    if (!file_exists($ruta) || !function_exists('exif_read_data')) return;
+    $info = @getimagesize($ruta);
+    if (!$info) return;
+    $mime = $info['mime'];
+    $img = match ($mime) {
+        'image/jpeg' => @imagecreatefromjpeg($ruta),
+        'image/png'  => @imagecreatefrompng($ruta),
+        'image/webp' => @imagecreatefromwebp($ruta),
+        default => false,
+    };
+    if (!$img) return;
+    if ($mime === 'image/jpeg') {
+        $exif = @exif_read_data($ruta);
+        if (!empty($exif['Orientation'])) {
+            $img = match ((int)$exif['Orientation']) {
+                3 => imagerotate($img, 180, 0),
+                6 => imagerotate($img, -90, 0),
+                8 => imagerotate($img, 90, 0),
+                default => $img,
+            };
+            imagejpeg($img, $ruta, 92);
+        }
+    } elseif ($mime === 'image/png') {
+        imagepng($img, $ruta);
+    } elseif ($mime === 'image/webp') {
+        imagewebp($img, $ruta, 85);
+    }
+    imagedestroy($img);
+}
+
 function esFechaValida(string $fecha): bool
 {
     $dt = DateTimeImmutable::createFromFormat('!Y-m-d', $fecha);
