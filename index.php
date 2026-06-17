@@ -116,13 +116,13 @@ $config = ConfigWeb::obtener();
             <!-- ── TÍTULO INTRO ── -->
             <div id="introBlock" class="absolute inset-0 z-[15] flex items-center justify-center pointer-events-none">
                 <div class="text-center px-8">
-                    <p id="introTagline" class="font-cormorant mb-6 text-xs uppercase tracking-[0.5rem] text-[var(--gold)]/60">
+                    <p id="introTagline" class="font-cormorant mb-6 text-xs uppercase tracking-[0.5rem] text-[var(--gold)]/60 max-md:hidden">
                         Una experiencia única
                     </p>
                      <h1 id="introTitle" class="intro-title-gradient font-playfair text-[clamp(2.8rem,10vw,7rem)] leading-none tracking-[0.4rem] uppercase">
                         BARBER LA H
                     </h1>
-                    <p id="introCity" class="font-cormorant mt-6 text-sm uppercase tracking-[0.5rem] text-white/25">
+                    <p id="introCity" class="font-cormorant mt-6 text-sm uppercase tracking-[0.5rem] text-white/25 max-md:hidden">
                         Barbershop La H · Zaragoza
                     </p>
                 </div>
@@ -169,20 +169,18 @@ $config = ConfigWeb::obtener();
 
 
             <!-- ── BARRA DE PROGRESO INFERIOR ── -->
-            <div class="absolute bottom-8 left-12 right-12 z-[30] flex items-center gap-5 max-md:bottom-6 max-md:left-6 max-md:right-6 max-md:gap-3">
-                <span class="font-montserrat shrink-0 text-[0.6rem] uppercase tracking-[0.3rem] text-white/20 max-md:text-[0.7rem] max-md:tracking-[0.25rem]">Scroll</span>
-                <div class="relative h-px flex-1 overflow-hidden bg-white/10 max-md:h-[2px]">
-                    <div id="progressFill" class="absolute top-0 left-0 h-full bg-[var(--gold)]" style="width:0%;"></div>
+            <div class="absolute bottom-8 left-12 right-12 z-[30] max-md:bottom-6 max-md:left-6 max-md:right-6">
+                <div class="relative h-[2px] overflow-hidden rounded-full bg-white/10">
+                    <div id="progressFill" class="absolute top-0 left-0 h-full bg-[var(--gold)] rounded-full" style="width:0%;"></div>
                 </div>
-                <span id="progressLabel" class="font-montserrat w-8 shrink-0 text-right text-[0.6rem] uppercase tracking-[0.2rem] text-white/20 max-md:text-[0.7rem] max-md:w-10">0%</span>
             </div>
 
             <!-- ── INDICADOR SCROLL INICIAL ── -->
             <div id="scrollHint" class="absolute bottom-24 left-1/2 z-[30] -translate-x-1/2 text-center pointer-events-none transition-opacity duration-500">
                 <div class="scroll-mouse mx-auto max-md:hidden"></div>
-                <div class="md:hidden mx-auto flex flex-col items-center gap-1">
-                    <i class="bi bi-chevron-double-down text-[var(--gold)]/50 animate-bounce text-lg"></i>
-                    <span class="font-montserrat block text-[0.5rem] uppercase tracking-[0.3rem] text-white/25">Desliza</span>
+                <div class="md:hidden mx-auto flex flex-col items-center gap-2">
+                    <i class="bi bi-chevron-double-down text-[var(--gold)]/70 animate-bounce text-2xl drop-shadow-[0_0_8px_rgba(212,175,55,0.3)]"></i>
+                    <span class="font-montserrat block text-[0.6rem] uppercase tracking-[0.3rem] text-white/40">Desliza</span>
                 </div>
                 <span class="font-montserrat mt-3 block text-[0.55rem] uppercase tracking-[0.35rem] text-white/25 max-md:hidden">Scroll</span>
             </div>

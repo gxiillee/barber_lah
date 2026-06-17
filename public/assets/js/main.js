@@ -211,7 +211,6 @@ function renderFrame() {
   /* ── Barra de progreso ── */
   const pct = Math.round(p * 100);
   DOM.progressFill.style.width = `${pct}%`;
-  DOM.progressLabel.textContent = `${pct}%`;
 
   /* ── Overlay de transición: fade a negro en el último 10% ──
        Crea la sensación cinematográfica de "corte a negro"
