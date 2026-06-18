@@ -95,7 +95,7 @@ class Administrador extends Usuario
                 COUNT(*) FILTER (WHERE estado = 'no_presentado')     AS no_presentados,
                 COUNT(*) FILTER (WHERE estado = 'cancelada')         AS canceladas,
                 COALESCE(
-                    SUM(precio_historico) FILTER (WHERE estado = 'completada'),
+                    SUM(precio_historico) FILTER (WHERE estado = 'completada' AND gratis IS NOT TRUE),
                     0
                 )                                                    AS ingresos
             FROM reservas
@@ -133,7 +133,7 @@ class Administrador extends Usuario
                 COUNT(*)                                             AS total,
                 COUNT(*) FILTER (WHERE estado = 'completada')       AS completadas,
                 COALESCE(
-                    SUM(precio_historico) FILTER (WHERE estado = 'completada'),
+                    SUM(precio_historico) FILTER (WHERE estado = 'completada' AND (gratis IS NOT TRUE)),
                     0
                 )                                                    AS ingresos
             FROM reservas
@@ -166,7 +166,7 @@ class Administrador extends Usuario
                 COUNT(*)                                             AS total,
                 COUNT(*) FILTER (WHERE estado = 'completada')       AS completadas,
                 COALESCE(
-                    SUM(precio_historico) FILTER (WHERE estado = 'completada'),
+                    SUM(precio_historico) FILTER (WHERE estado = 'completada' AND gratis IS NOT TRUE),
                     0
                 )                                                    AS ingresos
             FROM reservas
@@ -208,7 +208,7 @@ class Administrador extends Usuario
                 EXTRACT(MONTH FROM fecha) AS mes,
                 COUNT(*)                                              AS total_citas,
                 COUNT(*) FILTER (WHERE estado = 'completada')        AS completadas,
-                COALESCE(SUM(precio_historico) FILTER (WHERE estado = 'completada'), 0) AS ingresos
+                COALESCE(SUM(precio_historico) FILTER (WHERE estado = 'completada' AND gratis IS NOT TRUE), 0) AS ingresos
             FROM reservas
             WHERE fecha >= date_trunc('month', CURRENT_DATE) - INTERVAL '{$ultimosMeses} months' + INTERVAL '1 month'
               AND fecha <  date_trunc('month', CURRENT_DATE) + INTERVAL '1 month'
@@ -256,7 +256,7 @@ class Administrador extends Usuario
                 s.id,
                 s.nombre,
                 COUNT(r.id)                                    AS total,
-                COALESCE(SUM(r.precio_historico), 0)          AS ingresos
+                COALESCE(SUM(r.precio_historico) FILTER (WHERE r.gratis IS NOT TRUE), 0) AS ingresos
             FROM servicios s
             LEFT JOIN reservas r ON r.id_servicio = s.id AND r.estado = 'completada'
             GROUP BY s.id, s.nombre

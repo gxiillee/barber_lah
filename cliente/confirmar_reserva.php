@@ -71,7 +71,8 @@ $errorConfirmacion = '';
 
 // OPTIMIZACIÓN: Pre-calculamos los datos formateados legibles para la vista (SRP)
 $fechaHumana       = fechaHumana($fecha);
-$precioFormateado  = number_format($precio, 2, ',', '.') . ' €';
+$tieneGratis = $usuario instanceof Usuario && $usuario->getPuntosFidelidad() >= 10;
+$precioFormateado  = $tieneGratis ? 'GRATIS' : number_format($precio, 2, ',', '.') . ' €';
 
 $urlModificar = 'reserva.php?' . http_build_query([
                 'servicio' => $idServicio,

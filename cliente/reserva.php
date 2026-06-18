@@ -163,6 +163,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['accion'] ?? '') === 'conti
 // Variables finales para la vista
 $csrfToken = Csrf::generarToken('csrf_reserva');
 $usuarioConSesion = ($_SESSION['usuario'] ?? null) instanceof Usuario;
+$tieneGratis = $usuarioConSesion && $_SESSION['usuario']->getPuntosFidelidad() >= 10;
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -192,6 +193,12 @@ $usuarioConSesion = ($_SESSION['usuario'] ?? null) instanceof Usuario;
                 <h1 class="font-[var(--font-playfair)] text-[42px] font-bold leading-none text-[#f5f0e8] sm:text-[56px]">Reserva tu cita</h1>
                 <p class="mt-4 max-w-2xl text-sm leading-7 text-white/45 hidden sm:block">Explora servicios, dias y horas disponibles sin crear cuenta. Te pediremos login solo cuando ya tengas claro el hueco.</p>
             </div>
+            <?php if ($tieneGratis): ?>
+                <div class="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-300 flex items-center gap-2">
+                    <i class="bi bi-gem text-emerald-400"></i>
+                    <span>Tienes un <strong>corte gratis</strong> disponible por fidelidad. Se aplicará automáticamente al confirmar.</span>
+                </div>
+            <?php endif; ?>
             <div class="rounded-lg border border-white/10 bg-white/[0.035] p-4">
                 <div class="flex items-center gap-3">
                     <img src="../public/assets/img/logo.jpg" alt="Hassan" class="h-14 w-14 rounded-full border border-[var(--gold)]/30 object-cover">
@@ -265,7 +272,7 @@ $usuarioConSesion = ($_SESSION['usuario'] ?? null) instanceof Usuario;
                                                 <?php endif; ?>
                                             </span>
                                             <span class="shrink-0 text-right">
-                                                <span class="block text-[15px] font-bold text-[var(--gold)]"><?= number_format($servicio->getPrecio(), 2, ',', '.') ?> €</span>
+                                                <span class="block text-[15px] font-bold <?= $tieneGratis ? 'text-emerald-400' : 'text-[var(--gold)]' ?>"><?= $tieneGratis ? 'GRATIS' : number_format($servicio->getPrecio(), 2, ',', '.') . ' €' ?></span>
                                                 <span class="block text-xs text-white/35"><?= $servicio->getDuracion() ?> min</span>
                                             </span>
                                         </span>
@@ -436,6 +443,9 @@ $usuarioConSesion = ($_SESSION['usuario'] ?? null) instanceof Usuario;
         </div>
     </main>
 
+    <script>
+        const TIENE_GRATIS = <?= $tieneGratis ? 'true' : 'false' ?>;
+    </script>
     <script>
         const reservaServicios = <?= json_encode($serviciosJson, $jsonFlags) ?>;
         let reservaDisponibilidad = <?= json_encode($disponibilidad, $jsonFlags) ?>;
@@ -641,7 +651,7 @@ $usuarioConSesion = ($_SESSION['usuario'] ?? null) instanceof Usuario;
             const service = serviceData();
             document.getElementById("summaryService").textContent  = service?.nombre ?? "-";
             document.getElementById("summaryDuration").textContent = service ? `${service.duracion} min con Hassan` : "-";
-            document.getElementById("summaryPrice").textContent    = service?.precio_formateado ?? "-";
+            document.getElementById("summaryPrice").textContent    = service ? (TIENE_GRATIS ? 'GRATIS' : service.precio_formateado) : "-";
             document.getElementById("summaryDate").textContent     = reservaDias[state.date]?.dia_largo ?? "-";
             document.getElementById("summaryHour").textContent     = state.hour || "Selecciona una hora";
 
@@ -660,7 +670,7 @@ $usuarioConSesion = ($_SESSION['usuario'] ?? null) instanceof Usuario;
 
             if (service) {
                 rbbService.textContent = service.nombre;
-                rbbPrice.textContent   = service.precio_formateado;
+                rbbPrice.textContent   = TIENE_GRATIS ? 'GRATIS' : service.precio_formateado;
                 const dayLabel = reservaDias[state.date]?.dia_largo ?? "";
                 rbbMeta.textContent = state.hour
                     ? `${dayLabel} · ${state.hour}h`

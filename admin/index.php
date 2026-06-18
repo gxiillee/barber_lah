@@ -355,11 +355,14 @@ $token_csrf    = Csrf::generarToken('agenda');
                                 <?php elseif ($res['estado'] === 'cancelada'): ?>
                                     <span class="text-[0.5rem] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-red-500/10 text-red-400 border border-red-500/20">Cancelada</span>
                                 <?php endif; ?>
+                                <?php if ($res['estado'] === 'confirmada' && (int)$res['puntos_fidelidad'] >= 10): ?>
+                                    <span class="text-[0.45rem] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/25">Fidelidad</span>
+                                <?php endif; ?>
                             </div>
                             <div class="text-[0.65rem] text-[var(--tx-m)] mt-0.5 truncate"><?= h($res['servicio_nombre']) ?></div>
                             <div class="flex gap-3 mt-1">
                                 <span class="flex items-center gap-1 text-[0.6rem] text-[var(--tx-m)]"><i class="bi bi-clock text-[0.7rem]"></i> <?= (int)$res['duracion_historica'] ?> min</span>
-                                <span class="flex items-center gap-1 text-[0.6rem] text-[var(--tx-m)]"><i class="bi bi-currency-euro text-[0.7rem]"></i> <?= number_format((float)$res['precio_historico'], 2, ',', '.') ?></span>
+                                <span class="flex items-center gap-1 text-[0.6rem] text-[var(--tx-m)]"><i class="bi bi-currency-euro text-[0.7rem]"></i> <?php if (!empty($res['gratis']) || ($res['estado'] === 'confirmada' && (int)$res['puntos_fidelidad'] >= 10)): ?><span class="text-emerald-500/70 uppercase font-bold text-[0.5rem] tracking-wider">GRATIS</span><?php else: ?><?= number_format((float)$res['precio_historico'], 2, ',', '.') ?><?php endif; ?></span>
                             </div>
                         </div>
 

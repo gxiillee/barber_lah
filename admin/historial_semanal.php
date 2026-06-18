@@ -36,7 +36,7 @@ $conteo = ['completada' => 0, 'confirmada' => 0, 'cancelada' => 0, 'no_presentad
 foreach ($reservas as $r) {
     $est = $r['estado'];
     if (isset($conteo[$est])) $conteo[$est]++;
-    if ($est === 'completada') $total_ingresos += (float)$r['precio_historico'];
+    if ($est === 'completada' && empty($r['gratis'])) $total_ingresos += (float)$r['precio_historico'];
 }
 
 $dias_semana = [];
@@ -146,7 +146,7 @@ $token_csrf = Csrf::generarToken('agenda');
         $es_hoy = $fecha_str === date('Y-m-d');
         $total_dia = count($reservas_dia);
         $ingresos_dia = 0;
-        foreach ($reservas_dia as $r) { if ($r['estado'] === 'completada') $ingresos_dia += (float)$r['precio_historico']; }
+        foreach ($reservas_dia as $r) { if ($r['estado'] === 'completada' && empty($r['gratis'])) $ingresos_dia += (float)$r['precio_historico']; }
         ?>
         <section id="dia-<?= h($fecha_str) ?>" class="dia-header mb-5 bg-white/[0.02] border border-white/[0.08] rounded-2xl overflow-hidden animate-[ficha-entrar_0.4s_cubic-bezier(0.16,1,0.3,1)_both]">
             <div class="flex items-center justify-between px-4 sm:px-5 py-3 border-b border-white/[0.06] <?= $es_hoy ? 'bg-[var(--gold-dim)]' : ($es_futuro ? '' : 'bg-white/[0.02]') ?>">
@@ -202,7 +202,11 @@ $token_csrf = Csrf::generarToken('agenda');
                             </div>
                             <div class="text-[0.8rem] font-semibold text-[var(--tx)] shrink-0 text-right min-w-[55px]">
                                 <?php if ($r['estado'] === 'completada'): ?>
-                                    <span class="text-emerald-400"><?= number_format((float)$r['precio_historico'], 0, ',', '.') ?>€</span>
+                                    <?php if (!empty($r['gratis'])): ?>
+                                        <span class="text-emerald-400/60 text-[0.6rem] uppercase tracking-wider font-bold">GRATIS</span>
+                                    <?php else: ?>
+                                        <span class="text-emerald-400"><?= number_format((float)$r['precio_historico'], 0, ',', '.') ?>€</span>
+                                    <?php endif; ?>
                                 <?php else: ?>
                                     <span class="text-[var(--tx-d)]"><?= number_format((float)$r['precio_historico'], 0, ',', '.') ?>€</span>
                                 <?php endif; ?>

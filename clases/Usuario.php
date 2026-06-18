@@ -54,7 +54,13 @@ class Usuario {
     public function getNombre()          { return $this->nombre; }
     public function getEmail()           { return $this->email; }
     public function getPassword()        { return $this->password; }
-    public function getAvatar()          { return $this->avatar; }
+    public function getAvatar() {
+        $url = $this->avatar;
+        if ($url && str_contains($url, 'googleusercontent.com') && !str_contains($url, '=s')) {
+            $url .= '=s96-c';
+        }
+        return $url;
+    }
     public function getTelefono()        { return $this->telefono; }
     public function setTelefono(string $telefono) { $this->telefono = $telefono; }
     public function getPuntosFidelidad() { return $this->puntos_fidelidad; }

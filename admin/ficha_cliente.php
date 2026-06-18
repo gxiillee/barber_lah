@@ -298,37 +298,39 @@ function badgeEstado(string $estado): string {
                     <?php if ($reserva_actual['estado'] === 'confirmada'): ?>
                         <div class="flex flex-col gap-2 w-full">
                             <div class="text-center md:text-right">
-                                <p class="font-['Montserrat'] text-[0.65rem] font-semibold tracking-[0.2em] uppercase text-[#666666] m-0">Cita de hoy — <?= h($reserva_actual['hora']) ?></p>
+                                <p class="font-['Montserrat'] text-[0.65rem] font-semibold tracking-[0.2em] uppercase text-[#666666] m-0">Cita de hoy — <?= h($reserva_actual['hora']) ?> <?php if ($cliente->getPuntosFidelidad() >= 10): ?><span class="ml-1.5 text-[0.45rem] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/25">Fidelidad</span><?php endif; ?></p>
                                 <p class="font-['Montserrat'] text-[0.75rem] text-[#d4af37] m-0"><?= h($reserva_actual['nombre_servicio'] ?? '—') ?></p>
                             </div>
 
-                            <form method="POST" class="w-full mt-1">
-                                <input type="hidden" name="csrf_token" value="<?= h($token_csrf) ?>">
-                                <input type="hidden" name="accion" value="marcar_completada">
-                                <input type="hidden" name="id_reserva_accion" value="<?= $id_reserva ?>">
-                                <button type="submit" class="w-full md:w-auto inline-flex items-center justify-center gap-[0.45rem] font-['Montserrat'] text-[0.75rem] font-semibold tracking-[0.06em] rounded-lg px-[1.1rem] py-3 md:py-[0.55rem] cursor-pointer transition-all duration-150 bg-[#d4af37] text-[#0d0d0d] border-none hover:-translate-y-[1px] hover:opacity-90"
-                                        onclick="return confirm('¿Marcar la cita como completada?')">
-                                    <i class="bi bi-check-circle"></i>
-                                    Marcar completada
-                                </button>
-                            </form>
+                            <div class="grid grid-cols-2 gap-2 w-full mt-1 md:flex md:gap-3">
+                                <form method="POST" class="col-span-2 md:w-auto">
+                                    <input type="hidden" name="csrf_token" value="<?= h($token_csrf) ?>">
+                                    <input type="hidden" name="accion" value="marcar_completada">
+                                    <input type="hidden" name="id_reserva_accion" value="<?= $id_reserva ?>">
+                                    <button type="submit" class="w-full inline-flex items-center justify-center gap-[0.45rem] font-['Montserrat'] text-[0.8rem] font-semibold tracking-[0.06em] rounded-lg px-[1.1rem] py-[0.75rem] md:py-[0.55rem] md:text-[0.75rem] cursor-pointer transition-all duration-150 bg-[#d4af37] text-[#0d0d0d] border-none hover:-translate-y-[1px] hover:opacity-90"
+                                            onclick="return confirm('¿Marcar la cita como completada?')">
+                                        <i class="bi bi-check-circle"></i>
+                                        Marcar completada
+                                    </button>
+                                </form>
 
-                            <button type="button" onclick="abrirCancelarCita()"
-                                    class="w-full md:w-auto inline-flex items-center justify-center gap-[0.45rem] font-['Montserrat'] text-[0.75rem] font-semibold tracking-[0.06em] rounded-lg px-[1.1rem] py-3 md:py-[0.55rem] cursor-pointer transition-all duration-150 bg-white/5 text-[#e07070] border border-red-900/30 hover:border-red-500/50 hover:bg-red-900/10">
-                                <i class="bi bi-x-lg"></i>
-                                Cancelar cita
-                            </button>
-
-                            <form method="POST" class="w-full">
-                                <input type="hidden" name="csrf_token" value="<?= h($token_csrf) ?>">
-                                <input type="hidden" name="accion" value="marcar_no_presentado">
-                                <input type="hidden" name="id_reserva_accion" value="<?= $id_reserva ?>">
-                                <button type="submit" class="w-full md:w-auto inline-flex items-center justify-center gap-[0.45rem] font-['Montserrat'] text-[0.75rem] font-semibold tracking-[0.06em] rounded-lg px-[1.1rem] py-3 md:py-[0.55rem] cursor-pointer transition-all duration-150 bg-white/5 text-[#aaaaaa] border border-white/10 hover:border-white/20 hover:text-[#f5f0e8]"
-                                        onclick="return confirm('¿Marcar como no presentado?')">
-                                    <i class="bi bi-x-circle"></i>
-                                    No se presentó
+                                <button type="button" onclick="abrirCancelarCita()"
+                                        class="w-full md:w-auto inline-flex items-center justify-center gap-[0.35rem] font-['Montserrat'] text-[0.7rem] font-semibold tracking-[0.06em] rounded-lg px-[0.85rem] py-[0.55rem] md:py-[0.55rem] cursor-pointer transition-all duration-150 bg-white/5 text-[#e07070] border border-red-900/30 hover:border-red-500/50 hover:bg-red-900/10">
+                                    <i class="bi bi-x-lg text-[0.7rem]"></i>
+                                    Cancelar
                                 </button>
-                            </form>
+
+                                <form method="POST" class="md:w-auto">
+                                    <input type="hidden" name="csrf_token" value="<?= h($token_csrf) ?>">
+                                    <input type="hidden" name="accion" value="marcar_no_presentado">
+                                    <input type="hidden" name="id_reserva_accion" value="<?= $id_reserva ?>">
+                                    <button type="submit" class="w-full inline-flex items-center justify-center gap-[0.35rem] font-['Montserrat'] text-[0.7rem] font-semibold tracking-[0.06em] rounded-lg px-[0.85rem] py-[0.55rem] md:py-[0.55rem] cursor-pointer transition-all duration-150 bg-white/5 text-[#aaaaaa] border border-white/10 hover:border-white/20 hover:text-[#f5f0e8]"
+                                            onclick="return confirm('¿Marcar como no presentado?')">
+                                        <i class="bi bi-x-circle text-[0.7rem]"></i>
+                                        Ausente
+                                    </button>
+                                </form>
+                            </div>
                         </div>
                     <?php else: ?>
                         <div class="flex flex-col items-center sm:items-start md:items-end gap-[0.4rem] w-full mt-2 sm:mt-0">
@@ -416,7 +418,7 @@ function badgeEstado(string $estado): string {
                     <span class="mt-1 text-[0.5rem] sm:text-[0.55rem] font-bold tracking-wider uppercase text-[var(--gold)] bg-[var(--gold-dim)] border border-[var(--gold)]/30 px-2 py-0.5 rounded-full leading-tight">🎁 Corte gratis</span>
                 <?php endif; ?>
                 <button onclick="abrirEditarPuntos()"
-                        class="absolute top-2 right-2 w-6 h-6 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-[#888] hover:bg-[#d4af37]/20 hover:text-[#d4af37] hover:border-[#d4af37]/30 transition-all opacity-0 group-hover:opacity-100 cursor-pointer"
+                        class="absolute top-2 right-2 w-5 h-5 rounded-full bg-white/10 border border-white/10 flex items-center justify-center text-[#888] hover:bg-[#d4af37]/20 hover:text-[#d4af37] hover:border-[#d4af37]/30 transition-all opacity-100 md:opacity-0 md:group-hover:opacity-100 cursor-pointer"
                         title="Editar puntos">
                     <i class="bi bi-pencil text-[0.6rem]"></i>
                 </button>
@@ -500,8 +502,12 @@ function badgeEstado(string $estado): string {
                                         <?= h($cita['duracion_historica']) ?> min
                                     </p>
                                 </div>
-                                <div class="font-['Montserrat'] text-[0.8rem] sm:text-[0.85rem] font-semibold text-[#d4af37] whitespace-nowrap ml-auto sm:ml-0">
-                                    <?= number_format((float)$cita['precio_historico'], 2, ',', '') ?> €
+                                <div class="font-['Montserrat'] text-[0.8rem] sm:text-[0.85rem] font-semibold whitespace-nowrap ml-auto sm:ml-0">
+                                    <?php if (!empty($cita['gratis'])): ?>
+                                        <span class="text-emerald-500/80 text-[0.6rem] uppercase tracking-wider">GRATIS</span>
+                                    <?php else: ?>
+                                        <span class="text-[#d4af37]"><?= number_format((float)$cita['precio_historico'], 2, ',', '') ?> €</span>
+                                    <?php endif; ?>
                                 </div>
                                 <div class="w-full sm:w-auto flex flex-row sm:flex-col items-center sm:items-end justify-between sm:justify-center gap-[0.25rem] mt-1 sm:mt-0 pt-2 sm:pt-0 border-t border-white/5 sm:border-transparent">
                                     <?= badgeEstado($cita['estado']) ?>

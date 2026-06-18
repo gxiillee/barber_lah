@@ -409,7 +409,11 @@ class Reserva {
 
             $stmt = $conexion->prepare("
             UPDATE reservas r
-            SET estado = 'completada'
+            SET estado = 'completada',
+                gratis = COALESCE(
+                    (SELECT puntos_fidelidad >= 10 FROM usuarios u WHERE u.id = r.id_cliente),
+                    FALSE
+                )
             FROM servicios s
             WHERE r.id_servicio = s.id
               AND r.estado IN ('pendiente', 'confirmada')
@@ -502,11 +506,13 @@ class Reserva {
                r.hora,
                r.duracion_historica,
                r.precio_historico,
+               r.gratis,
                r.estado,
                r.nota,
                r.id_cliente,
                u.nombre  AS cliente_nombre,
                u.email   AS cliente_email,
+               u.puntos_fidelidad,
                s.nombre  AS servicio_nombre
         FROM   reservas r
         JOIN   usuarios  u ON r.id_cliente  = u.id
@@ -531,12 +537,14 @@ class Reserva {
                r.hora,
                r.duracion_historica,
                r.precio_historico,
+               r.gratis,
                r.estado,
                r.nota,
                r.motivo_cancelacion,
                r.id_cliente,
                u.nombre  AS cliente_nombre,
                u.email   AS cliente_email,
+               u.puntos_fidelidad,
                s.nombre  AS servicio_nombre
         FROM   reservas r
         JOIN   usuarios  u ON r.id_cliente  = u.id
@@ -564,6 +572,7 @@ class Reserva {
                r.hora,
                r.duracion_historica,
                r.precio_historico,
+               r.gratis,
                r.estado,
                r.nota,
                r.motivo_cancelacion,
@@ -637,7 +646,7 @@ class Reserva {
 
         $stmt = $conexion->prepare(
             "SELECT r.id, r.fecha, r.hora, r.estado,
-                r.precio_historico, r.duracion_historica,
+                r.precio_historico, r.gratis, r.duracion_historica,
                 r.motivo_cancelacion,
                 s.nombre AS nombre_servicio
            FROM reservas r
@@ -738,23 +747,25 @@ class Reserva {
 
             $id_cliente = $reserva['id_cliente'];
 
-            // 3. Actualizamos el estado de la reserva a 'completada'
-            $stmtUpdateReserva = $conexion->prepare(
-                "UPDATE reservas
-             SET estado = 'completada'
-             WHERE id = :id"
-            );
-            $stmtUpdateReserva->execute(['id' => $id_reserva]);
-
-            // 4. Buscamos cuántos puntos tiene el cliente JUSTO AHORA en la base de datos
+            // 3. Buscamos cuántos puntos tiene el cliente JUSTO AHORA en la base de datos
             $stmtPuntos = $conexion->prepare("SELECT puntos_fidelidad FROM usuarios WHERE id = :id_cliente");
             $stmtPuntos->execute(['id_cliente' => $id_cliente]);
             $usuario = $stmtPuntos->fetch(PDO::FETCH_ASSOC);
 
             $puntos_actuales = $usuario ? (int)$usuario['puntos_fidelidad'] : 0;
+            $es_gratis = $puntos_actuales >= 10;
+
+            // 4. Actualizamos el estado de la reserva a 'completada' (y gratis si aplica)
+            $stmtUpdateReserva = $conexion->prepare(
+                "UPDATE reservas
+             SET estado = 'completada',
+                 gratis = :es_gratis
+             WHERE id = :id"
+            );
+            $stmtUpdateReserva->execute(['id' => $id_reserva, 'es_gratis' => $es_gratis]);
 
             // 5. Aplicamos tu lógica de fidelidad circular (Máximo 10)
-            if ($puntos_actuales >= 10) {
+            if ($es_gratis) {
                 // Si ya tenía 10 o más, reinicia su tarjeta y se queda con 1 punto
                 $nuevos_puntos = 1;
             } else {
