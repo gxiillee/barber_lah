@@ -194,9 +194,14 @@ foreach ($historial as $cita) {
                                 </div>
                             </div>
                             <div class="flex flex-col items-end gap-1.5 shrink-0">
-                                <span style="font-weight:700; font-size:0.9rem; color:var(--tx);">
-                                    <?= number_format((float)$cita['precio_historico'], 2, ',', '.') ?> €
-                                </span>
+                                <?php if (!empty($cita['gratis']) && $cita['estado'] === 'completada'): ?>
+                                    <span style="font-weight:800; font-size:0.8rem; text-transform:uppercase; letter-spacing:0.1em; color:#34d399;">GRATIS</span>
+                                    <span style="font-size:0.55rem; color:var(--tx-d);">Canjeaste tu corte gratis</span>
+                                <?php else: ?>
+                                    <span style="font-weight:700; font-size:0.9rem; color:var(--tx);">
+                                        <?= number_format((float)$cita['precio_historico'], 2, ',', '.') ?> €
+                                    </span>
+                                <?php endif; ?>
                                 <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[0.55rem] font-bold uppercase tracking-wider border" style="<?= $badgeClass ?>">
                                     <i class="bi <?= $iconEstado ?>" style="font-size:0.5rem;"></i>
                                     <?= h($estadoLabel) ?>

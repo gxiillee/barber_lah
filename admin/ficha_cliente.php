@@ -298,7 +298,7 @@ function badgeEstado(string $estado): string {
                     <?php if ($reserva_actual['estado'] === 'confirmada'): ?>
                         <div class="flex flex-col gap-2 w-full">
                             <div class="text-center md:text-right">
-                                <p class="font-['Montserrat'] text-[0.65rem] font-semibold tracking-[0.2em] uppercase text-[#666666] m-0">Cita de hoy — <?= h($reserva_actual['hora']) ?> <?php if ($cliente->getPuntosFidelidad() >= 10): ?><span class="ml-1.5 text-[0.45rem] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/25">Fidelidad</span><?php endif; ?></p>
+                                <p class="font-['Montserrat'] text-[0.65rem] font-semibold tracking-[0.2em] uppercase text-[#666666] m-0">Cita de hoy — <?= h($reserva_actual['hora']) ?> <?php if (!empty($reserva_actual['gratis'])): ?><span class="ml-1.5 text-[0.45rem] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/25">GRATIS</span><?php elseif ($cliente->getPuntosFidelidad() >= 10): ?><span class="ml-1.5 text-[0.45rem] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/25">Fidelidad</span><?php endif; ?></p>
                                 <p class="font-['Montserrat'] text-[0.75rem] text-[#d4af37] m-0"><?= h($reserva_actual['nombre_servicio'] ?? '—') ?></p>
                             </div>
 
@@ -503,7 +503,7 @@ function badgeEstado(string $estado): string {
                                     </p>
                                 </div>
                                 <div class="font-['Montserrat'] text-[0.8rem] sm:text-[0.85rem] font-semibold whitespace-nowrap ml-auto sm:ml-0">
-                                    <?php if (!empty($cita['gratis'])): ?>
+                                    <?php if (!empty($cita['gratis']) && $cita['estado'] === 'completada'): ?>
                                         <span class="text-emerald-500/80 text-[0.6rem] uppercase tracking-wider">GRATIS</span>
                                     <?php else: ?>
                                         <span class="text-[#d4af37]"><?= number_format((float)$cita['precio_historico'], 2, ',', '') ?> €</span>
