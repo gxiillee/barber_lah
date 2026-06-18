@@ -30,12 +30,14 @@ if (!defined('ID_BARBERO')) define('ID_BARBERO', 1);
                 $error_agenda = 'Debes indicar el motivo de la cancelación.';
             } else {
                 $conexion = BD::obtenerConexion();
+                $horaActual = date('H:i:s');
                 $antes = $conexion->prepare(
                     "SELECT r.id_cliente, r.hora, s.nombre AS servicio_nombre
                      FROM reservas r JOIN servicios s ON r.id_servicio = s.id
-                     WHERE r.id_barbero = :b AND r.fecha = :f AND r.estado = 'confirmada'"
+                     WHERE r.id_barbero = :b AND r.fecha = :f AND r.estado = 'confirmada'
+                       AND r.hora >= :hora_actual"
                 );
-                $antes->execute([':b' => ID_BARBERO, ':f' => $fecha_seleccionada]);
+                $antes->execute([':b' => ID_BARBERO, ':f' => $fecha_seleccionada, ':hora_actual' => $horaActual]);
                 $aCancelar = $antes->fetchAll(PDO::FETCH_ASSOC);
 
                 $canceladas = Reserva::cancelarPorDia(ID_BARBERO, $fecha_seleccionada, $motivo);

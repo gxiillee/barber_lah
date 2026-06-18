@@ -100,7 +100,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion']) && $_POST['
                     $hora,
                     $precio,
                     $duracion,
-                    null
+                    null,
+                    $tieneGratis
             );
 
             if ($idReserva > 0) {

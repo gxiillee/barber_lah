@@ -100,7 +100,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion'])) {
                 NotificadorReserva::enviarCompletada($cliente, [
                     'servicio' => $reserva_actual['servicio_nombre'] ?? '',
                     'fecha'    => $_f !== '' ? fechaHumana($_f) : '',
-                ], $puntosViejos >= 9);
+                ], $puntosViejos);
                 $_SESSION['toast'] = ['type' => 'success', 'message' => 'Cita marcada como completada.'];
                 redirigir('ficha_cliente.php?id_reserva=' . $id_reserva . ($fecha_volver ? '&fecha=' . $fecha_volver : ''));
             } else {

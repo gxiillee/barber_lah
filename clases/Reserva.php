@@ -123,19 +123,15 @@ class Reserva {
         string  $hora,
         float   $precio,
         int     $duracion,
-        ?string $nota = null
+        ?string $nota = null,
+        bool    $gratis = false
     ): ?int {
         $conexion = BD::obtenerConexion();
 
         try {
             $conexion->beginTransaction();
-
-            // Bloqueo pesimista a nivel de tabla: ninguna escritura concurrente
-            // puede insertar en 'reservas' hasta que esta transacción termine.
             $conexion->exec('LOCK TABLE reservas IN SHARE ROW EXCLUSIVE MODE');
 
-            // Comprobamos disponibilidad DENTRO del bloqueo.
-            // Si el hueco ya fue ocupado por otra sesión concurrente, abortamos.
             if (!self::estaDisponible($idBarbero, $fecha, $hora, $duracion)) {
                 $conexion->rollBack();
                 return null;
@@ -144,10 +140,10 @@ class Reserva {
             $stmt = $conexion->prepare("
                 INSERT INTO reservas
                     (id_cliente, id_barbero, id_servicio, fecha, hora,
-                     precio_historico, duracion_historica, estado, nota)
+                     precio_historico, duracion_historica, estado, nota, gratis)
                 VALUES
                     (:cliente, :barbero, :servicio, :fecha, :hora,
-                     :precio, :duracion, 'confirmada', :nota)
+                     :precio, :duracion, 'confirmada', :nota, :gratis)
                 RETURNING id
             ");
             $stmt->execute([
@@ -159,17 +155,22 @@ class Reserva {
                 ':precio'   => $precio,
                 ':duracion' => $duracion,
                 ':nota'     => $nota,
+                ':gratis'   => $gratis ? 1 : 0,
             ]);
 
-            //devuelve id para al redirigir a confirmarla llevara con ese id
             $id = (int)$stmt->fetchColumn();
-            //boton de guardar cambios
+
+            if ($gratis) {
+                $stmtPuntos = $conexion->prepare(
+                    "UPDATE usuarios SET puntos_fidelidad = 1 WHERE id = :id"
+                );
+                $stmtPuntos->execute([':id' => $idCliente]);
+            }
+
             $conexion->commit();
             return $id;
 
         } catch (Throwable $e) {
-            // si hay transaccion a medias
-            // rompemos esa transaccion
             if ($conexion->inTransaction()) {
                 $conexion->rollBack();
             }
@@ -410,15 +411,12 @@ class Reserva {
             $stmt = $conexion->prepare("
             UPDATE reservas r
             SET estado = 'completada',
-                gratis = COALESCE(
-                    (SELECT puntos_fidelidad >= 10 FROM usuarios u WHERE u.id = r.id_cliente),
-                    FALSE
-                )
+                gratis = r.gratis OR (SELECT puntos_fidelidad >= 10 FROM usuarios u WHERE u.id = r.id_cliente)
             FROM servicios s
             WHERE r.id_servicio = s.id
               AND r.estado IN ('pendiente', 'confirmada')
               AND CAST(CONCAT(r.fecha, ' ', r.hora) AS TIMESTAMP) <= :corte
-            RETURNING r.id_cliente, r.fecha, r.hora, s.nombre AS servicio_nombre, r.precio_historico
+            RETURNING r.id_cliente, r.gratis, r.fecha, r.hora, s.nombre AS servicio_nombre, r.precio_historico
         ");
             $stmt->execute([':corte' => $corte]);
 
@@ -427,7 +425,6 @@ class Reserva {
             if (!empty($afectadas)) {
                 $clientesUnicos = array_unique(array_column($afectadas, 'id_cliente'));
 
-                // Read current points BEFORE updating
                 $stmtRead = $conexion->prepare("SELECT puntos_fidelidad FROM usuarios WHERE id = :id");
                 $puntosViejos = [];
                 foreach ($clientesUnicos as $id) {
@@ -435,17 +432,40 @@ class Reserva {
                     $puntosViejos[(int)$id] = (int)$stmtRead->fetchColumn();
                 }
 
-                $stmtPuntos = $conexion->prepare("
-                UPDATE usuarios
-                SET puntos_fidelidad = CASE
-                    WHEN puntos_fidelidad >= 10 THEN 1
-                    ELSE puntos_fidelidad + 1
-                END
-                WHERE id = :id
-            ");
+                // Group by client to decide points logic per client
+                $clientReservas = [];
+                foreach ($afectadas as $r) {
+                    $cid = (int)$r['id_cliente'];
+                    $clientReservas[$cid][] = $r;
+                }
 
-                foreach ($clientesUnicos as $id) {
-                    $stmtPuntos->execute([':id' => $id]);
+                $stmtCaso = $conexion->prepare("
+                    UPDATE usuarios
+                    SET puntos_fidelidad = CASE
+                        WHEN puntos_fidelidad >= 10 THEN 1
+                        ELSE puntos_fidelidad + 1
+                    END
+                    WHERE id = :id
+                ");
+                $stmtReset = $conexion->prepare(
+                    "UPDATE usuarios SET puntos_fidelidad = 1 WHERE id = :id"
+                );
+
+                foreach ($clientReservas as $cid => $reservas) {
+                    $hasNonGratis = false;
+                    foreach ($reservas as $r) {
+                        if (!(bool)$r['gratis']) { $hasNonGratis = true; break; }
+                    }
+
+                    if ($hasNonGratis) {
+                        $stmtCaso->execute([':id' => $cid]);
+                    } else {
+                        // All are gratis
+                        $viejos = $puntosViejos[$cid] ?? 0;
+                        if ($viejos >= 10) {
+                            $stmtReset->execute([':id' => $cid]);
+                        }
+                    }
                 }
 
                 $conexion->commit();
@@ -473,7 +493,7 @@ class Reserva {
                     \NotificadorReserva::enviarCompletada($cli, [
                         'servicio' => $r['servicio_nombre'] ?? '',
                         'fecha'    => $_f !== '' ? \fechaHumana($_f) : '',
-                    ], $viejos >= 9);
+                    ], $viejos);
                 }
             } else {
                 $conexion->commit();
@@ -676,6 +696,17 @@ class Reserva {
         if ($propia) $conexion = BD::obtenerConexion();
         try {
             if ($propia) $conexion->beginTransaction();
+
+            $stmtG = $conexion->prepare(
+                "SELECT id_cliente, gratis FROM reservas WHERE id = :id AND estado = 'confirmada'"
+            );
+            $stmtG->execute([':id' => $id]);
+            $info = $stmtG->fetch(PDO::FETCH_ASSOC);
+            if (!$info) {
+                if ($propia) $conexion->rollBack();
+                return false;
+            }
+
             $stmt = $conexion->prepare("
                 UPDATE reservas
                 SET estado = 'cancelada', motivo_cancelacion = :motivo
@@ -683,6 +714,14 @@ class Reserva {
             ");
             $stmt->execute([':motivo' => $motivo, ':id' => $id]);
             $ok = $stmt->rowCount() > 0;
+
+            if ($ok && !empty($info['gratis'])) {
+                $stmtP = $conexion->prepare(
+                    "UPDATE usuarios SET puntos_fidelidad = puntos_fidelidad + 9 WHERE id = :id"
+                );
+                $stmtP->execute([':id' => $info['id_cliente']]);
+            }
+
             if ($propia) $conexion->commit();
             return $ok;
         } catch (Exception $e) {
@@ -702,17 +741,48 @@ class Reserva {
     public static function cancelarPorDia(int $idBarbero, string $fecha, string $motivo): int {
         $conexion = BD::obtenerConexion();
         try {
+            $horaActual = date('H:i:s');
+
+            $stmtG = $conexion->prepare(
+                "SELECT id, id_cliente, gratis FROM reservas
+                 WHERE id_barbero = :barbero AND fecha = :fecha
+                   AND estado = 'confirmada' AND hora >= :hora_actual"
+            );
+            $stmtG->execute([
+                ':barbero'     => $idBarbero,
+                ':fecha'       => $fecha,
+                ':hora_actual' => $horaActual,
+            ]);
+            $aCancelar = $stmtG->fetchAll(PDO::FETCH_ASSOC);
+
+            if (empty($aCancelar)) return 0;
+
             $stmt = $conexion->prepare("
                 UPDATE reservas
                 SET estado = 'cancelada', motivo_cancelacion = :motivo
-                WHERE id_barbero = :barbero AND fecha = :fecha AND estado = 'confirmada'
+                WHERE id_barbero = :barbero
+                  AND fecha = :fecha
+                  AND estado = 'confirmada'
+                  AND hora >= :hora_actual
             ");
             $stmt->execute([
-                ':motivo'  => $motivo,
-                ':barbero' => $idBarbero,
-                ':fecha'   => $fecha,
+                ':motivo'      => $motivo,
+                ':barbero'     => $idBarbero,
+                ':fecha'       => $fecha,
+                ':hora_actual' => $horaActual,
             ]);
-            return $stmt->rowCount();
+            $count = $stmt->rowCount();
+
+            $stmtP = $conexion->prepare(
+                "UPDATE usuarios SET puntos_fidelidad = puntos_fidelidad + 9 WHERE id = :id"
+            );
+            foreach ($aCancelar as $r) {
+                if (!empty($r['gratis'])) {
+                    $stmtP->execute([':id' => $r['id_cliente']]);
+                }
+            }
+
+            return $count;
         } catch (Exception $e) {
             error_log("Error al cancelar día: " . $e->getMessage());
             return 0;
@@ -727,72 +797,49 @@ class Reserva {
         $conexion = BD::obtenerConexion();
 
         try {
-            // 1. Iniciamos la transacción para que todo se guarde junto
             $conexion->beginTransaction();
 
-            // 2. Buscamos el id_cliente de esta reserva antes de cambiar nada
             $stmtSelect = $conexion->prepare(
-                "SELECT id_cliente 
-             FROM reservas 
+                "SELECT id_cliente, gratis
+             FROM reservas
              WHERE id = :id AND estado = 'confirmada'"
             );
             $stmtSelect->execute(['id' => $id_reserva]);
             $reserva = $stmtSelect->fetch(PDO::FETCH_ASSOC);
 
-            // Si la reserva no existe o ya no está "confirmada", cancelamos
             if (!$reserva) {
                 $conexion->rollBack();
                 return false;
             }
 
             $id_cliente = $reserva['id_cliente'];
+            $gratis = (bool)$reserva['gratis'];
 
-            // 3. Buscamos cuántos puntos tiene el cliente JUSTO AHORA en la base de datos
-            $stmtPuntos = $conexion->prepare("SELECT puntos_fidelidad FROM usuarios WHERE id = :id_cliente");
-            $stmtPuntos->execute(['id_cliente' => $id_cliente]);
-            $usuario = $stmtPuntos->fetch(PDO::FETCH_ASSOC);
-
-            $puntos_actuales = $usuario ? (int)$usuario['puntos_fidelidad'] : 0;
-            $es_gratis = $puntos_actuales >= 10;
-
-            // 4. Actualizamos el estado de la reserva a 'completada' (y gratis si aplica)
-            $stmtUpdateReserva = $conexion->prepare(
-                "UPDATE reservas
-             SET estado = 'completada',
-                 gratis = :es_gratis
-             WHERE id = :id"
+            $stmtUpdate = $conexion->prepare(
+                "UPDATE reservas SET estado = 'completada' WHERE id = :id"
             );
-            $stmtUpdateReserva->execute(['id' => $id_reserva, 'es_gratis' => $es_gratis]);
+            $stmtUpdate->execute(['id' => $id_reserva]);
 
-            // 5. Aplicamos tu lógica de fidelidad circular (Máximo 10)
-            if ($es_gratis) {
-                // Si ya tenía 10 o más, reinicia su tarjeta y se queda con 1 punto
-                $nuevos_puntos = 1;
-            } else {
-                // Si tenía menos de 10, simplemente le sumamos 1 punto
-                $nuevos_puntos = $puntos_actuales + 1;
+            if (!$gratis) {
+                $stmtPuntos = $conexion->prepare(
+                    "UPDATE usuarios
+                 SET puntos_fidelidad = CASE
+                     WHEN puntos_fidelidad >= 10 THEN 1
+                     ELSE puntos_fidelidad + 1
+                 END
+                 WHERE id = :id"
+                );
+                $stmtPuntos->execute(['id' => $id_cliente]);
             }
 
-            // 6. Guardamos los nuevos puntos en la tabla de usuarios
-            $stmtUpdatePuntos = $conexion->prepare(
-                "UPDATE usuarios
-             SET puntos_fidelidad = :nuevos_puntos
-             WHERE id = :id_cliente"
-            );
-            $stmtUpdatePuntos->execute([
-                'nuevos_puntos' => $nuevos_puntos,
-                'id_cliente'    => $id_cliente
-            ]);
-
-            // 7. Si todo ha ido perfecto, consolidamos los cambios
             $conexion->commit();
             return true;
 
         } catch (Exception $e) {
-            // Si algo falla en el proceso, revertimos todo para no corromper datos
             if ($conexion->inTransaction()) {
                 $conexion->rollBack();
             }
+            error_log("marcarComoCompletada($id_reserva): " . $e->getMessage());
             return false;
         }
     }
