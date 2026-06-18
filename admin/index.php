@@ -21,6 +21,11 @@ Reserva::actualizarCitasPasadas();
 
 if (!defined('ID_BARBERO')) define('ID_BARBERO', 1);
 
+// ── Fecha ──
+$fecha_raw = $_GET['fecha'] ?? date('Y-m-d');
+if (!esFechaValida($fecha_raw)) $fecha_raw = date('Y-m-d');
+$fecha_seleccionada = $fecha_raw;
+
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion'])) {
         if (!Csrf::validarToken('agenda', $_POST['csrf_token'] ?? '')) {
             $error_agenda = 'Token de seguridad inválido.';
@@ -79,11 +84,6 @@ if ($_SESSION['usuario']->tienePassword()) {
         }
     } catch (Exception $e) {}
 }
-
-// ── Fecha ──
-$fecha_raw = $_GET['fecha'] ?? date('Y-m-d');
-if (!esFechaValida($fecha_raw)) $fecha_raw = date('Y-m-d');
-$fecha_seleccionada = $fecha_raw;
 
 $dt_seleccionada = new DateTimeImmutable($fecha_seleccionada);
 $fecha_anterior  = $dt_seleccionada->modify('-1 day')->format('Y-m-d');
