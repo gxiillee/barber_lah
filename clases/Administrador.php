@@ -138,7 +138,7 @@ class Administrador extends Usuario
                 )                                                    AS ingresos
             FROM reservas
             WHERE fecha >= date_trunc('week', CURRENT_DATE)
-              AND fecha <  date_trunc('week', CURRENT_DATE) + INTERVAL '7 days'
+              AND fecha <= CURRENT_DATE
         ");
         $stmt->execute();
 
