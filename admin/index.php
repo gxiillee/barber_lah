@@ -342,18 +342,26 @@ $token_csrf    = Csrf::generarToken('agenda');
                 <?php if ($slot['estado'] === 'reservado'): ?>
                     <?php $res = $slot['reserva']; ?>
                     <div onclick="window.location.href='ficha_cliente.php?id_reserva=<?= (int)$res['id'] ?>&amp;fecha=<?= h($fecha_seleccionada) ?>'"
-                         class="slot-card glow-card flex items-center gap-4 px-4 py-3.5 rounded-xl border min-h-[64px] cursor-pointer transition-all duration-150 <?= $res['estado'] === 'confirmada' ? 'border-[var(--gold-brd)] bg-[var(--gold-dim)]' : ($res['estado'] === 'completada' ? 'border-emerald-500/20 bg-emerald-500/5' : 'border-[var(--brd)] bg-white/5') ?>">
+                         class="slot-card glow-card flex items-start gap-3 px-4 py-3 rounded-xl border min-h-[64px] cursor-pointer transition-all duration-150 border-[var(--brd)] border-l-4 <?php
+                            $__est = $res['estado'];
+                            if ($__est === 'confirmada') {
+                                echo 'border-l-[var(--gold)] bg-yellow-600/4';
+                            } elseif ($__est === 'completada') {
+                                echo 'border-l-emerald-500/50 bg-emerald-500/[0.015] opacity-85';
+                            } elseif ($__est === 'no_presentado' || $__est === 'cancelada') {
+                                echo 'border-l-red-800/50 bg-white/[0.02] opacity-60';
+                            }
+                        ?>">
 
-                        <div class="text-[0.78rem] font-semibold text-[var(--tx)] min-w-[42px] shrink-0"><?= h($slot['hora']) ?></div>
-                        <div class="w-[2px] h-9 rounded-full shrink-0 <?= $res['estado'] === 'completada' ? 'bg-emerald-500/50' : 'bg-[var(--gold)] opacity-70' ?>"></div>
+                        <span class="inline-flex items-center justify-center min-w-[46px] px-2 py-1 rounded-md bg-black/30 text-[0.68rem] font-semibold text-[var(--tx)] shrink-0 mt-0.5 leading-none"><?= h($slot['hora']) ?></span>
 
                         <div class="flex-1 min-w-0">
-                            <div class="flex items-center gap-2">
-                                <span class="text-[0.82rem] font-semibold text-[var(--tx)] truncate"><?= h($res['cliente_nombre']) ?></span>
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <span class="text-[0.88rem] font-semibold text-[var(--tx)] truncate"><?= h($res['cliente_nombre']) ?></span>
                                 <?php if ($res['estado'] === 'completada'): ?>
                                     <span class="text-[0.5rem] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Hecho</span>
                                 <?php elseif ($res['estado'] === 'no_presentado'): ?>
-                                    <span class="text-[0.5rem] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-white/5 text-[#888] border border-white/10">No show</span>
+                                    <span class="text-[0.5rem] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-red-500/10 text-red-400 border border-red-500/20">No show</span>
                                 <?php elseif ($res['estado'] === 'cancelada'): ?>
                                     <span class="text-[0.5rem] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-red-500/10 text-red-400 border border-red-500/20">Cancelada</span>
                                 <?php endif; ?>
