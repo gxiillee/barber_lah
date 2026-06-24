@@ -5,6 +5,7 @@
  * Recibe la variable $pagina_activa ('agenda', 'bloqueos', 'clientes', 'servicios')
  * y opcionalmente $resumen_dia (array con total, completadas, ingresos) desde agenda.
  */
+$pagina_activa ??= '';
 $admin_nombre = $_SESSION['usuario']->getNombre() ?? 'Administrador';
 $admin_iniciales = mb_strtoupper(mb_substr($admin_nombre, 0, 1, 'UTF-8'), 'UTF-8');
 $admin_avatar = $_SESSION['usuario']->getAvatar();
@@ -87,7 +88,7 @@ $stats_dia = $resumen_dia ?? null;
         </div>
     </div>
 
-    <div class="flex items-center gap-3 px-4 py-4" style="border-bottom:1px solid var(--brd);">
+    <a href="perfil.php" class="flex items-center gap-3 px-4 py-4" style="border-bottom:1px solid var(--brd);">
         <div class="w-9 h-9 rounded-full flex items-center justify-center border-2 font-bold"
              style="border-color:var(--gold-brd); background:var(--gold-dim); color:var(--gold); font-family:var(--pf); flex-shrink:0;">
             <?= h($admin_iniciales) ?>
@@ -98,10 +99,10 @@ $stats_dia = $resumen_dia ?? null;
             </div>
             <div class="flex items-center gap-1" style="font-size:0.58rem; color:var(--gold); text-transform:uppercase; letter-spacing:0.05em; font-weight:500;">
                 <span class="w-1.5 h-1.5 rounded-full bg-amber-500 inline-block animate-pulse"></span>
-                Administrador
+                Ver perfil →
             </div>
         </div>
-    </div>
+    </a>
 
     <!-- Stats rápidas del día -->
     <?php if ($stats_dia): ?>

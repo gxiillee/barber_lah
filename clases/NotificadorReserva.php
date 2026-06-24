@@ -50,52 +50,111 @@ class NotificadorReserva
 
     private static function plantilla(string $titulo, string $contenido): string
     {
-        return '
-    <style>
-        .bslh-card { background:#f6f1e7 !important; border:1px solid rgba(150,110,30,0.25) !important; }
-        .bslh-head { border-bottom:1px solid rgba(150,110,30,0.18) !important; }
-        .bslh-brand { color:#7a5a12 !important; }
-        .bslh-sub { color:rgba(40,30,15,0.45) !important; }
-        .bslh-title { color:#a9821f !important; }
-        .bslh-body { color:#2b2218 !important; }
-        .bslh-label { color:rgba(40,30,15,0.45) !important; }
-        .bslh-foot { border-top:1px solid rgba(150,110,30,0.15) !important; }
-        .bslh-thanks { color:rgba(40,30,15,0.4) !important; }
-        .bslh-sign { color:rgba(150,110,30,0.8) !important; }
+        return '<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="color-scheme" content="light dark">
+<meta name="supported-color-schemes" content="light dark">
+<title>' . htmlspecialchars($titulo) . '</title>
+<style>
+    html[data-ogsc] u + .body .gmail-blend-screen { background:#000; mix-blend-mode:screen; }
+    html[data-ogsc] u + .body .gmail-blend-difference { background:#000; mix-blend-mode:difference; }
+    body { margin: 0; padding: 0; background-color: #e9e4d8; }
+    @media only screen and (max-width: 480px) {
+        .container-la-h { width: 100% !important; max-width: 100% !important; }
+    }
+    @media (prefers-color-scheme: dark) {
+        .bg-body { background-color: #161310 !important; }
+        .bg-card { background-color: #221c16 !important; }
+        .bg-header { background-color: #120f0c !important; }
+        .bg-perforado { background-color:#120f0c !important; background-image:radial-gradient(circle at 0 50%,#161310 7px,transparent 7.5px) !important; }
+        .text-title { color:#d4af6a !important; }
+        .text-main { color:#f5f0e6 !important; }
+        .text-muted { color:#a89982 !important; }
+        .border-line { border-color:#332b24 !important; }
+        .btn-calendar { color:#d4af6a !important; border-color:#d4af6a !important; }
+    }
+</style>
+</head>
+<body class="body bg-body" style="margin:0; padding:0; background-color:#e9e4d8;">
+<div class="gmail-blend-screen">
+<div class="gmail-blend-difference">
+<div class="bg-body" style="background-color:#e9e4d8; padding:32px 16px;">
 
-        @media (prefers-color-scheme: dark) {
-            .bslh-card { background:#0d0d0d !important; border-color:rgba(212,175,55,0.25) !important; }
-            .bslh-head { border-color:rgba(212,175,55,0.12) !important; }
-            .bslh-brand { color:#d4af37 !important; }
-            .bslh-sub { color:rgba(255,255,255,0.2) !important; }
-            .bslh-title { color:#d4af37 !important; }
-            .bslh-body { color:#f5f0e8 !important; }
-            .bslh-label { color:rgba(255,255,255,0.35) !important; }
-            .bslh-foot { border-color:rgba(212,175,55,0.1) !important; }
-            .bslh-thanks { color:rgba(255,255,255,0.25) !important; }
-            .bslh-sign { color:rgba(212,175,55,0.5) !important; }
-        }
-    </style>
-    <div class="bslh-card" style="max-width:560px; margin:0 auto; font-family:Helvetica,Arial,sans-serif; background:#f6f1e7; border:1px solid rgba(150,110,30,0.25); border-radius:12px; overflow:hidden;">
-        <div class="bslh-head" style="padding:26px 32px 18px; text-align:center; border-bottom:1px solid rgba(150,110,30,0.18);">
-            <h1 class="bslh-brand" style="margin:0; color:#7a5a12; font-family:Georgia,\'Times New Roman\',serif; font-size:19px; font-weight:700; letter-spacing:3px; text-transform:uppercase;">Barbershop La H</h1>
-            <p class="bslh-sub" style="margin:3px 0 0; color:rgba(40,30,15,0.45); font-size:10px; letter-spacing:2px;">BARBERÍA · ZARAGOZA</p>
+<div class="container-la-h bg-card" style="max-width:420px; margin:0 auto; background-color:#f3ecde; border-radius:4px; overflow:hidden; font-family:Helvetica,Arial,sans-serif;">
+
+    <div class="bg-header" style="background-color:#1b1712; padding:30px 28px 22px; text-align:center;">
+        <div style="width:56px; height:1px; background-color:#b3863a; margin:0 auto 14px; font-size:0; line-height:0;">&nbsp;</div>
+        <h1 class="text-title" style="margin:0; font-family:Georgia,\'Times New Roman\',serif; font-weight:700; color:#d4af6a; font-size:23px; letter-spacing:2.5px;">Barbershop La H</h1>
+        <p class="text-muted" style="margin:6px 0 0; color:#8c7a55; font-size:10.5px; letter-spacing:2.5px; text-transform:uppercase;">Barbería · Zaragoza</p>
+    </div>
+
+    <div class="bg-perforado" style="height:14px; background-color:#1b1712; background-image:radial-gradient(circle at 0 50%, #e9e4d8 7px, transparent 7.5px); background-size:14px 14px; background-repeat:repeat-x;">&nbsp;</div>
+
+    <div style="padding:30px 28px 8px;">
+        <h2 class="text-title" style="margin:0 0 14px; font-family:Georgia,\'Times New Roman\',serif; font-style:italic; font-weight:normal; color:#a9762c; font-size:18px;">' . $titulo . '</h2>
+        <div style="font-size:14.5px; line-height:1.65;">
+            ' . $contenido . '
         </div>
-        <div style="padding:28px 32px 20px;">
-            <h2 class="bslh-title" style="margin:0 0 16px; font-size:16px; color:#a9821f; font-weight:600; letter-spacing:0.3px;">' . $titulo . '</h2>
-            <div class="bslh-body" style="color:#2b2218;">' . $contenido . '</div>
-        </div>
-        <div class="bslh-foot" style="border-top:1px solid rgba(150,110,30,0.15); padding:18px 32px; text-align:center;">
-            <p class="bslh-thanks" style="margin:0 0 4px; color:rgba(40,30,15,0.4); font-size:12px; font-style:italic;">Gracias por confiar en nuestro trabajo.</p>
-            <p class="bslh-sign" style="margin:0; color:rgba(150,110,30,0.8); font-size:12px; font-weight:600;">— Hassan</p>
-        </div>
-    </div>';
+    </div>
+
+    <div class="border-line" style="padding:20px 28px 28px; text-align:center; border-top:1px solid #ddd2b4; margin-top:18px;">
+        <p class="text-muted" style="margin:0; color:#8c7a55; font-size:12.5px; font-style:italic;">Gracias por confiar en nuestro trabajo.</p>
+        <p class="text-title" style="margin:6px 0 0; font-family:Georgia,\'Times New Roman\',serif; font-style:italic; color:#a9762c; font-size:14px;">— Hassan</p>
+    </div>
+
+</div>
+
+</div>
+</div>
+</div>
+</body>
+</html>';
     }
 
     private static function linea(string $label, string $valor): string
     {
-        return '<tr><td class="bslh-label" style="padding:5px 12px 5px 0; color:rgba(40,30,15,0.45); font-size:12px; white-space:nowrap; width:1px;"><span style="color:rgba(150,110,30,0.3); margin-right:6px;">◆</span>' . $label . '</td>'
-              . '<td class="bslh-body" style="padding:5px 0; color:#2b2218; font-size:13px; font-weight:600;">' . $valor . '</td></tr>';
+        return '
+    <div class="border-line" style="display:table; width:100%; padding:11px 0; border-bottom:1px dashed #c9b88f;">
+        <div class="text-muted" style="display:table-cell; color:#8c7a55; font-size:10.5px; letter-spacing:1.6px; text-transform:uppercase; vertical-align:middle;">' . $label . '</div>
+        <div class="text-main" style="display:table-cell; text-align:right; color:#1b1712; font-size:14.5px; font-weight:bold; vertical-align:middle;">' . $valor . '</div>
+    </div>';
+    }
+
+    private static function enlaceCalendario(string $servicio, string $fechaIso, string $hora, int $duracionMin = 30): string
+    {
+        try {
+            $inicio = new \DateTime($fechaIso . ' ' . $hora);
+        } catch (\Exception $e) {
+            return '';
+        }
+        $fin = (clone $inicio)->modify("+{$duracionMin} minutes");
+
+        $params = [
+            'action'   => 'TEMPLATE',
+            'text'     => $servicio . ' · Barbershop La H',
+            'dates'    => $inicio->format('Ymd\THis') . '/' . $fin->format('Ymd\THis'),
+            'details'  => 'Cita reservada en Barbershop La H.',
+            'location' => 'Barbershop La H, Zaragoza',
+            'ctz'      => 'Europe/Madrid',
+        ];
+
+        return 'https://calendar.google.com/calendar/render?' . http_build_query($params);
+    }
+
+    private static function botonCalendario(string $enlace): string
+    {
+        if ($enlace === '') {
+            return '';
+        }
+        return '
+    <div style="text-align:center; margin:22px 0 6px;">
+        <a href="' . $enlace . '" class="btn-calendar" style="display:inline-block; border:1px dashed #b3863a; border-radius:3px; padding:11px 20px; text-decoration:none; color:#a9762c; font-size:13px; font-weight:bold; letter-spacing:0.3px;">
+            &#128197;&nbsp; Añadir a mi calendario
+        </a>
+    </div>';
     }
 
     public static function enviarConfirmacion(Usuario $usuario, array $detalle): bool
@@ -105,19 +164,21 @@ class NotificadorReserva
         $fecha   = htmlspecialchars($detalle['fecha_humana'] ?? $detalle['fecha_label'] ?? $detalle['fecha'] ?? '');
         $hora    = htmlspecialchars($detalle['hora'] ?? '');
         $precio  = htmlspecialchars((string)($detalle['precio'] ?? ''));
-        $idRes   = htmlspecialchars((string)($detalle['id_reserva'] ?? $detalle['id'] ?? ''));
+
+        $fechaIso  = $detalle['fecha'] ?? '';
+        $enlaceCal = self::enlaceCalendario($servicio, $fechaIso, $hora);
+        $botonCal  = self::botonCalendario($enlaceCal);
 
         $html = self::plantilla('Tu cita está confirmada', '
-            <p style="margin:0 0 20px;  font-size:14px; line-height:1.6;">
-                Hola <strong>' . $nombre . '</strong>, tu cita está lista. Te esperamos en la barbería.
-            </p>
-            <table style="width:100%;">'
+            <p class="text-main" style="margin:0 0 20px; font-size:14.5px; line-height:1.65; color:#3a3024;">
+                Hola <strong class="text-main" style="color:#3a3024;">' . $nombre . '</strong>, tu cita está lista. Te esperamos en la barbería.
+            </p>'
                 . self::linea('Servicio', $servicio)
                 . self::linea('Día', $fecha)
                 . self::linea('Hora', $hora)
                 . ($precio !== '' ? self::linea('Precio', $precio) : '')
-                . ($idRes !== '' ? self::linea('Reserva #', $idRes) : '') .
-            '</table>');
+                . $botonCal . '
+            ');
 
         $alt = "Hola $nombre, tu cita para $servicio el $fecha a las $hora está confirmada en Barbershop La H.";
         if ($precio !== '') $alt .= " Precio: $precio.";
@@ -134,22 +195,25 @@ class NotificadorReserva
         $hora     = htmlspecialchars($detalle['hora'] ?? '');
         $esHoy    = $cuando === 'hoy';
 
+        $fechaIso  = $detalle['fecha'] ?? '';
+        $enlaceCal = self::enlaceCalendario($servicio, $fechaIso, $hora);
+        $botonCal  = self::botonCalendario($enlaceCal);
+
         $titulo = $esHoy ? 'Tu cita es hoy' : 'Tu cita es mañana';
         $intro  = $esHoy
-            ? "te recordamos que <strong >hoy</strong> tienes una cita en Barbershop La H."
-            : "te recordamos que tienes una cita en Barbershop La H <strong >mañana</strong>.";
+            ? "te recordamos que <strong class=\"text-main\" style=\"color:#3a3024;\">hoy</strong> tienes una cita en Barbershop La H."
+            : "te recordamos que tienes una cita en Barbershop La H <strong class=\"text-main\" style=\"color:#3a3024;\">mañana</strong>.";
         $altIntro = $esHoy ? "te recordamos tu cita para hoy" : "te recordamos tu cita para mañana";
 
         $html = self::plantilla($titulo, '
-            <p style="margin:0 0 20px;  font-size:14px; line-height:1.6;">
-                Hola <strong>' . $nombre . '</strong>, ' . $intro . '
-            </p>
-            <table style="width:100%;">'
+            <p class="text-main" style="margin:0 0 20px; font-size:14.5px; line-height:1.65; color:#3a3024;">
+                Hola <strong class="text-main" style="color:#3a3024;">' . $nombre . '</strong>, ' . $intro . '
+            </p>'
                 . self::linea('Servicio', $servicio)
                 . self::linea('Día', $fecha)
-                . self::linea('Hora', $hora) .
-            '</table>
-            <p style="margin:20px 0 0;  font-size:13px;">
+                . self::linea('Hora', $hora)
+                . $botonCal . '
+            <p class="text-muted" style="margin:20px 0 0; font-size:13px; line-height:1.5; color:#8c7a55;">
                 Si no puedes asistir, cancela o modifica tu cita desde tu panel de cliente con antelación.
             </p>');
 
@@ -168,20 +232,60 @@ class NotificadorReserva
         $motivo  = htmlspecialchars($motivo);
 
         $html = self::plantilla('Cita cancelada', '
-            <p style="margin:0 0 20px;  font-size:14px; line-height:1.6;">
-                Hola <strong>' . $nombre . '</strong>, sentimos informarte que tu cita ha tenido que cancelarse.
-            </p>
-            <table style="width:100%;">'
+            <p class="text-main" style="margin:0 0 20px; font-size:14.5px; line-height:1.65; color:#3a3024;">
+                Hola <strong class="text-main" style="color:#3a3024;">' . $nombre . '</strong>, sentimos informarte que tu cita ha tenido que cancelarse.
+            </p>'
                 . self::linea('Servicio', $servicio)
                 . self::linea('Día', $fecha)
                 . self::linea('Hora', $hora)
                 . self::linea('Motivo', $motivo) .
-            '</table>');
+            '');
 
         $alt = "Hola $nombre, tu cita para $servicio el $fecha a las $hora ha sido cancelada. Motivo: $motivo.";
 
         return self::enviar($usuario->getEmail(), $usuario->getNombre(),
             'Cita cancelada · Barbershop La H', $html, $alt);
+    }
+
+    public static function enviarCambio(Usuario $usuario, array $detalleViejo, array $detalleNuevo, ?string $motivo = null): bool
+    {
+        $nombre       = htmlspecialchars($usuario->getNombre());
+        $servicio     = htmlspecialchars($detalleViejo['servicio'] ?? $detalleViejo['nombre_servicio'] ?? '');
+        $fechaVieja   = htmlspecialchars($detalleViejo['fecha_humana'] ?? $detalleViejo['fecha_label'] ?? $detalleViejo['fecha'] ?? '');
+        $horaVieja    = htmlspecialchars($detalleViejo['hora'] ?? '');
+        $fechaNueva   = htmlspecialchars($detalleNuevo['fecha_humana'] ?? $detalleNuevo['fecha_label'] ?? $detalleNuevo['fecha'] ?? '');
+        $horaNueva    = htmlspecialchars($detalleNuevo['hora'] ?? '');
+        $motivoHtml   = $motivo !== null && trim($motivo) !== ''
+            ? self::linea('Motivo', htmlspecialchars(trim($motivo)))
+            : '';
+        $motivoAlt    = $motivo !== null && trim($motivo) !== ''
+            ? " Motivo: " . trim($motivo) . "."
+            : '';
+
+        $html = self::plantilla('Tu cita ha sido reprogramada', '
+            <p class="text-main" style="margin:0 0 20px; font-size:14.5px; line-height:1.65; color:#3a3024;">
+                Hola <strong class="text-main" style="color:#3a3024;">' . $nombre . '</strong>, te informamos que tu cita ha sido reprogramada.
+            </p>
+            <div class="border-line" style="background:#f0e8d8; border-radius:6px; padding:14px 16px; margin-bottom:14px;">
+                <p class="text-muted" style="margin:0 0 4px; font-size:10px; letter-spacing:1.2px; text-transform:uppercase; color:#8c7a55;">Anteriormente</p>
+                <p class="text-main" style="margin:0; font-size:14px; color:#8c7a55; text-decoration:line-through;">' . $fechaVieja . ' a las ' . $horaVieja . '</p>
+            </div>
+            <div class="border-line" style="background:#d4af37/10; border:1px dashed #b3863a; border-radius:6px; padding:14px 16px;">
+                <p class="text-muted" style="margin:0 0 4px; font-size:10px; letter-spacing:1.2px; text-transform:uppercase; color:#8c7a55;">Nueva fecha</p>
+                <p class="text-main" style="margin:0; font-size:16px; font-weight:bold; color:#3a3024;">' . $fechaNueva . ' a las ' . $horaNueva . '</p>
+            </div>'
+                . self::linea('Servicio', $servicio)
+                . $motivoHtml . '
+            <p class="text-muted" style="margin:18px 0 0; font-size:12px; line-height:1.5; color:#8c7a55;">
+                Si tienes cualquier duda, contáctanos. Disculpa las molestias.
+            </p>');
+
+        $alt = "Hola $nombre, tu cita para $servicio se ha reprogramado. "
+             . "Anterior: $fechaVieja a las $horaVieja. Nueva: $fechaNueva a las $horaNueva."
+             . $motivoAlt;
+
+        return self::enviar($usuario->getEmail(), $usuario->getNombre(),
+            'Tu cita ha sido reprogramada · Barbershop La H', $html, $alt);
     }
 
     public static function enviarCompletada(Usuario $usuario, array $detalle, int $puntosViejos = 0): bool
@@ -196,14 +300,12 @@ class NotificadorReserva
         $incluirFidelidad = $puntosViejos >= 9;
         if ($incluirFidelidad) {
             if ($puntosViejos >= 10) {
-                // puntos >= 10 → Canjeó (fue 10+, ahora se reinicia)
                 $tituloFid = '🎉 ¡Corte gratis canjeado!';
                 $descFid   = 'Has canjeado tu corte gratis, ' . $nombre . '. ¡Esperamos que lo disfrutaras!';
                 $labelFid  = 'puntos · tarjeta reiniciada';
                 $footerFid = 'Sigue acumulando puntos para tu próximo corte gratis.';
                 $altFid    = ' Has canjeado tu corte gratis. Ahora tu tarjeta se ha reiniciado.';
             } else {
-                // puntos == 9 → Acaba de ganarlo (9 → 10)
                 $tituloFid = '🎉 ¡Te has ganado un corte gratis!';
                 $descFid   = 'Has alcanzado 10 visitas, ' . $nombre . '. Tu próximo corte es por nuestra cuenta.';
                 $labelFid  = 'puntos · corte gratis canjeable';
@@ -211,18 +313,18 @@ class NotificadorReserva
                 $altFid    = ' Además, has alcanzado 10 visitas y te has ganado un corte gratis.';
             }
             $extra = '
-            <div style="margin-top:24px; padding-top:20px; border-top:1px solid rgba(212,175,55,0.2);">
-                <p style="margin:0 0 10px; font-size:16px; font-weight:700; color:#d4af37; text-align:center;">
+            <div class="border-line" style="margin-top:24px; padding-top:20px; border-top:1px solid #ddd2b4;">
+                <p class="text-title" style="margin:0 0 10px; font-size:16px; font-weight:700; color:#a9762c; text-align:center;">
                     ' . $tituloFid . '
                 </p>
-                <p style="margin:0 0 14px;  font-size:13px; line-height:1.5; text-align:center;">
+                <p class="text-main" style="margin:0 0 14px; font-size:13px; line-height:1.5; text-align:center; color:#3a3024;">
                     ' . $descFid . '
                 </p>
-                <div style="background:rgba(212,175,55,0.1); border:1px solid rgba(212,175,55,0.25); border-radius:8px; padding:16px; text-align:center;">
-                    <span style="font-size:28px; font-weight:800; color:#d4af37;">' . $usuario->getPuntosFidelidad() . '</span>
-                    <span style="display:block;  font-size:12px; margin-top:4px;">' . $labelFid . '</span>
+                <div class="bg-body border-line" style="background-color:#e9e4d8; border:1px dashed #b3863a; border-radius:8px; padding:16px; text-align:center;">
+                    <span class="text-title" style="font-size:28px; font-weight:800; color:#a9762c;">' . $usuario->getPuntosFidelidad() . '</span>
+                    <span class="text-muted" style="display:block; font-size:12px; margin-top:4px; color:#8c7a55;">' . $labelFid . '</span>
                 </div>
-                <p style="margin:12px 0 0;  font-size:12px; text-align:center;">
+                <p class="text-muted" style="margin:12px 0 0; font-size:12px; text-align:center; color:#8c7a55;">
                     ' . $footerFid . '
                 </p>
             </div>';
@@ -230,13 +332,11 @@ class NotificadorReserva
         }
 
         $html = self::plantilla('Gracias por tu visita', '
-            <p style="margin:0 0 20px;  font-size:14px; line-height:1.6;">
-                Hola <strong>' . $nombre . '</strong>, gracias por venir. Esperamos que el resultado te haya gustado tanto como a nosotros hacerlo.
-            </p>
-            <table style="width:100%;">'
+            <p class="text-main" style="margin:0 0 20px; font-size:14.5px; line-height:1.65; color:#3a3024;">
+                Hola <strong class="text-main" style="color:#3a3024;">' . $nombre . '</strong>, gracias por venir. Esperamos que el resultado te haya gustado tanto como a nosotros hacerlo.
+            </p>'
                 . self::linea('Servicio', $servicio)
-                . self::linea('Día', $fecha) .
-            '</table>'
+                . self::linea('Día', $fecha)
             . $extra);
 
         return self::enviar($usuario->getEmail(), $usuario->getNombre(),
@@ -251,23 +351,23 @@ class NotificadorReserva
 
         if ($puntosViejos >= 10) {
             $titulo = '¡Corte gratis canjeado!';
-            $texto  = "Hola <strong >$nombre</strong>, acabas de canjear tu corte gratis. ¡Esperamos que lo disfrutaras!";
+            $texto  = "Hola <strong class=\"text-main\" style=\"color:#3a3024;\">$nombre</strong>, acabas de canjear tu corte gratis. ¡Esperamos que lo disfrutaras!";
             $footer = 'Ahora tu tarjeta de fidelidad se ha reiniciado. Sigue acumulando puntos para tu próximo corte gratis.';
         } else {
             $titulo = '¡Te has ganado un corte gratis!';
-            $texto  = "Hola <strong >$nombre</strong>, has alcanzado 10 visitas. ¡Felicidades!";
+            $texto  = "Hola <strong class=\"text-main\" style=\"color:#3a3024;\">$nombre</strong>, has alcanzado 10 visitas. ¡Felicidades!";
             $footer = 'Tu próximo corte es por nuestra cuenta. Preséntate en recepción para canjearlo cuando quieras.';
         }
 
         $html = self::plantilla($titulo, '
-            <p style="margin:0 0 20px;  font-size:14px; line-height:1.6;">
+            <p class="text-main" style="margin:0 0 20px; font-size:14.5px; line-height:1.65; color:#3a3024;">
                 ' . $texto . '
             </p>
-            <div style="background:rgba(212,175,55,0.1); border:1px solid rgba(212,175,55,0.25); border-radius:8px; padding:16px; text-align:center;">
-                <span style="font-size:28px; font-weight:800; color:#d4af37;">' . $puntosVisibles . '</span>
-                <span style="display:block;  font-size:12px; margin-top:4px;">puntos actuales</span>
+            <div class="bg-body border-line" style="background-color:#e9e4d8; border:1px dashed #b3863a; border-radius:8px; padding:16px; text-align:center;">
+                <span class="text-title" style="font-size:28px; font-weight:800; color:#a9762c;">' . $puntosVisibles . '</span>
+                <span class="text-muted" style="display:block; font-size:12px; margin-top:4px; color:#8c7a55;">puntos actuales</span>
             </div>
-            <p style="margin:16px 0 0;  font-size:13px;">' . $footer . '</p>');
+            <p class="text-muted" style="margin:16px 0 0; font-size:13px; line-height:1.5; color:#8c7a55;">' . $footer . '</p>');
 
         $alt   = $tieneGratis
             ? "Hola $nombre, has canjeado tu corte gratis. Ahora tienes 1 punto."
@@ -285,17 +385,16 @@ class NotificadorReserva
         $hora    = htmlspecialchars($detalle['hora'] ?? '');
 
         $html = self::plantilla('No pudimos atenderte', '
-            <p style="margin:0 0 20px;  font-size:14px; line-height:1.6;">
-                Hola <strong>' . $nombre . '</strong>, te esperábamos el <strong>' . $fecha . '</strong> a las <strong>' . $hora . '</strong> pero no pudimos atenderte.
+            <p class="text-main" style="margin:0 0 20px; font-size:14.5px; line-height:1.65; color:#3a3024;">
+                Hola <strong class="text-main" style="color:#3a3024;">' . $nombre . '</strong>, te esperábamos el <strong class="text-main" style="color:#3a3024;">' . $fecha . '</strong> a las <strong class="text-main" style="color:#3a3024;">' . $hora . '</strong> pero no pudimos atenderte.
             </p>
-            <p style="margin:0 0 20px;  font-size:13px; line-height:1.5;">
+            <p class="text-muted" style="margin:0 0 20px; font-size:13px; line-height:1.5; color:#8c7a55;">
                 Si te surgió algún imprevisto, no te preocupes. Puedes reservar de nuevo desde tu panel de cliente cuando quieras.
-            </p>
-            <table style="width:100%;">'
+            </p>'
                 . self::linea('Servicio', $servicio)
                 . self::linea('Día', $fecha)
                 . self::linea('Hora', $hora) .
-            '</table>');
+            '');
 
         $alt = "Hola $nombre, no pudimos atenderte el $fecha a las $hora. Contáctanos si quieres reagendar.";
 
@@ -306,11 +405,11 @@ class NotificadorReserva
     public static function enviarRecuperarPassword(string $email, string $nombre, string $enlace): bool
     {
         $html = self::plantilla('Restablece tu contraseña', '
-            <p style="margin:0 0 20px;  font-size:14px; line-height:1.6;">
-                Hola <strong>' . htmlspecialchars($nombre) . '</strong>, recibiste una solicitud para restablecer tu contraseña.
+            <p class="text-main" style="margin:0 0 20px; font-size:14px; line-height:1.6; color:#3a3024;">
+                Hola <strong class="text-main" style="color:#3a3024;">' . htmlspecialchars($nombre) . '</strong>, recibiste una solicitud para restablecer tu contraseña.
             </p>
-            <p style="margin:0 0 20px;  font-size:13px; line-height:1.5;">
-                Haz clic en el botón de abajo para crear una nueva. El enlace expira en <strong>1 hora</strong>.
+            <p class="text-main" style="margin:0 0 20px; font-size:13px; line-height:1.5; color:#3a3024;">
+                Haz clic en el botón de abajo para crear una nueva. El enlace expira en <strong class="text-main" style="color:#3a3024;">1 hora</strong>.
             </p>
             <div style="text-align:center; margin:24px 0;">
                 <a href="' . $enlace . '"
@@ -318,7 +417,7 @@ class NotificadorReserva
                     Restablecer contraseña
                 </a>
             </div>
-            <p style="margin:20px 0 0;  font-size:11px; line-height:1.5;">
+            <p class="text-muted" style="margin:20px 0 0; font-size:11px; line-height:1.5; color:#8c7a55;">
                 Si no solicitaste este cambio, ignora este mensaje. Tu contraseña actual sigue siendo segura.
             </p>');
 

@@ -203,8 +203,7 @@ class Usuario {
         // Caso 3: usuario nuevo — registrar como cliente
         $stmt = $conexion->prepare("
             INSERT INTO usuarios (google_id, nombre, email, password, avatar, rol, activo)
-            VALUES (:google_id, :nombre, :email, null, :avatar, 'cliente', true)
-            RETURNING id
+            VALUES (:google_id, :nombre, :email, null, :avatar, 'cliente', 1)
         ");
         $stmt->execute([
             ':google_id' => $googleId,
@@ -213,8 +212,7 @@ class Usuario {
             ':avatar'    => $avatar
         ]);
 
-        $filaInsertada = $stmt->fetch(PDO::FETCH_ASSOC);
-        $idNuevo = (int)$filaInsertada['id'];
+        $idNuevo = (int)$conexion->lastInsertId();
 
         $u = new self($idNuevo, $googleId, $nombre, $email, null, $avatar, null, 0, 'cliente', null, date('Y-m-d H:i:s'));
         $u->setPasswordUpdatedAt(null);
@@ -303,9 +301,12 @@ class Usuario {
         );
         $stmt->execute([':id' => $usuarioId, ':hash' => $passwordHash]);
 
+        // MariaDB requires double nesting when LIMIT is used inside NOT IN
         $stmt = $conexion->prepare(
             "DELETE FROM password_history WHERE usuario_id = :id AND id NOT IN (
-                SELECT id FROM password_history WHERE usuario_id = :id2 ORDER BY created_at DESC LIMIT 3
+                SELECT id FROM (
+                    SELECT id FROM password_history WHERE usuario_id = :id2 ORDER BY created_at DESC LIMIT 3
+                ) AS keep_ids
             )"
         );
         $stmt->execute([':id' => $usuarioId, ':id2' => $usuarioId]);

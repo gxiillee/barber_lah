@@ -189,6 +189,11 @@
    SECCIÓN VIDEO SCROLL
    ================================================================ */
 
+/* Poster como respaldo si el video no muestra frame */
+#mainVideo {
+  background: url('../img/poster_video.jpg') center/cover no-repeat;
+}
+
 /* Fallback por si Tailwind CDN no aplica h-[350vh] */
 #experiencia {
   height: 100vh;
@@ -461,15 +466,40 @@
 }
 
 /* ================================================================
-   RESEÑAS — scroll horizontal con snap
+   RESEÑAS — scroll horizontal con snap, drag y flechas
    ================================================================ */
 
 .reviews-scroll {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
+  scroll-behavior: smooth;
+  cursor: grab;
+  user-select: none;
+  -webkit-user-select: none;
 }
-.reviews-scroll::-webkit-scrollbar {
-  display: none;
+.reviews-scroll.grabbing {
+  cursor: grabbing;
+  scroll-behavior: auto;
+}
+
+/* Scrollbar invisible (Chrome, Edge, Safari) */
+#resenasTrack::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+  background: transparent;
+}
+#resenasTrack::-webkit-scrollbar-track {
+  background: transparent;
+}
+#resenasTrack::-webkit-scrollbar-thumb {
+  background: rgba(212, 175, 55, 0.2);
+  border-radius: 3px;
+}
+#resenasTrack::-webkit-scrollbar-thumb:hover {
+  background: rgba(212, 175, 55, 0.4);
+}
+/* Firefox */
+#resenasTrack {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(212, 175, 55, 0.2) transparent;
 }
 
 #resenasCarrusel {

@@ -34,7 +34,7 @@ $nav_items = [
     <a href="perfil.php" class="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center border flex-shrink-0 active:scale-95 transition-all"
        style="border-color:var(--gold-brd); background:var(--gold-dim);">
         <?php if (!empty($nav_avatar)): ?>
-            <img src="<?= h($nav_avatar) ?>" alt="Foto de <?= h($nav_nombre) ?>" class="w-full h-full object-cover">
+            <img src="<?= h($nav_avatar) ?>" alt="Foto de <?= h($nav_nombre) ?>" class="w-full h-full object-cover" referrerpolicy="no-referrer">
         <?php else: ?>
             <span style="font-family:var(--pf); color:var(--gold); font-size:0.82rem; line-height:1;">
                 <?= h($nav_inicial) ?>
@@ -60,7 +60,7 @@ $nav_items = [
         <div class="w-9 h-9 rounded-full overflow-hidden flex items-center justify-center flex-shrink-0 border"
              style="min-width:36px; border-color:var(--gold-brd); background:var(--gold-dim);">
             <?php if (!empty($nav_avatar)): ?>
-                <img src="<?= h($nav_avatar) ?>" alt="Foto de <?= h($nav_nombre) ?>" class="w-full h-full object-cover">
+                <img src="<?= h($nav_avatar) ?>" alt="Foto de <?= h($nav_nombre) ?>" class="w-full h-full object-cover" referrerpolicy="no-referrer">
             <?php else: ?>
                 <span style="font-family:var(--pf); color:var(--gold); font-size:0.82rem; line-height:1;">
                     <?= h($nav_inicial) ?>
@@ -77,7 +77,7 @@ $nav_items = [
                 <div class="flex-1 rounded-full overflow-hidden" style="height:4px; background:rgba(255,255,255,0.06);">
                     <div style="width:<?= min(100, ($nav_puntos / 10) * 100) ?>%; height:100%; background:var(--gold); border-radius:999px; transition:width 0.6s var(--ease-out);"></div>
                 </div>
-                <span style="font-size:0.55rem; color:var(--gold); white-space:nowrap;">
+                <span style="font-size:0.55rem; color:<?= $nav_puntos >= 10 ? '#34d399' : 'var(--gold)' ?>; white-space:nowrap;">
                     <?= $nav_puntos >= 10 ? '¡Gratis!' : (10 - $nav_puntos) . ' faltan' ?>
                 </span>
             </div>

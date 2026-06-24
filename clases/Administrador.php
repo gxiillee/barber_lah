@@ -34,10 +34,10 @@ class Administrador extends Usuario
     // =========================================================================
 
     public function __construct(
-        ?int    $id            = null,
-        ?string $google_id     = null,
         string  $nombre,
         string  $email,
+        ?int    $id            = null,
+        ?string $google_id     = null,
         ?string $password      = null,
         ?string $avatar        = null,
         ?string $telefono      = null,
@@ -90,12 +90,12 @@ class Administrador extends Usuario
         $stmt = $conexion->prepare("
             SELECT
                 COUNT(*)                                              AS total,
-                COUNT(*) FILTER (WHERE estado = 'confirmada')        AS confirmadas,
-                COUNT(*) FILTER (WHERE estado = 'completada')        AS completadas,
-                COUNT(*) FILTER (WHERE estado = 'no_presentado')     AS no_presentados,
-                COUNT(*) FILTER (WHERE estado = 'cancelada')         AS canceladas,
+                SUM(CASE WHEN estado = 'confirmada' THEN 1 ELSE 0 END)        AS confirmadas,
+                SUM(CASE WHEN estado = 'completada' THEN 1 ELSE 0 END)        AS completadas,
+                SUM(CASE WHEN estado = 'no_presentado' THEN 1 ELSE 0 END)     AS no_presentados,
+                SUM(CASE WHEN estado = 'cancelada' THEN 1 ELSE 0 END)         AS canceladas,
                 COALESCE(
-                    SUM(precio_historico) FILTER (WHERE estado = 'completada' AND gratis IS NOT TRUE),
+                    SUM(CASE WHEN estado = 'completada' AND gratis != 1 THEN precio_historico ELSE 0 END),
                     0
                 )                                                    AS ingresos
             FROM reservas
@@ -131,13 +131,13 @@ class Administrador extends Usuario
         $stmt = $conexion->prepare("
             SELECT
                 COUNT(*)                                             AS total,
-                COUNT(*) FILTER (WHERE estado = 'completada')       AS completadas,
+                SUM(CASE WHEN estado = 'completada' THEN 1 ELSE 0 END)       AS completadas,
                 COALESCE(
-                    SUM(precio_historico) FILTER (WHERE estado = 'completada' AND (gratis IS NOT TRUE)),
+                    SUM(CASE WHEN estado = 'completada' AND gratis != 1 THEN precio_historico ELSE 0 END),
                     0
                 )                                                    AS ingresos
             FROM reservas
-            WHERE fecha >= date_trunc('week', CURRENT_DATE)
+            WHERE fecha >= DATE_SUB(CURRENT_DATE, INTERVAL WEEKDAY(CURRENT_DATE) DAY)
               AND fecha <= CURRENT_DATE
         ");
         $stmt->execute();
@@ -152,37 +152,42 @@ class Administrador extends Usuario
     }
 
     /**
-     * Resumen del mes en curso.
+     * Resumen del mes indicado (o mes actual si no se pasa nada).
      *
+     * @param  int $anio  Año (4 dígitos). 0 = usar año actual.
+     * @param  int $mes   Mes (1-12). 0 = usar mes actual.
      * @return array{total: int, completadas: int, ingresos: float, clientes_nuevos: int}
      */
-    public static function obtenerResumenMesActual(): array
+    public static function obtenerResumenMes(int $anio = 0, int $mes = 0): array
     {
+        $anio = $anio > 0 ? $anio : (int)date('Y');
+        $mes  = $mes  > 0 ? $mes  : (int)date('m');
+        $inicioMes = sprintf('%04d-%02d-01', $anio, $mes);
+        $finMes    = date('Y-m-d', strtotime('+1 month', strtotime($inicioMes)));
+
         $conexion = BD::obtenerConexion();
 
-        // Ingresos y citas del mes
         $stmt = $conexion->prepare("
             SELECT
                 COUNT(*)                                             AS total,
-                COUNT(*) FILTER (WHERE estado = 'completada')       AS completadas,
+                SUM(CASE WHEN estado = 'completada' THEN 1 ELSE 0 END)       AS completadas,
                 COALESCE(
-                    SUM(precio_historico) FILTER (WHERE estado = 'completada' AND gratis IS NOT TRUE),
+                    SUM(CASE WHEN estado = 'completada' AND gratis != 1 THEN precio_historico ELSE 0 END),
                     0
                 )                                                    AS ingresos
             FROM reservas
-            WHERE date_trunc('month', fecha) = date_trunc('month', CURRENT_DATE)
+            WHERE fecha >= :inicio AND fecha < :fin
         ");
-        $stmt->execute();
+        $stmt->execute([':inicio' => $inicioMes, ':fin' => $finMes]);
         $fila = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        // Clientes que se registraron este mes (dato de usuarios, no de reservas)
         $stmtClientes = $conexion->prepare("
             SELECT COUNT(*) AS clientes_nuevos
             FROM   usuarios
             WHERE  rol = 'cliente'
-              AND  date_trunc('month', created_at) = date_trunc('month', CURRENT_DATE)
+              AND  created_at >= :inicio2 AND created_at < :fin2
         ");
-        $stmtClientes->execute();
+        $stmtClientes->execute([':inicio2' => $inicioMes, ':fin2' => $finMes]);
         $filaClientes = $stmtClientes->fetch(PDO::FETCH_ASSOC);
 
         return [
@@ -204,14 +209,14 @@ class Administrador extends Usuario
 
         $stmt = $conexion->prepare("
             SELECT
-                EXTRACT(YEAR FROM fecha)  AS anio,
-                EXTRACT(MONTH FROM fecha) AS mes,
+                YEAR(fecha)  AS anio,
+                MONTH(fecha) AS mes,
                 COUNT(*)                                              AS total_citas,
-                COUNT(*) FILTER (WHERE estado = 'completada')        AS completadas,
-                COALESCE(SUM(precio_historico) FILTER (WHERE estado = 'completada' AND gratis IS NOT TRUE), 0) AS ingresos
+                SUM(CASE WHEN estado = 'completada' THEN 1 ELSE 0 END)        AS completadas,
+                COALESCE(SUM(CASE WHEN estado = 'completada' AND gratis != 1 THEN precio_historico ELSE 0 END), 0) AS ingresos
             FROM reservas
-            WHERE fecha >= date_trunc('month', CURRENT_DATE) - INTERVAL '{$ultimosMeses} months' + INTERVAL '1 month'
-              AND fecha <  date_trunc('month', CURRENT_DATE) + INTERVAL '1 month'
+            WHERE fecha >= DATE_FORMAT(CURRENT_DATE, '%Y-%m-01') - INTERVAL {$ultimosMeses} MONTH
+              AND fecha <  DATE_FORMAT(CURRENT_DATE, '%Y-%m-01') + INTERVAL 1 MONTH
             GROUP BY anio, mes
             ORDER BY anio, mes
         ");
@@ -256,7 +261,7 @@ class Administrador extends Usuario
                 s.id,
                 s.nombre,
                 COUNT(r.id)                                    AS total,
-                COALESCE(SUM(r.precio_historico) FILTER (WHERE r.gratis IS NOT TRUE), 0) AS ingresos
+                COALESCE(SUM(CASE WHEN r.gratis != 1 THEN r.precio_historico ELSE 0 END), 0) AS ingresos
             FROM servicios s
             LEFT JOIN reservas r ON r.id_servicio = s.id AND r.estado = 'completada'
             GROUP BY s.id, s.nombre
@@ -270,20 +275,28 @@ class Administrador extends Usuario
     }
 
     /**
-     * Tasa de no-shows del mes actual (0..100).
+     * Tasa de no-shows del mes indicado (0..100).
+     *
+     * @param  int $anio  Año (4 dígitos). 0 = usar año actual.
+     * @param  int $mes   Mes (1-12). 0 = usar mes actual.
      */
-    public static function obtenerTasaNoShows(): array
+    public static function obtenerTasaNoShows(int $anio = 0, int $mes = 0): array
     {
+        $anio = $anio > 0 ? $anio : (int)date('Y');
+        $mes  = $mes  > 0 ? $mes  : (int)date('m');
+        $inicioMes = sprintf('%04d-%02d-01', $anio, $mes);
+        $finMes    = date('Y-m-d', strtotime('+1 month', strtotime($inicioMes)));
+
         $conexion = BD::obtenerConexion();
 
         $stmt = $conexion->prepare("
             SELECT
                 COUNT(*) AS total,
-                COUNT(*) FILTER (WHERE estado = 'no_presentado') AS no_shows
+                SUM(CASE WHEN estado = 'no_presentado' THEN 1 ELSE 0 END) AS no_shows
             FROM reservas
-            WHERE date_trunc('month', fecha) = date_trunc('month', CURRENT_DATE)
+            WHERE fecha >= :inicio AND fecha < :fin
         ");
-        $stmt->execute();
+        $stmt->execute([':inicio' => $inicioMes, ':fin' => $finMes]);
         $fila = $stmt->fetch(PDO::FETCH_ASSOC);
 
         $total = (int)$fila['total'];
@@ -297,12 +310,20 @@ class Administrador extends Usuario
     }
 
     /**
-     * Clientes nuevos vs recurrentes (mes actual).
+     * Clientes nuevos vs recurrentes del mes indicado.
      * - Nuevos: primera reserva completada este mes
      * - Recurrentes: ya habían completado antes
+     *
+     * @param  int $anio  Año (4 dígitos). 0 = usar año actual.
+     * @param  int $mes   Mes (1-12). 0 = usar mes actual.
      */
-    public static function obtenerClientesNuevosVsRecurrentes(): array
+    public static function obtenerClientesNuevosVsRecurrentes(int $anio = 0, int $mes = 0): array
     {
+        $anio = $anio > 0 ? $anio : (int)date('Y');
+        $mes  = $mes  > 0 ? $mes  : (int)date('m');
+        $inicioMes = sprintf('%04d-%02d-01', $anio, $mes);
+        $finMes    = date('Y-m-d', strtotime('+1 month', strtotime($inicioMes)));
+
         $conexion = BD::obtenerConexion();
 
         $stmt = $conexion->prepare("
@@ -310,7 +331,7 @@ class Administrador extends Usuario
                 SELECT DISTINCT id_cliente
                 FROM reservas
                 WHERE estado = 'completada'
-                  AND date_trunc('month', fecha) = date_trunc('month', CURRENT_DATE)
+                  AND fecha >= :inicio AND fecha < :fin
             ),
             primeras AS (
                 SELECT id_cliente, MIN(fecha) AS primera_fecha
@@ -319,16 +340,12 @@ class Administrador extends Usuario
                 GROUP BY id_cliente
             )
             SELECT
-                COUNT(*) FILTER (
-                    WHERE date_trunc('month', pr.primera_fecha) = date_trunc('month', CURRENT_DATE)
-                ) AS nuevos,
-                COUNT(*) FILTER (
-                    WHERE date_trunc('month', pr.primera_fecha) < date_trunc('month', CURRENT_DATE)
-                ) AS recurrentes
+                SUM(CASE WHEN DATE_FORMAT(pr.primera_fecha, '%Y-%m-01') = :mes THEN 1 ELSE 0 END) AS nuevos,
+                SUM(CASE WHEN DATE_FORMAT(pr.primera_fecha, '%Y-%m-01') < :mes THEN 1 ELSE 0 END) AS recurrentes
             FROM clientes_mes cm
             JOIN primeras pr ON pr.id_cliente = cm.id_cliente
         ");
-        $stmt->execute();
+        $stmt->execute([':inicio' => $inicioMes, ':fin' => $finMes, ':mes' => $inicioMes]);
         $fila = $stmt->fetch(PDO::FETCH_ASSOC);
 
         $nuevos = (int)($fila['nuevos'] ?? 0);
@@ -341,6 +358,138 @@ class Administrador extends Usuario
             'total'       => $total,
             'pct_nuevos'  => $total > 0 ? round($nuevos / $total * 100, 1) : 0,
         ];
+    }
+
+    /**
+     * Lista de clientes no presentados del mes indicado (para dashboard).
+     *
+     * @param  int $anio  Año (4 dígitos). 0 = usar año actual.
+     * @param  int $mes   Mes (1-12). 0 = usar mes actual.
+     * @return array[]  Cada elemento: nombre, email, fecha, hora, servicio
+     */
+    public static function obtenerNoShowsMes(int $anio = 0, int $mes = 0): array
+    {
+        $anio = $anio > 0 ? $anio : (int)date('Y');
+        $mes  = $mes  > 0 ? $mes  : (int)date('m');
+        $inicioMes = sprintf('%04d-%02d-01', $anio, $mes);
+        $finMes    = date('Y-m-d', strtotime('+1 month', strtotime($inicioMes)));
+
+        $conexion = BD::obtenerConexion();
+        $stmt = $conexion->prepare("
+            SELECT u.nombre, u.email, r.fecha, r.hora, s.nombre AS servicio
+            FROM reservas r
+            JOIN usuarios u ON r.id_cliente = u.id
+            JOIN servicios s ON r.id_servicio = s.id
+            WHERE r.estado = 'no_presentado'
+              AND r.fecha >= :inicio AND r.fecha < :fin
+            ORDER BY r.fecha DESC, r.hora DESC
+        ");
+        $stmt->execute([':inicio' => $inicioMes, ':fin' => $finMes]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * Lista de clientes registrados el mes indicado (para dashboard).
+     *
+     * @param  int $anio  Año (4 dígitos). 0 = usar año actual.
+     * @param  int $mes   Mes (1-12). 0 = usar mes actual.
+     * @return array[]  Cada elemento: nombre, email, created_at
+     */
+    public static function obtenerNuevosClientesMes(int $anio = 0, int $mes = 0): array
+    {
+        $anio = $anio > 0 ? $anio : (int)date('Y');
+        $mes  = $mes  > 0 ? $mes  : (int)date('m');
+        $inicioMes = sprintf('%04d-%02d-01', $anio, $mes);
+        $finMes    = date('Y-m-d', strtotime('+1 month', strtotime($inicioMes)));
+
+        $conexion = BD::obtenerConexion();
+        $stmt = $conexion->prepare("
+            SELECT nombre, email, created_at
+            FROM usuarios
+            WHERE rol = 'cliente'
+              AND created_at >= :inicio AND created_at < :fin
+            ORDER BY created_at DESC
+        ");
+        $stmt->execute([':inicio' => $inicioMes, ':fin' => $finMes]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * Lista de clientes que hicieron su PRIMERA reserva completada este mes.
+     *
+     * @param  int $anio  Año (4 dígitos). 0 = usar año actual.
+     * @param  int $mes   Mes (1-12). 0 = usar mes actual.
+     * @return array[]  Cada elemento: nombre, email, primera_fecha
+     */
+    public static function obtenerNuevosPrimeraVezMes(int $anio = 0, int $mes = 0): array
+    {
+        $anio = $anio > 0 ? $anio : (int)date('Y');
+        $mes  = $mes  > 0 ? $mes  : (int)date('m');
+        $inicioMes = sprintf('%04d-%02d-01', $anio, $mes);
+        $finMes    = date('Y-m-d', strtotime('+1 month', strtotime($inicioMes)));
+
+        $conexion = BD::obtenerConexion();
+        $stmt = $conexion->prepare("
+            WITH clientes_mes AS (
+                SELECT DISTINCT id_cliente
+                FROM reservas
+                WHERE estado = 'completada'
+                  AND fecha >= :inicio AND fecha < :fin
+            ),
+            primeras AS (
+                SELECT id_cliente, MIN(fecha) AS primera_fecha
+                FROM reservas
+                WHERE estado = 'completada'
+                GROUP BY id_cliente
+            )
+            SELECT u.nombre, u.email, pr.primera_fecha
+            FROM clientes_mes cm
+            JOIN primeras pr ON pr.id_cliente = cm.id_cliente
+            JOIN usuarios u ON u.id = cm.id_cliente
+            WHERE DATE_FORMAT(pr.primera_fecha, '%Y-%m-01') = :mes_r
+            ORDER BY pr.primera_fecha DESC
+        ");
+        $stmt->execute([':inicio' => $inicioMes, ':fin' => $finMes, ':mes_r' => $inicioMes]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * Lista de clientes recurrentes del mes (ya habían venido antes).
+     *
+     * @param  int $anio  Año (4 dígitos). 0 = usar año actual.
+     * @param  int $mes   Mes (1-12). 0 = usar mes actual.
+     * @return array[]  Cada elemento: nombre, email, primera_fecha
+     */
+    public static function obtenerRecurrentesMes(int $anio = 0, int $mes = 0): array
+    {
+        $anio = $anio > 0 ? $anio : (int)date('Y');
+        $mes  = $mes  > 0 ? $mes  : (int)date('m');
+        $inicioMes = sprintf('%04d-%02d-01', $anio, $mes);
+        $finMes    = date('Y-m-d', strtotime('+1 month', strtotime($inicioMes)));
+
+        $conexion = BD::obtenerConexion();
+        $stmt = $conexion->prepare("
+            WITH clientes_mes AS (
+                SELECT DISTINCT id_cliente
+                FROM reservas
+                WHERE estado = 'completada'
+                  AND fecha >= :inicio AND fecha < :fin
+            ),
+            primeras AS (
+                SELECT id_cliente, MIN(fecha) AS primera_fecha
+                FROM reservas
+                WHERE estado = 'completada'
+                GROUP BY id_cliente
+            )
+            SELECT u.nombre, u.email, pr.primera_fecha
+            FROM clientes_mes cm
+            JOIN primeras pr ON pr.id_cliente = cm.id_cliente
+            JOIN usuarios u ON u.id = cm.id_cliente
+            WHERE DATE_FORMAT(pr.primera_fecha, '%Y-%m-01') < :mes_r
+            ORDER BY pr.primera_fecha DESC
+        ");
+        $stmt->execute([':inicio' => $inicioMes, ':fin' => $finMes, ':mes_r' => $inicioMes]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
 
@@ -360,9 +509,20 @@ class Administrador extends Usuario
      *
      * @return array  Array de arrays asociativos con los datos de cada cliente.
      */
-    public static function obtenerTodosLosClientes(): array
+    public static function obtenerTodosLosClientes(string $filtro = 'todos'): array
     {
         $conexion = BD::obtenerConexion();
+
+        $whereExtra = '';
+        if ($filtro === 'puntos') {
+            $whereExtra = "AND (u.puntos_fidelidad >= 10
+                            OR EXISTS (SELECT 1 FROM reservas r
+                                        WHERE r.id_cliente = u.id
+                                          AND r.gratis = 1
+                                          AND r.estado = 'confirmada'))";
+        } elseif ($filtro === 'nuevos') {
+            $whereExtra = "AND u.created_at >= DATE_FORMAT(CURDATE(), '%Y-%m-01')";
+        }
 
         $stmt = $conexion->prepare("
             SELECT u.id,
@@ -373,11 +533,21 @@ class Administrador extends Usuario
                    u.puntos_fidelidad,
                    u.activo,
                    u.created_at,
-                   COUNT(r.id)                                            AS total_reservas,
-                   COUNT(r.id) FILTER (WHERE r.estado = 'completada')    AS citas_completadas
+                   COUNT(r.id)                                                   AS total_reservas,
+                   SUM(CASE WHEN r.estado = 'completada' THEN 1 ELSE 0 END)     AS citas_completadas,
+                   (SELECT MAX(fecha) FROM reservas
+                     WHERE id_cliente = u.id AND estado = 'completada')          AS ultima_visita,
+                   CASE WHEN u.puntos_fidelidad >= 10
+                        THEN 1 ELSE 0 END                                        AS tiene_puntos,
+                   CASE WHEN EXISTS (SELECT 1 FROM reservas r
+                                       WHERE r.id_cliente = u.id
+                                         AND r.gratis = 1
+                                         AND r.estado = 'confirmada')
+                        THEN 1 ELSE 0 END                                        AS tiene_gratis_pendiente
             FROM   usuarios u
             LEFT JOIN reservas r ON r.id_cliente = u.id
             WHERE  u.rol = 'cliente'
+                   $whereExtra
             GROUP  BY u.id
             ORDER  BY u.created_at DESC
         ");
@@ -411,12 +581,21 @@ class Administrador extends Usuario
                    u.puntos_fidelidad,
                    u.activo,
                    u.created_at,
-                   COUNT(r.id)                                            AS total_reservas,
-                   COUNT(r.id) FILTER (WHERE r.estado = 'completada')    AS citas_completadas
+                   COUNT(r.id)                                                   AS total_reservas,
+                   SUM(CASE WHEN r.estado = 'completada' THEN 1 ELSE 0 END)     AS citas_completadas,
+                   (SELECT MAX(fecha) FROM reservas
+                     WHERE id_cliente = u.id AND estado = 'completada')          AS ultima_visita,
+                   CASE WHEN u.puntos_fidelidad >= 10
+                        THEN 1 ELSE 0 END                                        AS tiene_puntos,
+                   CASE WHEN EXISTS (SELECT 1 FROM reservas r
+                                       WHERE r.id_cliente = u.id
+                                         AND r.gratis = 1
+                                         AND r.estado = 'confirmada')
+                        THEN 1 ELSE 0 END                                        AS tiene_gratis_pendiente
             FROM   usuarios u
             LEFT JOIN reservas r ON r.id_cliente = u.id
             WHERE  u.rol    = 'cliente'
-              AND (u.nombre ILIKE :busqueda OR u.email ILIKE :busqueda)
+              AND (LOWER(u.nombre) LIKE LOWER(:busqueda) OR LOWER(u.email) LIKE LOWER(:busqueda))
             GROUP  BY u.id
             ORDER  BY u.nombre ASC
         ");
@@ -444,7 +623,7 @@ class Administrador extends Usuario
                AND rol = 'cliente'
         ");
         $stmt->execute([
-            ':activo' => $activo ? 'true' : 'false',
+            ':activo' => $activo ? 1 : 0,
             ':id'     => $idCliente,
         ]);
 
@@ -482,10 +661,10 @@ class Administrador extends Usuario
         }
 
         return new Administrador(
-            (int)$fila['id'],
-            $fila['google_id'],
             $fila['nombre'],
             $fila['email'],
+            (int)$fila['id'],
+            $fila['google_id'],
             $fila['password'],
             $fila['avatar'],
             $fila['telefono'],

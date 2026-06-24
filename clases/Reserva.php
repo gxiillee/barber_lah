@@ -22,7 +22,7 @@ class Reserva {
     /**
      * Devuelve los huecos disponibles para hassan
      */
-    public static function obtenerSlotsDisponibles(int $idBarbero, string $fecha, int $duracion, int $intervalo = 30): array {
+    public static function obtenerSlotsDisponibles(int $idBarbero, string $fecha, int $duracion, int $intervalo = 30, ?int $excluirReservaId = null): array {
         //comprobamos cosas imposibles(servicio sin tiempo)
         //argumentos invalidos
         if ($duracion <= 0 || $intervalo <= 0) {
@@ -46,7 +46,7 @@ class Reserva {
         }
 
         // traemos reservas/bloqueos existentes de ese dia
-        $reservas = self::getByBarberoYFecha($idBarbero, $fecha);
+        $reservas = self::getByBarberoYFecha($idBarbero, $fecha, $excluirReservaId);
         $bloqueos = Bloqueo::obtenerPorFecha($idBarbero, $fecha);
         $ahora    = new DateTimeImmutable('now');
         $slots    = [];
@@ -99,14 +99,15 @@ class Reserva {
         int $idBarbero,
         string $fecha,
         string $hora,
-        int $duracion
+        int $duracion,
+        ?int $excluirReservaId = null
     ): bool {
         //substr coge el string $hora y le le dices que quieres 5 caracteres (14:30)
         $horaNormalizada = substr($hora, 0, 5);
         //busca si $horaNormalizada está en listado de slotsDisponibles
         return in_array(
             $horaNormalizada,
-            self::obtenerSlotsDisponibles($idBarbero, $fecha, $duracion),
+            self::obtenerSlotsDisponibles($idBarbero, $fecha, $duracion, 30, $excluirReservaId),
             true
         );
     }
@@ -130,10 +131,16 @@ class Reserva {
 
         try {
             $conexion->beginTransaction();
-            $conexion->exec('LOCK TABLE reservas IN SHARE ROW EXCLUSIVE MODE');
+
+            $lockOk = (int)$conexion->query("SELECT GET_LOCK('reserva_atomica', 10)")->fetchColumn();
+            if ($lockOk !== 1) {
+                $conexion->rollBack();
+                return null;
+            }
 
             if (!self::estaDisponible($idBarbero, $fecha, $hora, $duracion)) {
                 $conexion->rollBack();
+                $conexion->query("SELECT RELEASE_LOCK('reserva_atomica')")->fetch();
                 return null;
             }
 
@@ -144,7 +151,6 @@ class Reserva {
                 VALUES
                     (:cliente, :barbero, :servicio, :fecha, :hora,
                      :precio, :duracion, 'confirmada', :nota, :gratis)
-                RETURNING id
             ");
             $stmt->execute([
                 ':cliente'  => $idCliente,
@@ -158,7 +164,7 @@ class Reserva {
                 ':gratis'   => $gratis ? 1 : 0,
             ]);
 
-            $id = (int)$stmt->fetchColumn();
+            $id = (int)$conexion->lastInsertId();
 
             if ($gratis) {
                 $stmtPuntos = $conexion->prepare(
@@ -168,12 +174,14 @@ class Reserva {
             }
 
             $conexion->commit();
+            $conexion->query("SELECT RELEASE_LOCK('reserva_atomica')")->fetch();
             return $id;
 
         } catch (Throwable $e) {
             if ($conexion->inTransaction()) {
                 $conexion->rollBack();
             }
+            $conexion->query("SELECT RELEASE_LOCK('reserva_atomica')")->fetch();
             throw $e;
         }
     }
@@ -188,7 +196,7 @@ class Reserva {
      * Saca un listado de todas las reservas por barbero y dia concreto
      * private: solo la necesita obtenerSlotsDisponibles() para construir
      */
-    private static function getByBarberoYFecha(int $idBarbero, string $fecha): array {
+    private static function getByBarberoYFecha(int $idBarbero, string $fecha, ?int $excluirReservaId = null): array {
         $conexion = BD::obtenerConexion();
         $stmt = $conexion->prepare("
             SELECT hora, duracion_historica
@@ -196,9 +204,14 @@ class Reserva {
             WHERE  id_barbero = :id
               AND  fecha      = :fecha
               AND  estado NOT IN ('cancelada')
+              AND  (:excluir_id IS NULL OR id != :excluir_id)
             ORDER  BY hora
         ");
-        $stmt->execute([':id' => $idBarbero, ':fecha' => $fecha]);
+        $stmt->execute([
+            ':id'          => $idBarbero,
+            ':fecha'       => $fecha,
+            ':excluir_id'  => $excluirReservaId,
+        ]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
@@ -342,13 +355,15 @@ class Reserva {
      */
     public static function construirDisponibilidad(int $idBarbero, array $serviciosPorId, array $diasSemana): array {
         $disponibilidad = [];
-        foreach ($serviciosPorId as $id => $servicio) {
-            foreach ($diasSemana as $dia) {
-                $disponibilidad[$id][$dia['fecha']] = self::obtenerSlotsDisponibles(
-                    $idBarbero,
-                    $dia['fecha'],
-                    $servicio->getDuracion()
-                );
+        foreach ($diasSemana as $dia) {
+            $fecha = $dia['fecha'];
+            $slotsPorDuracion = [];
+            foreach ($serviciosPorId as $id => $servicio) {
+                $dur = $servicio->getDuracion();
+                if (!isset($slotsPorDuracion[$dur])) {
+                    $slotsPorDuracion[$dur] = self::obtenerSlotsDisponibles($idBarbero, $fecha, $dur);
+                }
+                $disponibilidad[$id][$fecha] = $slotsPorDuracion[$dur];
             }
         }
         return $disponibilidad;
@@ -386,6 +401,7 @@ class Reserva {
         SELECT r.fecha,
                r.hora,
                r.duracion_historica,
+               r.gratis,
                s.nombre AS servicio
         FROM reservas r
         JOIN servicios s ON r.id_servicio = s.id
@@ -403,33 +419,47 @@ class Reserva {
 
     public static function actualizarCitasPasadas(): void {
         $conexion = BD::obtenerConexion();
-        $corte = date('Y-m-d H:i:s', strtotime('-30 minutes'));
+        $corteDT  = new DateTimeImmutable(date('Y-m-d H:i:s', strtotime('-30 minutes')));
+        $fechaCorte = $corteDT->format('Y-m-d');
+        $horaCorte  = $corteDT->format('H:i:s');
 
         try {
             $conexion->beginTransaction();
 
-            $stmt = $conexion->prepare("
-            UPDATE reservas r
-            SET estado = 'completada',
-                gratis = r.gratis OR (SELECT puntos_fidelidad >= 10 FROM usuarios u WHERE u.id = r.id_cliente)
-            FROM servicios s
-            WHERE r.id_servicio = s.id
-              AND r.estado IN ('pendiente', 'confirmada')
-              AND CAST(CONCAT(r.fecha, ' ', r.hora) AS TIMESTAMP) <= :corte
-            RETURNING r.id_cliente, r.gratis, r.fecha, r.hora, s.nombre AS servicio_nombre, r.precio_historico
+            // SELECT first, then UPDATE (MySQL doesn't support RETURNING)
+            $stmtSelect = $conexion->prepare("
+            SELECT r.id_cliente, r.gratis, r.fecha, r.hora, s.nombre AS servicio_nombre, r.precio_historico,
+                   u.nombre AS u_nombre, u.email AS u_email, u.puntos_fidelidad AS u_puntos
+            FROM reservas r
+            JOIN servicios s ON r.id_servicio = s.id
+            JOIN usuarios u ON r.id_cliente = u.id
+            WHERE r.estado IN ('pendiente', 'confirmada')
+              AND (r.fecha < :fecha_corte_s OR (r.fecha = :fecha_corte_s AND r.hora <= :hora_corte_s))
         ");
-            $stmt->execute([':corte' => $corte]);
-
-            $afectadas = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            $stmtSelect->execute([':fecha_corte_s' => $fechaCorte, ':hora_corte_s' => $horaCorte]);
+            $afectadas = $stmtSelect->fetchAll(PDO::FETCH_ASSOC);
 
             if (!empty($afectadas)) {
+                $stmtUpdate = $conexion->prepare("
+                UPDATE reservas r
+                JOIN servicios s ON r.id_servicio = s.id
+                SET r.estado = 'completada',
+                    r.gratis = r.gratis OR (SELECT u.puntos_fidelidad >= 10 FROM usuarios u WHERE u.id = r.id_cliente)
+                WHERE r.estado IN ('pendiente', 'confirmada')
+                  AND (r.fecha < :fecha_corte_u OR (r.fecha = :fecha_corte_u AND r.hora <= :hora_corte_u))
+            ");
+                $stmtUpdate->execute([':fecha_corte_u' => $fechaCorte, ':hora_corte_u' => $horaCorte]);
                 $clientesUnicos = array_unique(array_column($afectadas, 'id_cliente'));
 
-                $stmtRead = $conexion->prepare("SELECT puntos_fidelidad FROM usuarios WHERE id = :id");
+                // Batch fetch puntos for all unique clients
                 $puntosViejos = [];
-                foreach ($clientesUnicos as $id) {
-                    $stmtRead->execute([':id' => $id]);
-                    $puntosViejos[(int)$id] = (int)$stmtRead->fetchColumn();
+                if (!empty($clientesUnicos)) {
+                    $placeholders = implode(',', array_fill(0, count($clientesUnicos), '?'));
+                    $stmtReadBatch = $conexion->prepare("SELECT id, puntos_fidelidad FROM usuarios WHERE id IN ($placeholders)");
+                    $stmtReadBatch->execute(array_values($clientesUnicos));
+                    while ($row = $stmtReadBatch->fetch(PDO::FETCH_ASSOC)) {
+                        $puntosViejos[(int)$row['id']] = (int)$row['puntos_fidelidad'];
+                    }
                 }
 
                 // Group by client to decide points logic per client
@@ -479,14 +509,18 @@ class Reserva {
                     $enviadosClientes[$cid] = true;
 
                     if (!$depsCargadas) {
-                        require_once __DIR__ . '/Cliente.php';
                         require_once __DIR__ . '/NotificadorReserva.php';
                         require_once __DIR__ . '/helpers.php';
                         $depsCargadas = true;
                     }
 
-                    $cli = \Cliente::obtenerPorId($cid);
-                    if (!$cli) continue;
+                    $cli = new \Usuario(
+                        $cid, null,
+                        $r['u_nombre'], $r['u_email'],
+                        null, null, null,
+                        (int)($r['u_puntos'] ?? 0),
+                        'cliente'
+                    );
 
                     $_f = $r['fecha'] ?? '';
                     $viejos = $puntosViejos[$cid] ?? 0;
@@ -579,6 +613,55 @@ class Reserva {
     }
 
     /**
+     * Busca citas confirmadas futuras para un barbero en un día de la semana y rango horario.
+     * @param bool $fueraDeRango true → busca citas FUERA del rango (editar con menos horas)
+     *                           false → busca citas DENTRO del rango (eliminar tramo)
+     */
+    public static function obtenerFuturasPorDiaYHora(
+        int $idBarbero,
+        string $diaSemana,
+        string $horaInicio,
+        string $horaFin,
+        bool $fueraDeRango = false
+    ): array {
+        $conexion = BD::obtenerConexion();
+        $mapa = [
+            'domingo' => 1, 'lunes' => 2, 'martes' => 3,
+            'miercoles' => 4, 'jueves' => 5, 'viernes' => 6, 'sabado' => 7,
+        ];
+        $diaNum = $mapa[$diaSemana] ?? 0;
+        if ($diaNum === 0) return [];
+
+        $operador = $fueraDeRango ? 'NOT' : '';
+        $stmt = $conexion->prepare("
+            SELECT r.id,
+                   r.fecha,
+                   r.hora,
+                   r.duracion_historica,
+                   r.id_cliente,
+                   u.nombre  AS cliente_nombre,
+                   u.email   AS cliente_email,
+                   s.nombre  AS servicio_nombre
+            FROM   reservas r
+            JOIN   usuarios  u ON r.id_cliente  = u.id
+            JOIN   servicios s ON r.id_servicio = s.id
+            WHERE  r.id_barbero  = :barbero
+              AND  r.estado      = 'confirmada'
+              AND  r.fecha      >= CURDATE()
+              AND  DAYOFWEEK(r.fecha) = :dia_num
+              AND  r.hora $operador BETWEEN :hora_ini AND ADDTIME(:hora_fin, '-00:01:00')
+            ORDER  BY r.fecha ASC, r.hora ASC
+        ");
+        $stmt->execute([
+            ':barbero'   => $idBarbero,
+            ':dia_num'   => $diaNum,
+            ':hora_ini'  => $horaInicio,
+            ':hora_fin'  => $horaFin,
+        ]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /**
      * Devuelve los datos completos de una reserva concreta, con JOIN a servicios y usuarios.
      * Se usa en la ficha del cliente del admin al clicar una tarjeta de la agenda.
      *
@@ -597,6 +680,8 @@ class Reserva {
                r.nota,
                r.motivo_cancelacion,
                r.id_cliente,
+               r.id_barbero,
+               r.id_servicio,
                u.nombre  AS cliente_nombre,
                u.email   AS cliente_email,
                s.nombre  AS servicio_nombre
@@ -786,6 +871,103 @@ class Reserva {
         } catch (Exception $e) {
             error_log("Error al cancelar día: " . $e->getMessage());
             return 0;
+        }
+    }
+
+// -----------------------------------------------------------------------
+// Mover una reserva a otra fecha/hora (admin agenda)
+// Solo se puede mover si está en estado 'confirmada' o 'pendiente'
+// Devuelve los datos para notificación, o null si falla (slot ocupado)
+// -----------------------------------------------------------------------
+    public static function mover(int $idReserva, string $nuevaFecha, string $nuevaHora, ?string $motivo = null): ?array
+    {
+        $conexion = BD::obtenerConexion();
+
+        try {
+            $conexion->beginTransaction();
+
+            $lockOk = (int)$conexion->query("SELECT GET_LOCK('reserva_atomica', 10)")->fetchColumn();
+            if ($lockOk !== 1) {
+                $conexion->rollBack();
+                return null;
+            }
+
+            $stmtGet = $conexion->prepare("
+                SELECT r.id, r.fecha, r.hora, r.duracion_historica, r.precio_historico,
+                       r.id_cliente, r.id_barbero, r.id_servicio, r.gratis, r.nota,
+                       s.nombre AS servicio_nombre,
+                       u.nombre AS cliente_nombre, u.email AS cliente_email
+                FROM   reservas r
+                JOIN   servicios s ON r.id_servicio = s.id
+                JOIN   usuarios  u ON r.id_cliente  = u.id
+                WHERE  r.id = :id AND r.estado IN ('confirmada', 'pendiente')
+            ");
+            $stmtGet->execute([':id' => $idReserva]);
+            $reserva = $stmtGet->fetch(PDO::FETCH_ASSOC);
+
+            if (!$reserva) {
+                $conexion->rollBack();
+                $conexion->query("SELECT RELEASE_LOCK('reserva_atomica')")->fetch();
+                return null;
+            }
+
+            if (!self::estaDisponible(
+                (int)$reserva['id_barbero'],
+                $nuevaFecha,
+                $nuevaHora,
+                (int)$reserva['duracion_historica'],
+                $idReserva
+            )) {
+                $conexion->rollBack();
+                $conexion->query("SELECT RELEASE_LOCK('reserva_atomica')")->fetch();
+                return null;
+            }
+
+            $notaAnterior = $reserva['nota'] ?? '';
+            $viejaHora    = substr((string)$reserva['hora'], 0, 5);
+            $nuevaHoraFmt = substr($nuevaHora, 0, 5);
+            $movimiento   = '[Movida: ' . $reserva['fecha'] . ' ' . $viejaHora
+                          . ' → ' . $nuevaFecha . ' ' . $nuevaHoraFmt . ']';
+            if ($motivo !== null && trim($motivo) !== '') {
+                $movimiento .= ' Motivo: ' . trim($motivo);
+            }
+            $nuevaNota = $notaAnterior !== ''
+                ? $notaAnterior . "\n" . $movimiento
+                : $movimiento;
+
+            $stmtUpd = $conexion->prepare("
+                UPDATE reservas
+                SET fecha = :fecha, hora = :hora, nota = :nota
+                WHERE id = :id
+            ");
+            $stmtUpd->execute([
+                ':fecha' => $nuevaFecha,
+                ':hora'  => $nuevaHora,
+                ':nota'  => $nuevaNota,
+                ':id'    => $idReserva,
+            ]);
+
+            $conexion->commit();
+            $conexion->query("SELECT RELEASE_LOCK('reserva_atomica')")->fetch();
+
+            return [
+                'id_cliente'      => (int)$reserva['id_cliente'],
+                'cliente_nombre'  => $reserva['cliente_nombre'],
+                'cliente_email'   => $reserva['cliente_email'],
+                'servicio_nombre' => $reserva['servicio_nombre'],
+                'fecha_vieja'     => $reserva['fecha'],
+                'hora_vieja'      => $viejaHora,
+                'fecha_nueva'     => $nuevaFecha,
+                'hora_nueva'      => $nuevaHoraFmt,
+            ];
+
+        } catch (Throwable $e) {
+            if ($conexion->inTransaction()) {
+                $conexion->rollBack();
+            }
+            $conexion->query("SELECT RELEASE_LOCK('reserva_atomica')")->fetch();
+            error_log("Error al mover reserva: " . $e->getMessage());
+            return null;
         }
     }
 

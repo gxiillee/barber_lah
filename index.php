@@ -2,7 +2,6 @@
 
 require_once __DIR__ . '/vendor/autoload.php';
 require_once __DIR__ . '/clases/helpers.php';
-require_once 'clases/BdMongo.php';
 require_once 'clases/Galeria_corte.php';
 require_once 'clases/Producto.php';
 require_once 'clases/Servicio.php';
@@ -38,7 +37,7 @@ $config = ConfigWeb::obtener();
 
 
     <!-- ===================== PRELOADER ===================== -->
-    <div id="preloader" class="fixed inset-0 z-[9999] flex items-center justify-center bg-[var(--obsidian)] transition-all duration-1000">
+    <div id="preloader" class="fixed inset-0 z-[9999] flex items-center justify-center bg-[var(--obsidian)] transition-all duration-300">
         <div class="text-center">
             <div class="animate-preloader-logo font-playfair mb-2 text-4xl tracking-[0.6rem] text-[var(--gold)] uppercase">LA H</div>
             <div class="font-cormorant mb-10 text-xs uppercase tracking-[0.4rem] text-white/30">Barbershop · Zaragoza</div>
@@ -123,9 +122,9 @@ $config = ConfigWeb::obtener();
             <video id="mainVideo"
                    class="absolute min-w-full min-h-full w-auto h-auto object-cover"
                    style="top: 50%; left: 50%; transform: translate(-50%, -50%); will-change: transform;"
-                   playsinline muted preload="metadata"
+                   playsinline muted preload="auto"
                    poster="public/assets/img/poster_video.jpg">
-                <source src="public/assets/video/video_intro_web.mp4" type="video/mp4">
+                <source src="public/assets/video/video_intro_web_v2.mp4" type="video/mp4">
             </video>
 
             <!-- Degradado viñeta cinematográfico -->
@@ -134,6 +133,21 @@ $config = ConfigWeb::obtener();
             <!-- Overlay de transición (fade a negro al final) -->
             <div id="transitionOverlay"
                  class="absolute inset-0 z-[25] pointer-events-none bg-[var(--obsidian)] opacity-0">
+            </div>
+
+            <!-- Mensaje de bienvenida al final del video -->
+            <div id="endMessage"
+                 class="absolute inset-0 z-[26] flex items-center justify-center pointer-events-none">
+                <div id="endMessageInner"
+                     class="text-center px-8 transition-all duration-700 ease-out"
+                     style="opacity:0; transform:translateY(0.75rem);">
+                    <p class="font-playfair text-[clamp(2rem,6vw,4rem)] text-[var(--gold)] tracking-[0.3rem] uppercase leading-none">
+                        Bienvenido
+                    </p>
+                    <p class="font-cormorant mt-3 text-[clamp(0.5rem,1.2vw,0.7rem)] uppercase tracking-[0.5rem] text-white/30">
+                        Tradición · Estilo
+                    </p>
+                </div>
             </div>
 
 
@@ -333,9 +347,12 @@ $config = ConfigWeb::obtener();
             <!-- Wrapper con fade derecho en móvil -->
             <div class="relative">
 
-                <!-- Gradiente "peek" — solo móvil -->
-                <div class="pointer-events-none absolute right-0 top-0 h-full w-16 z-10
+                <!-- Gradiente "peek" + flecha indicadora — solo móvil -->
+                <div class="pointer-events-none absolute right-0 top-0 h-full w-20 z-10
                         bg-gradient-to-l from-[var(--obsidian)] to-transparent md:hidden"></div>
+                <div class="pointer-events-none absolute right-3 top-1/2 z-10 -translate-y-1/2 md:hidden">
+                    <span class="block text-[var(--gold)]/70 text-lg font-light animate-bounce-x">→</span>
+                </div>
 
                 <!-- Grid / carril -->
                 <div class="flex overflow-x-auto snap-x snap-mandatory gap-px
@@ -465,12 +482,14 @@ $config = ConfigWeb::obtener();
                     <span class="font-montserrat block text-[0.55rem] uppercase tracking-[0.4rem] text-[var(--gold)]/70 mb-2">
                         <?= htmlspecialchars($foto['categoria']) ?>
                     </span>
+                            <?php if (!empty($foto['descripcion'])): ?>
                             <p class="font-cormorant text-lg text-white/80">
                                 <?= htmlspecialchars($foto['descripcion']) ?>
                             </p>
                             <span class="font-montserrat mt-4 block text-[0.5rem] uppercase tracking-[0.3rem] text-white/30 galeria-open-lightbox">
-                        Clic para ampliar
-                    </span>
+                                Clic para ampliar
+                            </span>
+                            <?php endif; ?>
                         </div>
 
                         <!-- Borde dorado sutil -->
@@ -777,7 +796,7 @@ $config = ConfigWeb::obtener();
                         <div>
                             <span class="font-montserrat block text-[0.55rem] uppercase tracking-[0.3rem] text-[var(--gold)]/40 mb-1">Dirección</span>
                             <p class="font-cormorant text-xl text-white/70 leading-snug">
-                                <?= h(!empty($config['direccion']) ? str_replace("\n", '<br>', h($config['direccion'])) : 'C/ Miguel Servet 24<br>50013 · Zaragoza') ?>
+                                <?= !empty($config['direccion']) ? str_replace("\n", '<br>', h($config['direccion'])) : 'C/ Miguel Servet 24<br>50013 · Zaragoza' ?>
                             </p>
                         </div>
                     </div>

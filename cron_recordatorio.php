@@ -40,9 +40,10 @@ $fechaSQL   = date('Y-m-d', strtotime($fechaObj));
 $colCheck   = $esHoy ? 'recordatorio_hoy_enviado' : 'recordatorio_enviado';
 
 $stmt = $conexion->prepare("
-    SELECT r.id, r.hora, r.id_cliente, s.nombre AS servicio_nombre
+    SELECT r.id, r.hora, r.id_cliente, u.nombre, u.email, s.nombre AS servicio_nombre
     FROM reservas r
     JOIN servicios s ON r.id_servicio = s.id
+    JOIN usuarios u ON r.id_cliente = u.id AND u.activo = 1
     WHERE r.fecha = :fecha
       AND r.estado NOT IN ('cancelada', 'no_presentado')
       AND ($colCheck IS NULL OR $colCheck = FALSE)
@@ -60,12 +61,11 @@ $errores  = 0;
 $stmtMark = $conexion->prepare("UPDATE reservas SET $colCheck = TRUE WHERE id = :id");
 
 foreach ($citas as $cita) {
-    $cliente = Cliente::obtenerPorId((int)$cita['id_cliente']);
-    if (!$cliente) {
-        echo "Cliente #{$cita['id_cliente']} no encontrado (reserva #{$cita['id']})." . PHP_EOL;
-        $errores++;
-        continue;
-    }
+    $cliente = new Usuario(
+        (int)$cita['id_cliente'], null,
+        $cita['nombre'], $cita['email'],
+        null, null, null, 0, 'cliente'
+    );
 
     $ok = NotificadorReserva::enviarRecordatorio($cliente, [
         'servicio'          => $cita['servicio_nombre'],

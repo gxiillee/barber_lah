@@ -123,7 +123,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion']) && $_POST['
                 // Destruimos la reserva pendiente y mostramos toast de éxito
                 unset($_SESSION['reserva_pendiente']);
 
-                $_SESSION['toast'] = ['type' => 'success', 'message' => 'Cita confirmada correctamente.'];
+                if ($tieneGratis) {
+                    $_SESSION['toast'] = ['type' => 'success', 'message' => '🎉 ¡Cita gratis confirmada! Canjeaste tu corte de fidelidad.'];
+                } else {
+                    $_SESSION['toast'] = ['type' => 'success', 'message' => 'Cita confirmada correctamente.'];
+                }
                 redirigir('index.php');
             } else {
                 // El cerrojo transaccional detectó un solapamiento en el último milisegundo
@@ -137,7 +141,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion']) && $_POST['
 
         } catch (Exception $e) {
             // Captura y manejo robusto de excepciones críticas de la BD
-            $_SESSION['error_reserva'] = 'Error crítico en el servidor: ' . $e->getMessage();
+            error_log("confirmar_reserva.php error: " . $e->getMessage());
+            $_SESSION['error_reserva'] = 'Error crítico en el servidor. Inténtalo de nuevo.';
             redirigir('reserva.php');
         }
     }
@@ -219,7 +224,7 @@ $csrfToken = Csrf::generarToken('csrf_confirmar_reserva');
             <div class="flex h-full flex-row items-center justify-between gap-4 sm:flex-col sm:items-stretch sm:justify-between sm:gap-8">
                 <div>
                     <p class="text-[9px] font-bold uppercase tracking-[0.22em] text-white/30 sm:text-[10px]">Total</p>
-                    <p class="mt-1 font-[var(--font-playfair)] text-3xl font-bold text-[var(--gold)] sm:mt-2 sm:text-5xl"><?= h($precioFormateado) ?></p>
+                    <p class="mt-1 font-[var(--font-playfair)] text-3xl font-bold <?= $tieneGratis ? 'text-emerald-400' : 'text-[var(--gold)]' ?> sm:mt-2 sm:text-5xl"><?= h($precioFormateado) ?></p>
                     <p class="mt-1 hidden max-w-xs text-sm leading-7 text-white/42 sm:mt-5 sm:block">Si todo esta correcto, confirma y guardamos la reserva en tu cuenta.</p>
                 </div>
 

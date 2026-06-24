@@ -28,22 +28,29 @@ if (!$_SESSION['usuario']->tieneRolAdmin()) {
 }
 
 /* =====================================================================
- * FASE 3 — OBTENER RESERVA POR ID (desde URL)
+ * FASE 3 — OBTENER CLIENTE (desde URL: id_cliente o id_reserva)
  * ===================================================================== */
 $id_reserva = isset($_GET['id_reserva']) ? (int)$_GET['id_reserva'] : 0;
+$id_cliente = isset($_GET['id_cliente']) ? (int)$_GET['id_cliente'] : 0;
 $fecha_volver = isset($_GET['fecha']) ? preg_replace('/[^0-9\-]/', '', $_GET['fecha']) : '';
+$volver_a = 'agenda';
 
-if ($id_reserva === 0) {
+if ($id_cliente > 0) {
+    $volver_a = 'clientes';
+    $reserva_actual = null;
+} elseif ($id_reserva > 0) {
+    $reserva_actual = Reserva::obtenerPorId($id_reserva);
+    if ($reserva_actual === null) {
+        redirigir('index.php');
+    }
+    $id_cliente = (int)$reserva_actual['id_cliente'];
+} else {
     redirigir('index.php');
 }
 
-$reserva_actual = Reserva::obtenerPorId($id_reserva);
-
-if ($reserva_actual === null) {
-    redirigir('index.php');
-}
-
-$id_cliente = (int)$reserva_actual['id_cliente'];
+$params_redirect = $volver_a === 'clientes'
+    ? 'id_cliente=' . $id_cliente
+    : 'id_reserva=' . $id_reserva . ($fecha_volver ? '&fecha=' . $fecha_volver : '');
 
 /* =====================================================================
  * FASE 4 — CARGAR DATOS DEL CLIENTE
@@ -102,7 +109,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion'])) {
                     'fecha'    => $_f !== '' ? fechaHumana($_f) : '',
                 ], $puntosViejos);
                 $_SESSION['toast'] = ['type' => 'success', 'message' => 'Cita marcada como completada.'];
-                redirigir('ficha_cliente.php?id_reserva=' . $id_reserva . ($fecha_volver ? '&fecha=' . $fecha_volver : ''));
+                redirigir('ficha_cliente.php?' . $params_redirect);
             } else {
                 $mensaje_error = 'No se pudo actualizar el estado de la cita.';
             }
@@ -121,7 +128,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion'])) {
                     'hora'     => $reserva_actual['hora'] ?? '',
                 ]);
                 $_SESSION['toast'] = ['type' => 'success', 'message' => 'Reserva marcada como no presentado.'];
-                redirigir('ficha_cliente.php?id_reserva=' . $id_reserva . ($fecha_volver ? '&fecha=' . $fecha_volver : ''));
+                redirigir('ficha_cliente.php?' . $params_redirect);
             } else {
                 $mensaje_error = 'No se pudo actualizar el estado.';
             }
@@ -144,7 +151,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion'])) {
                         'hora'     => $reserva_actual['hora'] ?? '',
                     ], $motivo);
                     $_SESSION['toast'] = ['type' => 'success', 'message' => 'Reserva cancelada con motivo registrado.'];
-                    redirigir('ficha_cliente.php?id_reserva=' . $id_reserva . ($fecha_volver ? '&fecha=' . $fecha_volver : ''));
+                    redirigir('ficha_cliente.php?' . $params_redirect);
                 } else {
                     $mensaje_error = 'No se pudo cancelar la reserva.';
                 }
@@ -156,7 +163,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion'])) {
             if (Usuario::actualizarPuntos($id_cliente, $nuevos_puntos)) {
                 $cliente = Cliente::obtenerPorId($id_cliente);
                 $_SESSION['toast'] = ['type' => 'success', 'message' => "Puntos actualizados a $nuevos_puntos."];
-                redirigir('ficha_cliente.php?id_reserva=' . $id_reserva . ($fecha_volver ? '&fecha=' . $fecha_volver : ''));
+                redirigir('ficha_cliente.php?' . $params_redirect);
             } else {
                 $mensaje_error = 'No se pudieron actualizar los puntos.';
             }
@@ -167,7 +174,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion'])) {
             if (Usuario::actualizarNotaInterna($id_cliente, $nota)) {
                 $cliente = Cliente::obtenerPorId($id_cliente);
                 $_SESSION['toast'] = ['type' => 'success', 'message' => 'Nota interna guardada.'];
-                redirigir('ficha_cliente.php?id_reserva=' . $id_reserva . ($fecha_volver ? '&fecha=' . $fecha_volver : ''));
+                redirigir('ficha_cliente.php?' . $params_redirect);
             } else {
                 $mensaje_error = 'No se pudo guardar la nota.';
             }
@@ -212,16 +219,16 @@ function badgeEstado(string $estado): string {
 </head>
 <body class="pagina-admin bg-[#0d0d0d] text-[#f5f0e8] font-['Montserrat'] min-h-screen">
 
-<?php include_once __DIR__ . '/includes/nav_admin.php'; ?>
+<?php $pagina_activa = 'clientes'; include_once __DIR__ . '/includes/nav_admin.php'; ?>
 
 <main class="panel-main">
     <div class="max-w-[1100px] mx-auto px-4 sm:px-6 pt-[92px] sm:pt-6 pb-16 sm:pb-20 flex flex-col gap-6">
 
         <header class="bg-white/[0.025] border border-white/[0.08] rounded-2xl p-5 sm:p-8 animate-[ficha-entrar_0.45s_cubic-bezier(0.16,1,0.3,1)_both]">
 
-            <a href="index.php<?= $fecha_volver ? '?fecha=' . h($fecha_volver) : '' ?>" class="inline-flex items-center gap-2 px-3.5 py-2 mb-5 rounded-full bg-white/5 border border-white/10 font-['Montserrat'] text-[0.7rem] sm:text-[0.75rem] font-semibold tracking-wider uppercase text-[#aaaaaa] transition-all duration-200 hover:bg-white/10 hover:text-[#d4af37] w-fit">
+            <a href="<?= $volver_a === 'clientes' ? 'clientes.php' : 'index.php' . ($fecha_volver ? '?fecha=' . h($fecha_volver) : '') ?>" class="inline-flex items-center gap-2 px-3.5 py-2 mb-5 rounded-full bg-white/5 border border-white/10 font-['Montserrat'] text-[0.7rem] sm:text-[0.75rem] font-semibold tracking-wider uppercase text-[#aaaaaa] transition-all duration-200 hover:bg-white/10 hover:text-[#d4af37] w-fit">
                 <i class="bi bi-arrow-left"></i>
-                Volver a la agenda
+                Volver a <?= $volver_a === 'clientes' ? 'clientes' : 'la agenda' ?>
             </a>
 
             <div class="grid grid-cols-1 sm:grid-cols-[auto_1fr] md:grid-cols-[auto_1fr_auto] gap-5 sm:gap-7 items-start">
@@ -295,7 +302,12 @@ function badgeEstado(string $estado): string {
                         </div>
                     <?php endif; ?>
 
-                    <?php if ($reserva_actual['estado'] === 'confirmada'): ?>
+                    <?php if ($reserva_actual === null): ?>
+                        <div class="flex flex-col items-center sm:items-start md:items-end gap-1 w-full mt-2 sm:mt-0">
+                            <span class="font-['Montserrat'] text-[0.65rem] font-semibold tracking-[0.2em] uppercase text-[#666666]">Cita pendiente</span>
+                            <span class="font-['Montserrat'] text-[0.8rem] text-[#555] italic">Sin cita pendiente</span>
+                        </div>
+                    <?php elseif ($reserva_actual['estado'] === 'confirmada'): ?>
                         <div class="flex flex-col gap-2 w-full">
                             <div class="text-center md:text-right">
                                 <p class="font-['Montserrat'] text-[0.65rem] font-semibold tracking-[0.2em] uppercase text-[#666666] m-0">Cita de hoy — <?= h($reserva_actual['hora']) ?> <?php if (!empty($reserva_actual['gratis'])): ?><span class="ml-1.5 text-[0.45rem] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/25">GRATIS</span><?php elseif ($cliente->getPuntosFidelidad() >= 10): ?><span class="ml-1.5 text-[0.45rem] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/25">Fidelidad</span><?php endif; ?></p>
@@ -415,7 +427,7 @@ function badgeEstado(string $estado): string {
                 <span class="font-['Playfair_Display'] text-3xl sm:text-[2rem] font-bold leading-none text-[#f5f0e8]" id="puntos-valor"><?= (int)$cliente->getPuntosFidelidad() ?></span>
                 <span class="font-['Montserrat'] text-[0.6rem] sm:text-[0.65rem] font-semibold tracking-[0.18em] uppercase text-[#666666]">Puntos</span>
                 <?php if ((int)$cliente->getPuntosFidelidad() >= 10): ?>
-                    <span class="mt-1 text-[0.5rem] sm:text-[0.55rem] font-bold tracking-wider uppercase text-[var(--gold)] bg-[var(--gold-dim)] border border-[var(--gold)]/30 px-2 py-0.5 rounded-full leading-tight">🎁 Corte gratis</span>
+                    <span class="mt-1 text-[0.5rem] sm:text-[0.55rem] font-bold tracking-wider uppercase text-emerald-400 bg-emerald-500/15 border border-emerald-500/25 px-2 py-0.5 rounded-full leading-tight">🎁 Corte gratis</span>
                 <?php endif; ?>
                 <button onclick="abrirEditarPuntos()"
                         class="absolute top-2 right-2 w-5 h-5 rounded-full bg-white/10 border border-white/10 flex items-center justify-center text-[#888] hover:bg-[#d4af37]/20 hover:text-[#d4af37] hover:border-[#d4af37]/30 transition-all opacity-100 md:opacity-0 md:group-hover:opacity-100 cursor-pointer"

@@ -299,9 +299,9 @@ $tieneGratis = $usuarioConSesion && $_SESSION['usuario']->getPuntosFidelidad() >
                                 <h2 class="text-sm font-bold text-white truncate">Elige el día</h2>
                             </div>
                             <div class="flex items-center gap-1 shrink-0">
-                                <div class="relative">
+                                <div class="relative overflow-hidden w-9 h-9 mr-2 sm:mr-3">
                                     <button id="jumpCalendar" type="button" title="Ir a una fecha"
-                                            class="rounded-lg border border-white/10 p-1.5 text-white/35 transition hover:border-[var(--gold)]/35 hover:text-[var(--gold)] cursor-pointer">
+                                            class="rounded-lg border border-white/10 p-1.5 text-white/35 transition hover:border-[var(--gold)]/35 hover:text-[var(--gold)] cursor-pointer w-full h-full">
                                         <i class="bi bi-calendar3 text-[0.75rem]"></i>
                                     </button>
                                     <input type="date" id="jumpDateInput"
@@ -537,7 +537,7 @@ $tieneGratis = $usuarioConSesion && $_SESSION['usuario']->getPuntosFidelidad() >
                 button.innerHTML = `
                     <span class="block text-[9px] font-bold uppercase tracking-[0.14em] text-white/38">${dia.dia_corto}</span>
                     <span class="mt-0.5 block text-[1.05rem] font-semibold text-white leading-tight">${dia.numero}</span>
-                    <span class="mt-0.5 block text-[8px] text-[var(--gold)]/60 leading-tight" data-day-count>${count === 1 ? "1" : count}</span>
+                    <span class="mt-0.5 block text-[8px] text-[var(--gold)]/60 leading-tight" data-day-count>${count === 1 ? "1 hueco" : `${count} huecos`}</span>
                 `;
                 weekDays.appendChild(button);
             });
@@ -651,7 +651,10 @@ $tieneGratis = $usuarioConSesion && $_SESSION['usuario']->getPuntosFidelidad() >
             const service = serviceData();
             document.getElementById("summaryService").textContent  = service?.nombre ?? "-";
             document.getElementById("summaryDuration").textContent = service ? `${service.duracion} min con Hassan` : "-";
-            document.getElementById("summaryPrice").textContent    = service ? (TIENE_GRATIS ? 'GRATIS' : service.precio_formateado) : "-";
+            const sp                 = document.getElementById("summaryPrice");
+            const isGratis           = TIENE_GRATIS && service;
+            sp.textContent           = service ? (isGratis ? 'GRATIS' : service.precio_formateado) : "-";
+            sp.style.color           = isGratis ? '#34d399' : '';
             document.getElementById("summaryDate").textContent     = reservaDias[state.date]?.dia_largo ?? "-";
             document.getElementById("summaryHour").textContent     = state.hour || "Selecciona una hora";
 
@@ -671,6 +674,7 @@ $tieneGratis = $usuarioConSesion && $_SESSION['usuario']->getPuntosFidelidad() >
             if (service) {
                 rbbService.textContent = service.nombre;
                 rbbPrice.textContent   = TIENE_GRATIS ? 'GRATIS' : service.precio_formateado;
+                rbbPrice.style.color   = TIENE_GRATIS ? '#34d399' : '';
                 const dayLabel = reservaDias[state.date]?.dia_largo ?? "";
                 rbbMeta.textContent = state.hour
                     ? `${dayLabel} · ${state.hour}h`

@@ -3,8 +3,8 @@ declare(strict_types=1);
 date_default_timezone_set('Europe/Madrid');
 
 require_once __DIR__ . '/../clases/Usuario.php';
-require_once __DIR__ . '/../clases/BdMongo.php';
 require_once __DIR__ . '/../clases/ConfigWeb.php';
+require_once __DIR__ . '/../clases/Csrf.php';
 require_once __DIR__ . '/../clases/helpers.php';
 
 iniciarSesionSegura();
@@ -14,6 +14,10 @@ if (!$_SESSION['usuario']->tieneRolAdmin()) redirigir('../cliente/index.php');
 $error = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion']) && $_POST['accion'] === 'guardar') {
+    $csrf_token = $_POST['csrf_token'] ?? '';
+    if (!Csrf::validarToken('csrf_config_web', $csrf_token)) {
+        $error = 'Sesión caducada. Recarga la página.';
+    } else {
     $datos = [
         'direccion'       => trim($_POST['direccion'] ?? ''),
         'telefono'        => trim($_POST['telefono'] ?? ''),
@@ -33,13 +37,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion']) && $_POST['
     ];
 
     if (isset($_FILES['sobre_imagen_file']) && $_FILES['sobre_imagen_file']['error'] === UPLOAD_ERR_OK) {
-        $dir = __DIR__ . '/../public/uploads/sobre';
-        if (!is_dir($dir)) mkdir($dir, 0775, true);
-        $ext = strtolower(pathinfo($_FILES['sobre_imagen_file']['name'], PATHINFO_EXTENSION));
-        $nombre = 'sobre_' . time() . '.' . $ext;
-        $destino = "$dir/$nombre";
-        if (move_uploaded_file($_FILES['sobre_imagen_file']['tmp_name'], $destino)) {
-            $datos['sobre_imagen'] = 'public/uploads/sobre/' . $nombre;
+        $err = validarSubidaImagen($_FILES['sobre_imagen_file']);
+        if (empty($err)) {
+            $dir = __DIR__ . '/../public/uploads/sobre';
+            if (!is_dir($dir)) mkdir($dir, 0775, true);
+            $ext = strtolower(pathinfo($_FILES['sobre_imagen_file']['name'], PATHINFO_EXTENSION));
+            $nombre = 'sobre_' . time() . '.' . $ext;
+            $destino = "$dir/$nombre";
+            if (move_uploaded_file($_FILES['sobre_imagen_file']['tmp_name'], $destino)) {
+                $datos['sobre_imagen'] = 'public/uploads/sobre/' . $nombre;
+            }
+        } else {
+            $error = $err;
         }
     }
 
@@ -47,10 +56,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion']) && $_POST['
         $_SESSION['toast'] = ['type' => 'success', 'message' => 'Configuración guardada.'];
         redirigir('config-web.php');
     } else {
-        $error = 'Error al guardar en MongoDB.';
+        $error = 'Error al guardar la configuración.';
     }
+    } // else (CSRF válido)
 }
 
+$csrfToken = Csrf::generarToken('csrf_config_web');
 $config = ConfigWeb::obtener();
 $pagina_activa = 'config-web';
 ?>
@@ -125,6 +136,7 @@ $pagina_activa = 'config-web';
 
     <form id="configForm" action="" method="POST" enctype="multipart/form-data">
         <input type="hidden" name="accion" value="guardar">
+        <input type="hidden" name="csrf_token" value="<?= h($csrfToken) ?>">
 
         <div class="desktop-split">
 

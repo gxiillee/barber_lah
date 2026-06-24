@@ -38,6 +38,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $error = "Introduce una fecha válida.";
             } elseif (empty($motivo)) {
                 $error = "El motivo es obligatorio para registrar el bloqueo.";
+            } elseif ($tipo === 'horas' && $horaInicio !== null && $horaFin !== null && $horaInicio >= $horaFin) {
+                $error = "La hora de inicio debe ser anterior a la hora de fin.";
             } else {
                 // ── Find overlapping confirmada reservations ──
                 $conexion = BD::obtenerConexion();
@@ -46,9 +48,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if ($horaInicio === null) {
                     // Full day — all confirmada reservations on that date
                     $stmt = $conexion->prepare("
-                        SELECT r.id, r.hora, r.id_cliente, r.id_servicio, r.duracion_historica, s.nombre AS servicio_nombre
+                        SELECT r.id, r.hora, r.id_cliente, r.id_servicio, r.duracion_historica, s.nombre AS servicio_nombre,
+                               u.nombre AS u_nombre, u.email AS u_email
                         FROM reservas r
                         JOIN servicios s ON r.id_servicio = s.id
+                        JOIN usuarios u ON r.id_cliente = u.id AND u.activo = 1
                         WHERE r.id_barbero = :barbero AND r.fecha = :fecha AND r.estado = 'confirmada'
                         ORDER BY r.hora
                     ");
@@ -57,14 +61,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 } else {
                     // Time range — overlapping reservations
                     $stmt = $conexion->prepare("
-                        SELECT r.id, r.hora, r.id_cliente, r.id_servicio, r.duracion_historica, s.nombre AS servicio_nombre
+                        SELECT r.id, r.hora, r.id_cliente, r.id_servicio, r.duracion_historica, s.nombre AS servicio_nombre,
+                               u.nombre AS u_nombre, u.email AS u_email
                         FROM reservas r
                         JOIN servicios s ON r.id_servicio = s.id
+                        JOIN usuarios u ON r.id_cliente = u.id AND u.activo = 1
                         WHERE r.id_barbero = :barbero
                           AND r.fecha = :fecha
                           AND r.estado = 'confirmada'
                           AND r.hora < :hora_fin
-                          AND (CAST(r.hora AS TIME) + (r.duracion_historica || ' minutes')::INTERVAL) > :hora_inicio::TIME
+                          AND r.hora + INTERVAL r.duracion_historica MINUTE > :hora_inicio
                         ORDER BY r.hora
                     ");
                     $stmt->execute([
@@ -83,14 +89,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     foreach ($afectadas as $r) {
                         if (Reserva::cancelar((int)$r['id'], $motivo, $conexion)) {
                             $canceladas++;
-                            $cliente = Cliente::obtenerPorId((int)$r['id_cliente']);
-                            if ($cliente) {
-                                NotificadorReserva::enviarCancelacion($cliente, [
-                                    'servicio' => $r['servicio_nombre'] ?? '',
-                                    'fecha'    => fechaHumana($fecha),
-                                    'hora'     => $r['hora'],
-                                ], $motivo);
-                            }
+                            $cliente = new Usuario(
+                                (int)$r['id_cliente'], null,
+                                $r['u_nombre'], $r['u_email'],
+                                null, null, null, 0, 'cliente'
+                            );
+                            NotificadorReserva::enviarCancelacion($cliente, [
+                                'servicio' => $r['servicio_nombre'] ?? '',
+                                'fecha'    => fechaHumana($fecha),
+                                'hora'     => $r['hora'],
+                            ], $motivo);
                         }
                     }
 

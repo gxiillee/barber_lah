@@ -1,15 +1,15 @@
 <?php
 /**
- * admin/galeria.php — Gestión de galería de cortes (MongoDB)
+ * admin/galeria.php — Gestión de galería de cortes
  *
  * CRUD completo sobre la colección barberlah.galeria.
  * Las fotos activas se muestran en el carrusel de la landing pública.
  */
 declare(strict_types=1);
 require_once __DIR__ . '/../vendor/autoload.php';
-require_once __DIR__ . '/../clases/BdMongo.php';
 require_once __DIR__ . '/../clases/Galeria_corte.php';
 require_once __DIR__ . '/../clases/Usuario.php';
+require_once __DIR__ . '/../clases/Csrf.php';
 require_once __DIR__ . '/../clases/helpers.php';
 
 iniciarSesionSegura();
@@ -26,6 +26,15 @@ if (!is_dir($dir_uploads)) {
 
 // ── POST ──
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $csrf_token = $_POST['csrf_token'] ?? '';
+    if (!Csrf::validarToken('csrf_galeria', $csrf_token)) {
+        if (!empty($_POST['ajax'])) {
+            echo json_encode(['ok' => false, 'error' => 'Sesión caducada']);
+            exit;
+        }
+        $_SESSION['toast'] = ['type' => 'error', 'message' => 'Sesión caducada. Recarga la página.'];
+        redirigir('galeria.php');
+    }
     $accion = $_POST['accion'] ?? '';
 
     if ($accion === 'crear') {
@@ -34,13 +43,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $imagen      = '';
 
         if (isset($_FILES['imagen']) && $_FILES['imagen']['error'] === UPLOAD_ERR_OK) {
-            $ext = strtolower(pathinfo($_FILES['imagen']['name'], PATHINFO_EXTENSION));
-            $nombre_archivo = 'gal_' . time() . '_' . bin2hex(random_bytes(4)) . '.' . $ext;
-            if (move_uploaded_file($_FILES['imagen']['tmp_name'], "$dir_uploads/$nombre_archivo")) {
-                $imagen = 'public/uploads/galeria/' . $nombre_archivo;
-                corregirOrientacionImagen("$dir_uploads/$nombre_archivo");
-            } else {
-                $error = 'Error al subir la imagen.';
+            $error = validarSubidaImagen($_FILES['imagen']);
+            if (empty($error)) {
+                $ext = strtolower(pathinfo($_FILES['imagen']['name'], PATHINFO_EXTENSION));
+                $nombre_archivo = 'gal_' . time() . '_' . bin2hex(random_bytes(4)) . '.' . $ext;
+                if (move_uploaded_file($_FILES['imagen']['tmp_name'], "$dir_uploads/$nombre_archivo")) {
+                    $imagen = 'public/uploads/galeria/' . $nombre_archivo;
+                    corregirOrientacionImagen("$dir_uploads/$nombre_archivo");
+                } else {
+                    $error = 'Error al subir la imagen.';
+                }
             }
         } else {
             $error = 'Selecciona una imagen para la galería.';
@@ -55,7 +67,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $_SESSION['toast'] = ['type' => 'success', 'message' => 'Foto añadida a la galería.'];
                 redirigir('galeria.php');
             } else {
-                $error = 'Error al guardar en MongoDB.';
+                $error = 'Error al guardar en la base de datos.';
             }
         } elseif (empty($error)) {
             $error = 'Selecciona una imagen.';
@@ -73,11 +85,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         ];
 
         if (isset($_FILES['imagen']) && $_FILES['imagen']['error'] === UPLOAD_ERR_OK) {
-            $ext = strtolower(pathinfo($_FILES['imagen']['name'], PATHINFO_EXTENSION));
-            $nombre_archivo = 'gal_' . time() . '_' . bin2hex(random_bytes(4)) . '.' . $ext;
-            if (move_uploaded_file($_FILES['imagen']['tmp_name'], "$dir_uploads/$nombre_archivo")) {
-                $datos['imagen'] = 'public/uploads/galeria/' . $nombre_archivo;
-                corregirOrientacionImagen("$dir_uploads/$nombre_archivo");
+            $err = validarSubidaImagen($_FILES['imagen']);
+            if (empty($err)) {
+                $ext = strtolower(pathinfo($_FILES['imagen']['name'], PATHINFO_EXTENSION));
+                $nombre_archivo = 'gal_' . time() . '_' . bin2hex(random_bytes(4)) . '.' . $ext;
+                if (move_uploaded_file($_FILES['imagen']['tmp_name'], "$dir_uploads/$nombre_archivo")) {
+                    $datos['imagen'] = 'public/uploads/galeria/' . $nombre_archivo;
+                    corregirOrientacionImagen("$dir_uploads/$nombre_archivo");
+                }
+            } else {
+                $error = $err;
             }
         }
 
@@ -133,6 +150,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 // ── AJAX: reordenar ──
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion']) && $_POST['accion'] === 'reordenar') {
+    $csrf_token = $_POST['csrf_token'] ?? '';
+    if (!Csrf::validarToken('csrf_galeria', $csrf_token)) {
+        echo json_encode(['ok' => false, 'error' => 'Sesión caducada']);
+        exit;
+    }
     $ids = $_POST['ids'] ?? '';
     $idsArray = json_decode($ids, true);
     if (is_array($idsArray) && Corte::reordenar($idsArray)) {
@@ -143,6 +165,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion']) && $_POST['
     exit;
 }
 
+$csrfToken = Csrf::generarToken('csrf_galeria');
 $fotos = Corte::obtenerTodos();
 $pagina_activa = 'galeria';
 ?>
@@ -174,7 +197,7 @@ $pagina_activa = 'galeria';
 
     <div class="mb-6">
         <h1 class="text-[1.6rem] font-semibold text-[var(--tx)] leading-tight" style="font-family: var(--pf);">Galería de Cortes</h1>
-        <p class="text-[0.72rem] text-[var(--tx-m)] tracking-[0.04em] mt-1">Gestiona las fotos del carrusel de la landing pública (MongoDB)</p>
+        <p class="text-[0.72rem] text-[var(--tx-m)] tracking-[0.04em] mt-1">Gestiona las fotos del carrusel de la landing pública</p>
     </div>
 
     <?php if ($error): ?>
@@ -197,6 +220,7 @@ $pagina_activa = 'galeria';
             <div class="mobile-collapse">
             <form action="" method="POST" enctype="multipart/form-data" class="space-y-4">
                 <input type="hidden" name="accion" value="crear">
+                <input type="hidden" name="csrf_token" value="<?= h($csrfToken) ?>">
 
                 <div>
                     <label class="block text-[0.68rem] uppercase tracking-wider text-[var(--tx-m)] font-semibold mb-1.5">Imagen *</label>
@@ -258,7 +282,7 @@ $pagina_activa = 'galeria';
                         <?php $activo = (bool)$f['activo'];
                         $orden = (int)($f['orden'] ?? 0); ?>
                         <div class="sortable-item w-[calc(50%-0.375rem)] sm:w-[calc(33.333%-0.5rem)] slot-card rounded-xl overflow-hidden border transition-all duration-150 <?= $activo ? 'border-[var(--brd)] bg-white/5' : 'border-red-900/20 bg-red-900/5 opacity-55' ?>"
-                             data-id="<?= (string)$f['_id'] ?>">
+                             data-id="<?= $f['id'] ?>">
 
                             <!-- Drag handle bar (bigger touch target on mobile) -->
                             <div class="drag-handle flex items-center gap-2 px-3 py-2.5 sm:py-1.5 bg-black/20 border-b border-white/5 cursor-grab active:cursor-grabbing select-none touch-none">
@@ -280,13 +304,14 @@ $pagina_activa = 'galeria';
 
                                 <!-- Hover actions (desktop) -->
                                 <div class="absolute inset-0 bg-black/60 items-center justify-center gap-2 transition-opacity duration-200 hidden sm:hidden lg:flex opacity-0 group-hover:opacity-100">
-                                    <button onclick="abrirEditar('<?= (string)$f['_id'] ?>', '<?= h(addslashes($f['categoria'] ?? '')) ?>', '<?= h(addslashes($f['descripcion'] ?? '')) ?>')"
+                                    <button onclick="abrirEditar('<?= $f['id'] ?>', '<?= h(addslashes($f['categoria'] ?? '')) ?>', '<?= h(addslashes($f['descripcion'] ?? '')) ?>')"
                                             class="w-9 h-9 rounded-lg bg-white/10 border border-white/20 flex items-center justify-center text-white hover:bg-white/20 transition-all cursor-pointer" title="Editar">
                                         <i class="bi bi-pencil-square text-[0.85rem]"></i>
                                     </button>
                                     <form action="" method="POST" class="m-0">
                                         <input type="hidden" name="accion" value="toggle">
-                                        <input type="hidden" name="id" value="<?= (string)$f['_id'] ?>">
+                                        <input type="hidden" name="csrf_token" value="<?= h($csrfToken) ?>">
+                                        <input type="hidden" name="id" value="<?= $f['id'] ?>">
                                         <button type="submit"
                                                 class="w-9 h-9 rounded-lg flex items-center justify-center border transition-all cursor-pointer <?= $activo ? 'bg-rose-500/20 border-rose-500/30 text-rose-400 hover:bg-rose-500/30' : 'bg-emerald-500/20 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/30' ?>"
                                                 title="<?= $activo ? 'Desactivar' : 'Activar' ?>">
@@ -295,7 +320,8 @@ $pagina_activa = 'galeria';
                                     </form>
                                     <form data-ajax-delete class="m-0">
                                         <input type="hidden" name="accion" value="eliminar">
-                                        <input type="hidden" name="id" value="<?= (string)$f['_id'] ?>">
+                                        <input type="hidden" name="csrf_token" value="<?= h($csrfToken) ?>">
+                                        <input type="hidden" name="id" value="<?= $f['id'] ?>">
                                         <input type="hidden" name="ajax" value="1">
                                         <button type="button" class="w-9 h-9 rounded-lg bg-rose-500/20 border border-rose-500/30 text-rose-400 flex items-center justify-center hover:bg-rose-500/30 transition-all cursor-pointer" title="Eliminar">
                                             <i class="bi bi-trash3 text-[0.85rem]"></i>
@@ -306,13 +332,14 @@ $pagina_activa = 'galeria';
 
                             <!-- Mobile actions row -->
                             <div class="flex items-center gap-1 px-2.5 py-2 border-t border-white/5 lg:hidden">
-                                <button onclick="abrirEditar('<?= (string)$f['_id'] ?>', '<?= h(addslashes($f['categoria'] ?? '')) ?>', '<?= h(addslashes($f['descripcion'] ?? '')) ?>')"
+                                <button onclick="abrirEditar('<?= $f['id'] ?>', '<?= h(addslashes($f['categoria'] ?? '')) ?>', '<?= h(addslashes($f['descripcion'] ?? '')) ?>')"
                                         class="flex-1 flex items-center justify-center py-2 rounded-lg bg-white/5 border border-white/10 text-[var(--tx-m)] hover:bg-white/10 hover:text-[var(--tx)] transition-all cursor-pointer" title="Editar">
                                     <i class="bi bi-pencil-square text-[0.8rem]"></i>
                                 </button>
                                 <form action="" method="POST" class="flex-1 m-0">
                                     <input type="hidden" name="accion" value="toggle">
-                                    <input type="hidden" name="id" value="<?= (string)$f['_id'] ?>">
+                                    <input type="hidden" name="csrf_token" value="<?= h($csrfToken) ?>">
+                                    <input type="hidden" name="id" value="<?= $f['id'] ?>">
                                     <button type="submit" title="<?= $activo ? 'Desactivar' : 'Activar' ?>"
                                             class="w-full flex items-center justify-center py-2 rounded-lg border transition-all cursor-pointer <?= $activo ? 'bg-rose-500/10 border-rose-500/20 text-rose-400 hover:bg-rose-500/20' : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/20' ?>">
                                         <i class="bi <?= $activo ? 'bi-eye-slash-fill' : 'bi-eye-fill' ?> text-[0.8rem]"></i>
@@ -320,7 +347,8 @@ $pagina_activa = 'galeria';
                                 </form>
                                 <form data-ajax-delete class="flex-1 m-0">
                                     <input type="hidden" name="accion" value="eliminar">
-                                    <input type="hidden" name="id" value="<?= (string)$f['_id'] ?>">
+                                    <input type="hidden" name="csrf_token" value="<?= h($csrfToken) ?>">
+                                    <input type="hidden" name="id" value="<?= $f['id'] ?>">
                                     <input type="hidden" name="ajax" value="1">
                                     <button type="button" title="Eliminar" class="w-full flex items-center justify-center py-2 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-400 hover:bg-rose-500/20 transition-all cursor-pointer">
                                         <i class="bi bi-trash3 text-[0.8rem]"></i>
@@ -356,6 +384,7 @@ $pagina_activa = 'galeria';
         </div>
         <form action="" method="POST" enctype="multipart/form-data" class="space-y-4">
             <input type="hidden" name="accion" value="editar">
+            <input type="hidden" name="csrf_token" value="<?= h($csrfToken) ?>">
             <input type="hidden" name="id" id="editId">
 
             <div>
@@ -435,7 +464,7 @@ function guardarOrden() {
     fetch('galeria.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: 'accion=reordenar&ids=' + encodeURIComponent(JSON.stringify(ids))
+        body: 'accion=reordenar&csrf_token=' + encodeURIComponent('<?= h($csrfToken) ?>') + '&ids=' + encodeURIComponent(JSON.stringify(ids))
     })
     .then(r => r.json())
     .then(data => {

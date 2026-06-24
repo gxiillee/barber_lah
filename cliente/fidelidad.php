@@ -140,14 +140,14 @@ $tiene_gratis = $puntos >= 10;
             <div class="text-center">
                 <?php if ($tiene_gratis): ?>
                     <div class="badge-gratis inline-flex items-center gap-2 rounded-full px-4 py-1.5"
-                         style="background:var(--gold-dim); border:1px solid var(--gold-brd);">
-                        <i class="bi bi-gift-fill" style="color:var(--gold); font-size:0.85rem;"></i>
-                        <span style="font-size:0.76rem; font-weight:600; color:var(--gold);">
+                         style="background:rgba(52,211,153,0.12); border:1px solid rgba(52,211,153,0.3);">
+                        <i class="bi bi-gift-fill" style="color:#34d399; font-size:0.85rem;"></i>
+                        <span style="font-size:0.76rem; font-weight:600; color:#34d399;">
                             ¡Tienes un corte gratis disponible!
                         </span>
                     </div>
                     <p style="font-size:0.62rem; color:var(--tx-d); margin-top:8px;">
-                        Díselo a Hassan en tu próxima visita
+                        Reserva tu cita y se aplicará automáticamente
                     </p>
                 <?php else: ?>
                     <p style="font-size:0.76rem; color:var(--tx-m);">

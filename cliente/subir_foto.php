@@ -1,6 +1,8 @@
 <?php
 declare(strict_types=1);
 date_default_timezone_set('Europe/Madrid');
+ini_set('memory_limit', '256M');
+set_time_limit(90);
 
 // ── Fase 1: Carga de dependencias ─────────────────────────────────
 require_once __DIR__ . '/../clases/BD.php';
@@ -31,27 +33,49 @@ $subidas = 0;
 $huecos  = FotoCliente::MAX_FOTOS - FotoCliente::contarPorUsuario($id_usuario);
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // Validar CSRF
     if (!Csrf::validarToken('subir_foto', $_POST['csrf_token'] ?? '')) {
+        if (!empty($_POST['ajax'])) {
+            header('Content-Type: application/json');
+            echo json_encode(['ok' => false, 'error' => 'Sesión expirada. Recarga la página.']);
+            exit;
+        }
         redirigir('fotos.php');
     }
 
     if ($huecos <= 0) {
         $errores[] = 'Ya tienes el máximo de ' . FotoCliente::MAX_FOTOS . ' fotos.';
-    } elseif (isset($_FILES['fotos']) && !empty($_FILES['fotos']['name'][0])) {
+    } elseif (isset($_FILES['fotos'])) {
 
-        // Delegamos validación y almacenamiento al modelo (principio de responsabilidad única)
+        // Normalizar a formato array si es subida única (AJAX)
+        if (isset($_FILES['fotos']['name']) && !is_array($_FILES['fotos']['name'])) {
+            $_FILES['fotos'] = [
+                'name'     => [$_FILES['fotos']['name']],
+                'type'     => [$_FILES['fotos']['type']],
+                'tmp_name' => [$_FILES['fotos']['tmp_name']],
+                'error'    => [$_FILES['fotos']['error']],
+                'size'     => [$_FILES['fotos']['size']],
+            ];
+        }
+
         $resultado = FotoCliente::procesarSubidaMultiple($_FILES['fotos'], $id_usuario, $huecos);
-
         $subidas = $resultado['subidas'];
         $errores = $resultado['errores'];
 
-        // Si todo fue bien y no hay errores, volver a la galería
+        // Devolver JSON si es AJAX
+        if (!empty($_POST['ajax'])) {
+            header('Content-Type: application/json');
+            echo json_encode([
+                'ok'      => $subidas > 0 && empty($errores),
+                'subidas' => $subidas,
+                'errores' => $errores,
+            ]);
+            exit;
+        }
+
         if ($subidas > 0 && empty($errores)) {
             redirigir('fotos.php');
         }
 
-        // Actualizamos los huecos por si hemos subido alguna foto
         $huecos -= $subidas;
     }
 }
@@ -136,11 +160,11 @@ $pagina_activa = 'fotos';
                     <div class="flex items-center justify-center w-14 h-14 rounded-full mb-3 bg-white/5">
                         <i class="bi bi-camera" style="font-size:1.8rem; color:var(--tx-d);"></i>
                     </div>
-                    <p style="font-size:0.85rem; color:var(--tx-m); margin-bottom:4px;">Toca aquí para elegir tus fotos</p>
-                    <p style="font-size:0.7rem; color:var(--tx-d);">JPG, PNG o WEBP · Máx. 10 MB · Hasta <?= $huecos ?> foto(s)</p>
+                    <p style="font-size:0.85rem; color:var(--tx-m); margin-bottom:4px; text-align:center;">Toca aquí para elegir tus fotos</p>
+                    <p style="font-size:0.7rem; color:var(--tx-d); text-align:center;">Cualquier formato · Se comprime automáticamente · Hasta <?= $huecos ?> foto(s)</p>
 
                     <!-- Input oculto dentro del label -->
-                    <input type="file" id="input-fotos" name="fotos[]" accept="image/jpeg,image/png,image/webp" multiple class="hidden">
+                    <input type="file" id="input-fotos" name="fotos[]" accept="image/*" multiple class="hidden">
                 </label>
 
                 <!-- Feedback visual de selección -->
@@ -160,89 +184,129 @@ $pagina_activa = 'fotos';
 </main>
 
 <script>
-    /**
-     * [TFG] Patrón declarativo: los elementos ya existen en el HTML.
-     * El JS solo añade comportamiento (event listeners), no crea DOM.
-     * Esto simplifica el mantenimiento y mejora la legibilidad.
-     */
     const inputFotos  = document.getElementById('input-fotos');
     const resumen     = document.getElementById('resumen');
     const btnSubir    = document.getElementById('btn-subir');
     const btnTexto    = document.getElementById('btn-texto');
     const formulario  = document.getElementById('form-subida');
     const previewThumbs = document.getElementById('preview-thumbs');
-
-    // [TFG] Variable inyectada desde PHP — puente servidor → cliente
+    const csrfToken   = document.querySelector('[name="csrf_token"]').value;
     const huecosDisponibles = <?= $huecos ?>;
 
+    function comprimirAWebP(file) {
+        return new Promise((resolve, reject) => {
+            const img = new Image();
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                let w = img.naturalWidth, h = img.naturalHeight;
+                if (w > 1080) { h = Math.round(h * 1080 / w); w = 1080; }
+                if (h > 1080) { w = Math.round(w * 1080 / h); h = 1080; }
+                canvas.width = w; canvas.height = h;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, w, h);
+                canvas.toBlob(blob => {
+                    if (blob && blob.type === 'image/webp') {
+                        resolve(blob);
+                    } else {
+                        canvas.toBlob(jpegBlob => resolve(jpegBlob), 'image/jpeg', 0.85);
+                    }
+                }, 'image/webp', 0.8);
+            };
+            img.onerror = reject;
+            img.src = URL.createObjectURL(file);
+        });
+    }
+
     if (inputFotos) {
+        let archivosProcesados = [];
+
         inputFotos.addEventListener('change', function(e) {
             const files = Array.from(e.target.files);
-            const numArchivos = files.length;
-
-            // Limpiar previews anteriores
             previewThumbs.innerHTML = '';
+            archivosProcesados = [];
 
-            if (numArchivos > 0) {
-                let mensaje = '';
-
-                // [TFG] Feedback inmediato al usuario si selecciona más archivos de los permitidos
-                if (numArchivos > huecosDisponibles) {
-                    mensaje = 'Has seleccionado ' + numArchivos + ' archivos, pero solo se guardarán los primeros ' + huecosDisponibles + '.';
-                    resumen.style.color = '#fca5a5'; // Color rojo de advertencia
-                } else {
-                    mensaje = 'Has seleccionado ' + numArchivos + ' foto(s) listo(s) para subir.';
-                    resumen.style.color = 'var(--gold-l)'; // Color normal
-                }
-
-                resumen.textContent = mensaje;
-                resumen.classList.remove('hidden');
-
-                // [TFG] Generar miniaturas con FileReader
-                const aMostrar = Math.min(numArchivos, huecosDisponibles);
-                for (let i = 0; i < aMostrar; i++) {
-                    const reader = new FileReader();
-                    const thumb = document.createElement('div');
-                    thumb.className = 'relative rounded-lg overflow-hidden border';
-                    thumb.style.cssText = 'width:64px;height:64px;border-color:var(--brd);background:var(--bg3);';
-                    thumb.innerHTML = '<img class="w-full h-full object-cover">';
-                    previewThumbs.appendChild(thumb);
-                    reader.onload = (function(img) {
-                        return function(e) { img.src = e.target.result; };
-                    })(thumb.querySelector('img'));
-                    reader.readAsDataURL(files[i]);
-                }
-
-                if (numArchivos > huecosDisponibles) {
-                    const extra = document.createElement('div');
-                    extra.className = 'flex items-center justify-center rounded-lg border';
-                    extra.style.cssText = 'width:64px;height:64px;border-color:var(--brd);background:var(--bg3);font-size:0.65rem;color:var(--tx-d);';
-                    extra.textContent = '+' + (numArchivos - huecosDisponibles);
-                    previewThumbs.appendChild(extra);
-                }
-
-                btnSubir.disabled = false;
-                btnSubir.style.opacity = '1';
-                btnSubir.style.cursor = 'pointer';
-
-                // [TFG] UX: el texto del botón refleja la cantidad real que se procesará
-                const aSubir = (numArchivos > huecosDisponibles) ? huecosDisponibles : numArchivos;
-                btnTexto.textContent = 'Subir ' + aSubir + ' foto' + (aSubir > 1 ? 's' : '');
-            } else {
+            if (files.length === 0) {
                 resumen.classList.add('hidden');
-                previewThumbs.innerHTML = '';
                 btnSubir.disabled = true;
                 btnSubir.style.opacity = '0.4';
                 btnSubir.style.cursor = 'not-allowed';
                 btnTexto.textContent = 'Subir fotos';
+                return;
+            }
+
+            resumen.textContent = 'Comprimiendo ' + Math.min(files.length, huecosDisponibles) + ' foto(s)...';
+            resumen.classList.remove('hidden');
+            resumen.style.color = 'var(--gold-l)';
+            btnSubir.disabled = true;
+            btnSubir.style.opacity = '0.4';
+            btnTexto.textContent = 'Preparando...';
+
+            const aProcesar = Math.min(files.length, huecosDisponibles);
+            let completados = 0;
+
+            for (let i = 0; i < aProcesar; i++) {
+                comprimirAWebP(files[i]).then(blob => {
+                    archivosProcesados.push(blob);
+                    const url = URL.createObjectURL(blob);
+                    const thumb = document.createElement('div');
+                    thumb.className = 'relative rounded-lg overflow-hidden border';
+                    thumb.style.cssText = 'width:64px;height:64px;border-color:var(--brd);background:var(--bg3);';
+                    thumb.innerHTML = '<img class="w-full h-full object-cover" src="' + url + '">';
+                    previewThumbs.appendChild(thumb);
+                    completados++;
+                    if (completados === aProcesar) {
+                        const totalKB = archivosProcesados.reduce((s, b) => s + b.size, 0);
+                        resumen.textContent = aProcesar + ' foto(s) listas (~' + Math.round(totalKB / 1024) + ' KB)';
+                        btnSubir.disabled = false;
+                        btnSubir.style.opacity = '1';
+                        btnSubir.style.cursor = 'pointer';
+                        btnTexto.textContent = 'Subir ' + aProcesar + ' foto' + (aProcesar > 1 ? 's' : '');
+                    }
+                }).catch(() => {
+                    completados++;
+                    if (completados === aProcesar && archivosProcesados.length === 0) {
+                        resumen.textContent = 'Error al comprimir las imágenes.';
+                        resumen.style.color = '#fca5a5';
+                    }
+                });
+            }
+
+            if (files.length > huecosDisponibles) {
+                const extra = document.createElement('div');
+                extra.className = 'flex items-center justify-center rounded-lg border';
+                extra.style.cssText = 'width:64px;height:64px;border-color:var(--brd);background:var(--bg3);font-size:0.65rem;color:var(--tx-d);';
+                extra.textContent = '+' + (files.length - huecosDisponibles);
+                previewThumbs.appendChild(extra);
             }
         });
 
-        // [TFG] Feedback visual de envío: desactivar botón y mostrar spinner
-        formulario.addEventListener('submit', function() {
+        formulario.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            if (archivosProcesados.length === 0) return;
+
             btnSubir.disabled = true;
             btnSubir.style.opacity = '0.7';
-            btnSubir.innerHTML = '<i class="bi bi-arrow-repeat animate-spin"></i> Subiendo... por favor espera';
+            btnSubir.innerHTML = '<i class="bi bi-arrow-repeat animate-spin"></i> Subiendo...';
+            resumen.textContent = 'Subiendo 0/' + archivosProcesados.length;
+
+            for (let i = 0; i < archivosProcesados.length; i++) {
+                resumen.textContent = 'Subiendo ' + (i + 1) + '/' + archivosProcesados.length + '...';
+                const fd = new FormData();
+                fd.append('fotos', archivosProcesados[i], 'foto_' + Date.now() + '_' + i + '.webp');
+                fd.append('csrf_token', csrfToken);
+                fd.append('ajax', '1');
+                const resp = await fetch('subir_foto.php', { method: 'POST', body: fd });
+                const data = await resp.json();
+                if (!data.ok) {
+                    alert('Error en foto ' + (i + 1) + ': ' + (data.errores?.[0] || data.error || 'Error desconocido'));
+                    btnSubir.innerHTML = '<i class="bi bi-cloud-upload"></i> Reintentar';
+                    btnSubir.disabled = false;
+                    btnSubir.style.opacity = '1';
+                    return;
+                }
+            }
+
+            window.location.href = 'fotos.php';
         });
     }
 </script>

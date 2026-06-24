@@ -115,84 +115,17 @@ class FotoCliente
 
         $stmt = $conexion->prepare(
             "INSERT INTO fotos_cliente (id_usuario, ruta, fecha_subida)
-             VALUES (:id_usuario, :ruta, CURRENT_DATE)
-             RETURNING id"
+             VALUES (:id_usuario, :ruta, CURRENT_DATE)"
         );
         $stmt->execute([
             'id_usuario' => $id_usuario,
             'ruta'       => $ruta,
         ]);
 
-        $id_nuevo = $stmt->fetchColumn();
-
-        return ($id_nuevo !== false) ? (int) $id_nuevo : 0;
+        return (int)$conexion->lastInsertId();
     }
 
-    /**
-     * Comprime y guarda una imagen en formato JPEG optimizado.
-     * Redimensiona automáticamente si el ancho supera 1200px.
-     *
-     * @param string $archivo_tmp Ruta temporal del archivo subido
-     * @param string $destino Ruta final donde se guardará
-     * @return bool True si tuvo éxito, false si hubo error
-     */
-    public static function comprimirYGuardar(string $archivo_tmp, string $destino): bool {
-        $info = getimagesize($archivo_tmp);
-        if (!$info) {
-            return false;
-        }
 
-        $ancho = $info[0];
-        $alto = $info[1];
-        $tipo = $info['mime'];
-
-        // Crear recurso de imagen según el tipo
-        $img = match ($tipo) {
-            'image/jpeg' => imagecreatefromjpeg($archivo_tmp),
-            'image/png' => imagecreatefrompng($archivo_tmp),
-            'image/webp' => imagecreatefromwebp($archivo_tmp),
-            default => false,
-        };
-
-        if (!$img) {
-            return false;
-        }
-
-        // Corregir orientación EXIF (fotos de móvil giradas)
-        if ($tipo === 'image/jpeg' && function_exists('exif_read_data')) {
-            $exif = @exif_read_data($archivo_tmp);
-            if (!empty($exif['Orientation'])) {
-                match ((int)$exif['Orientation']) {
-                    3 => $img = imagerotate($img, 180, 0),
-                    6 => $img = imagerotate($img, -90, 0),
-                    8 => $img = imagerotate($img, 90, 0),
-                    default => null,
-                };
-            }
-        }
-
-        // Redimensionar si el ancho supera 1200px
-        if ($ancho > 1200) {
-            $ancho_max = 1200;
-            $nuevo_alto = (int)($alto * ($ancho_max / $ancho));
-            $lienzo = imagecreatetruecolor($ancho_max, $nuevo_alto);
-
-            if ($tipo === 'image/png' || $tipo === 'image/webp') {
-                imagealphablending($lienzo, false);
-                imagesavealpha($lienzo, true);
-            }
-
-            imagecopyresampled($lienzo, $img, 0, 0, 0, 0, $ancho_max, $nuevo_alto, $ancho, $alto);
-            imagedestroy($img);
-            $img = $lienzo;
-        }
-
-        // Guardar como JPEG con calidad 85%
-        $resultado = imagejpeg($img, $destino, 85);
-        imagedestroy($img);
-
-        return $resultado;
-    }
 
     /**
      * Procesa la subida de múltiples fotos, validándolas y guardándolas.
@@ -214,52 +147,53 @@ class FotoCliente
 
         $total = count($archivos['name']);
 
-        for ($i = 0; $i < $total; $i++) {
-            // Si ya se alcanzó el límite, parar
-            if ($resultado['subidas'] >= $huecos_disponibles) {
-                $resultado['errores'][] = 'Límite alcanzado. Solo se subieron ' . $resultado['subidas'] . ' foto(s).';
-                break;
+        try {
+            for ($i = 0; $i < $total; $i++) {
+                if ($resultado['subidas'] >= $huecos_disponibles) {
+                    $resultado['errores'][] = 'Límite alcanzado.';
+                    break;
+                }
+
+                if ($archivos['error'][$i] !== UPLOAD_ERR_OK) continue;
+
+                $tmp = $archivos['tmp_name'][$i];
+                $mime = mime_content_type($tmp);
+
+                if (!in_array($mime, $tipos_permitidos, true)) {
+                    $resultado['errores'][] = 'Formato no válido (JPG, PNG, WebP).';
+                    continue;
+                }
+
+                if ($archivos['size'][$i] > 2 * 1024 * 1024) {
+                    $resultado['errores'][] = 'Supera los 2 MB.';
+                    continue;
+                }
+
+                $extension = match ($mime) {
+                    'image/webp' => 'webp',
+                    'image/png'  => 'png',
+                    default      => 'jpg',
+                };
+                $nombre = 'foto_' . $id_usuario . '_' . uniqid() . '.' . $extension;
+                $destino = $carpeta . $nombre;
+                $ruta_bd = 'public/uploads/fotos_clientes/' . $nombre;
+
+                if (!move_uploaded_file($tmp, $destino)) {
+                    $resultado['errores'][] = 'Error al guardar la imagen.';
+                    continue;
+                }
+
+                if (self::crear($id_usuario, $ruta_bd) === 0) {
+                    @unlink($destino);
+                    $resultado['errores'][] = 'Error al guardar en la BD.';
+                    continue;
+                }
+
+                $resultado['subidas']++;
             }
-
-            // Ignorar si hubo error en la carga
-            if ($archivos['error'][$i] !== UPLOAD_ERR_OK) {
-                continue;
-            }
-
-            $tmp = $archivos['tmp_name'][$i];
-            $nombre_original = h($archivos['name'][$i]);
-
-            // Validar tipo MIME
-            if (!in_array(mime_content_type($tmp), $tipos_permitidos, true)) {
-                $resultado['errores'][] = "\"$nombre_original\": tipo no permitido (JPG, PNG, WEBP).";
-                continue;
-            }
-
-            // Validar tamaño máximo (10 MB)
-            if ($archivos['size'][$i] > 10 * 1024 * 1024) {
-                $resultado['errores'][] = "\"$nombre_original\": supera los 10 MB.";
-                continue;
-            }
-
-            // Generar nombre único y rutas
-            $nombre = 'foto_' . $id_usuario . '_' . time() . '_' . $i . '.jpg';
-            $destino = $carpeta . $nombre;
-            $ruta_bd = 'public/uploads/fotos_clientes/' . $nombre;
-
-            // Comprimir y guardar
-            if (!self::comprimirYGuardar($tmp, $destino)) {
-                $resultado['errores'][] = "\"$nombre_original\": error al procesar la imagen.";
-                continue;
-            }
-
-            // Insertar en Base de Datos
-            if (self::crear($id_usuario, $ruta_bd) === 0) {
-                @unlink($destino);
-                $resultado['errores'][] = "\"$nombre_original\": error al guardar en la BD.";
-                continue;
-            }
-
-            $resultado['subidas']++;
+        } catch (\Throwable $e) {
+            error_log('FotoCliente::procesarSubidaMultiple: ' . $e->getMessage());
+            $resultado['errores'][] = 'Error interno al procesar las imágenes.';
         }
 
         return $resultado;

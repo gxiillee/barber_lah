@@ -1,148 +1,104 @@
 <?php
-/**
- * Producto — CRUD sobre MongoDB (colección: barberlah.productos)
- *
- * Cada documento en MongoDB tiene la estructura:
- *   {
- *     "_id": ObjectId,
- *     "nombre": "Pomada modeladora",
- *     "descripcion": "Fijación fuerte...",
- *     "precio": 12.50,
- *     "imagen": "public/uploads/productos/pomada.jpg",
- *     "activo": true,
- *     "orden": 0
- *   }
- *
- * Afecta a:
- *   - Landing pública (index.php raíz): muestra solo activos
- *   - Admin productos.php: CRUD completo
- */
+
+require_once __DIR__ . '/BD.php';
+
 class Producto {
 
-    /**
-     * Devuelve todos los productos activos para la landing pública.
-     */
     public static function obtenerActivos(): array {
         try {
-            $db = ConexionMongo::conectar();
-            return $db->productos->find(
-                ['activo' => true],
-                ['sort' => ['orden' => 1]]
-            )->toArray();
-        } catch (Exception $e) {
+            $conexion = BD::obtenerConexion();
+            $stmt = $conexion->query("SELECT * FROM productos WHERE activo = 1 ORDER BY orden ASC");
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (\Throwable $e) {
             return [];
         }
     }
 
-    /**
-     * Devuelve todos los productos (activos e inactivos) para el admin.
-     */
     public static function obtenerTodos(): array {
         try {
-            $db = ConexionMongo::conectar();
-            return $db->productos->find(
-                [],
-                ['sort' => ['orden' => 1, '_id' => -1]]
-            )->toArray();
-        } catch (Exception $e) {
+            $conexion = BD::obtenerConexion();
+            $stmt = $conexion->query("SELECT * FROM productos ORDER BY orden ASC, id DESC");
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (\Throwable $e) {
             return [];
         }
     }
 
-    /**
-     * Devuelve un producto por su ID (string ObjectId de MongoDB).
-     */
-    public static function obtenerPorId(string $id): ?array {
+    public static function obtenerPorId(int|string $id): ?array {
         try {
-            $db = ConexionMongo::conectar();
-            $doc = $db->productos->findOne(['_id' => new MongoDB\BSON\ObjectId($id)]);
-            return $doc !== null ? (array)$doc : null;
-        } catch (Exception $e) {
+            $conexion = BD::obtenerConexion();
+            $stmt = $conexion->prepare("SELECT * FROM productos WHERE id = :id");
+            $stmt->execute([':id' => (int)$id]);
+            $doc = $stmt->fetch(PDO::FETCH_ASSOC);
+            return $doc ?: null;
+        } catch (\Throwable $e) {
             return null;
         }
     }
 
-    /**
-     * Crea un nuevo producto.
-     *
-     * @param array $datos Campos: nombre, descripcion, precio, imagen (ruta), orden
-     */
     public static function crear(array $datos): bool {
         try {
-            $db = ConexionMongo::conectar();
-            $doc = [
-                'nombre'      => $datos['nombre'] ?? '',
-                'descripcion' => $datos['descripcion'] ?? '',
-                'precio'      => (float)($datos['precio'] ?? 0),
-                'imagen'      => $datos['imagen'] ?? '',
-                'activo'      => true,
-                'orden'       => (int)($datos['orden'] ?? 0),
-            ];
-            $result = $db->productos->insertOne($doc);
-            return $result->getInsertedCount() > 0;
-        } catch (Exception $e) {
+            $conexion = BD::obtenerConexion();
+            $stmt = $conexion->prepare("
+                INSERT INTO productos (nombre, descripcion, precio, imagen, activo, orden)
+                VALUES (:nombre, :descripcion, :precio, :imagen, 1, :orden)
+            ");
+            return $stmt->execute([
+                ':nombre'      => $datos['nombre'] ?? '',
+                ':descripcion' => $datos['descripcion'] ?? '',
+                ':precio'      => (float)($datos['precio'] ?? 0),
+                ':imagen'      => $datos['imagen'] ?? '',
+                ':orden'       => (int)($datos['orden'] ?? 0),
+            ]);
+        } catch (\Throwable $e) {
             return false;
         }
     }
 
-    /**
-     * Actualiza un producto existente.
-     *
-     * @param string $id    ObjectId del documento
-     * @param array  $datos Campos a actualizar
-     */
-    public static function actualizar(string $id, array $datos): bool {
+    public static function actualizar(int|string $id, array $datos): bool {
         try {
-            $db = ConexionMongo::conectar();
+            $conexion = BD::obtenerConexion();
             $set = [];
-            if (isset($datos['nombre']))      $set['nombre'] = $datos['nombre'];
-            if (isset($datos['descripcion'])) $set['descripcion'] = $datos['descripcion'];
-            if (isset($datos['precio']))      $set['precio'] = (float)$datos['precio'];
-            if (isset($datos['imagen']))      $set['imagen'] = $datos['imagen'];
-            if (isset($datos['orden']))       $set['orden'] = (int)$datos['orden'];
+            $params = [':id' => (int)$id];
+            if (isset($datos['nombre']))      { $set[] = 'nombre = :nombre';         $params[':nombre'] = $datos['nombre']; }
+            if (isset($datos['descripcion'])) { $set[] = 'descripcion = :descripcion'; $params[':descripcion'] = $datos['descripcion']; }
+            if (isset($datos['precio']))      { $set[] = 'precio = :precio';          $params[':precio'] = (float)$datos['precio']; }
+            if (isset($datos['imagen']))      { $set[] = 'imagen = :imagen';          $params[':imagen'] = $datos['imagen']; }
+            if (isset($datos['orden']))       { $set[] = 'orden = :orden';            $params[':orden'] = (int)$datos['orden']; }
 
             if (empty($set)) return false;
 
-            $result = $db->productos->updateOne(
-                ['_id' => new MongoDB\BSON\ObjectId($id)],
-                ['$set' => $set]
-            );
-            return $result->getModifiedCount() > 0;
-        } catch (Exception $e) {
+            $sql = "UPDATE productos SET " . implode(', ', $set) . " WHERE id = :id";
+            $stmt = $conexion->prepare($sql);
+            return $stmt->execute($params);
+        } catch (\Throwable $e) {
             return false;
         }
     }
 
-    /**
-     * Alterna el estado activo/inactivo de un producto.
-     * Devuelve el nuevo estado o null si falla.
-     */
-    public static function toggleActivo(string $id): ?bool {
+    public static function toggleActivo(int|string $id): ?bool {
         try {
-            $db = ConexionMongo::conectar();
-            $doc = $db->productos->findOne(['_id' => new MongoDB\BSON\ObjectId($id)]);
+            $conexion = BD::obtenerConexion();
+            $stmt = $conexion->prepare("SELECT activo FROM productos WHERE id = :id");
+            $stmt->execute([':id' => (int)$id]);
+            $doc = $stmt->fetch(PDO::FETCH_ASSOC);
             if (!$doc) return null;
 
             $nuevo = !((bool)$doc['activo']);
-            $db->productos->updateOne(
-                ['_id' => new MongoDB\BSON\ObjectId($id)],
-                ['$set' => ['activo' => $nuevo]]
-            );
+            $upd = $conexion->prepare("UPDATE productos SET activo = :activo WHERE id = :id");
+            $upd->execute([':activo' => $nuevo ? 1 : 0, ':id' => (int)$id]);
             return $nuevo;
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             return null;
         }
     }
 
-    /**
-     * Elimina un producto definitivamente de MongoDB.
-     */
-    public static function eliminar(string $id): bool {
+    public static function eliminar(int|string $id): bool {
         try {
-            $db = ConexionMongo::conectar();
-            $result = $db->productos->deleteOne(['_id' => new MongoDB\BSON\ObjectId($id)]);
-            return $result->getDeletedCount() > 0;
-        } catch (Exception $e) {
+            $conexion = BD::obtenerConexion();
+            $stmt = $conexion->prepare("DELETE FROM productos WHERE id = :id");
+            return $stmt->execute([':id' => (int)$id]);
+        } catch (\Throwable $e) {
             return false;
         }
     }

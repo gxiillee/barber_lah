@@ -6,3 +6,9 @@ package.json
 /vendor/
 composer.lock
 .env
+logs/
+backups/
+*.sql
+*.sql.gz
+public/uploads/
+public/assets/video/

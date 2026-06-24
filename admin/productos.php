@@ -1,15 +1,15 @@
 <?php
 /**
- * admin/productos.php — Gestión de productos (MongoDB)
+ * admin/productos.php — Gestión de productos
  *
  * CRUD completo sobre la colección barberlah.productos.
  * Los productos activos se muestran en la landing pública (index.php raíz).
  */
 declare(strict_types=1);
 require_once __DIR__ . '/../vendor/autoload.php';
-require_once __DIR__ . '/../clases/BdMongo.php';
 require_once __DIR__ . '/../clases/Producto.php';
 require_once __DIR__ . '/../clases/Usuario.php';
+require_once __DIR__ . '/../clases/Csrf.php';
 require_once __DIR__ . '/../clases/helpers.php';
 
 iniciarSesionSegura();
@@ -27,6 +27,11 @@ if (!is_dir($dir_uploads)) {
 
 // ── POST ──
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $csrf_token = $_POST['csrf_token'] ?? '';
+    if (!Csrf::validarToken('csrf_productos', $csrf_token)) {
+        $_SESSION['toast'] = ['type' => 'error', 'message' => 'Sesión caducada. Recarga la página.'];
+        redirigir('productos.php');
+    }
     $accion = $_POST['accion'] ?? '';
 
     if ($accion === 'crear') {
@@ -35,14 +40,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $precio      = (float)($_POST['precio'] ?? 0);
         $imagen      = '';
 
-        // Subir imagen si viene
         if (isset($_FILES['imagen']) && $_FILES['imagen']['error'] === UPLOAD_ERR_OK) {
-            $ext = strtolower(pathinfo($_FILES['imagen']['name'], PATHINFO_EXTENSION));
-            $nombre_archivo = 'prod_' . time() . '_' . bin2hex(random_bytes(4)) . '.' . $ext;
-            if (move_uploaded_file($_FILES['imagen']['tmp_name'], "$dir_uploads/$nombre_archivo")) {
-                $imagen = 'public/uploads/productos/' . $nombre_archivo;
-            } else {
-                $error = 'Error al subir la imagen.';
+            $error = validarSubidaImagen($_FILES['imagen']);
+            if (empty($error)) {
+                $ext = strtolower(pathinfo($_FILES['imagen']['name'], PATHINFO_EXTENSION));
+                $nombre_archivo = 'prod_' . time() . '_' . bin2hex(random_bytes(4)) . '.' . $ext;
+                if (move_uploaded_file($_FILES['imagen']['tmp_name'], "$dir_uploads/$nombre_archivo")) {
+                    $imagen = 'public/uploads/productos/' . $nombre_archivo;
+                } else {
+                    $error = 'Error al subir la imagen.';
+                }
             }
         } else {
             $error = 'Selecciona una imagen para el producto.';
@@ -58,7 +65,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $_SESSION['toast'] = ['type' => 'success', 'message' => 'Producto añadido correctamente.'];
                 redirigir('productos.php');
             } else {
-                $error = 'Error al guardar el producto en MongoDB.';
+                $error = 'Error al guardar el producto en la base de datos.';
             }
         } elseif (empty($error)) {
             $error = 'Rellena nombre y precio obligatoriamente.';
@@ -77,12 +84,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'precio'      => $precio,
         ];
 
-        // Subir nueva imagen si viene
         if (isset($_FILES['imagen']) && $_FILES['imagen']['error'] === UPLOAD_ERR_OK) {
-            $ext = strtolower(pathinfo($_FILES['imagen']['name'], PATHINFO_EXTENSION));
-            $nombre_archivo = 'prod_' . time() . '_' . bin2hex(random_bytes(4)) . '.' . $ext;
-            if (move_uploaded_file($_FILES['imagen']['tmp_name'], "$dir_uploads/$nombre_archivo")) {
-                $datos['imagen'] = 'public/uploads/productos/' . $nombre_archivo;
+            $err = validarSubidaImagen($_FILES['imagen']);
+            if (empty($err)) {
+                $ext = strtolower(pathinfo($_FILES['imagen']['name'], PATHINFO_EXTENSION));
+                $nombre_archivo = 'prod_' . time() . '_' . bin2hex(random_bytes(4)) . '.' . $ext;
+                if (move_uploaded_file($_FILES['imagen']['tmp_name'], "$dir_uploads/$nombre_archivo")) {
+                    $datos['imagen'] = 'public/uploads/productos/' . $nombre_archivo;
+                }
+            } else {
+                $error = $err;
             }
         }
 
@@ -122,6 +133,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
+$csrfToken = Csrf::generarToken('csrf_productos');
 $productos = Producto::obtenerTodos();
 $pagina_activa = 'productos';
 ?>
@@ -148,7 +160,7 @@ $pagina_activa = 'productos';
 
     <div class="mb-6">
         <h1 class="text-[1.6rem] font-semibold text-[var(--tx)] leading-tight" style="font-family: var(--pf);">Productos</h1>
-        <p class="text-[0.72rem] text-[var(--tx-m)] tracking-[0.04em] mt-1">Gestiona los productos que se venden en la barbería (MongoDB)</p>
+        <p class="text-[0.72rem] text-[var(--tx-m)] tracking-[0.04em] mt-1">Gestiona los productos que se venden en la barbería</p>
     </div>
 
     <?php if ($error): ?>
@@ -171,6 +183,7 @@ $pagina_activa = 'productos';
             <div class="mobile-collapse">
             <form action="" method="POST" enctype="multipart/form-data" class="space-y-4">
                 <input type="hidden" name="accion" value="crear">
+                <input type="hidden" name="csrf_token" value="<?= h($csrfToken) ?>">
 
                 <div>
                     <label class="block text-[0.68rem] uppercase tracking-wider text-[var(--tx-m)] font-semibold mb-1.5">Nombre *</label>
@@ -253,14 +266,15 @@ $pagina_activa = 'productos';
                             </div>
 
                             <div class="flex items-center gap-1 shrink-0">
-                                <button onclick="abrirEditar('<?= (string)$p['_id'] ?>', '<?= h(addslashes($p['nombre'] ?? '')) ?>', '<?= (float)($p['precio'] ?? 0) ?>', '<?= h(addslashes($p['descripcion'] ?? '')) ?>')"
+                                <button onclick="abrirEditar('<?= $p['id'] ?>', '<?= h(addslashes($p['nombre'] ?? '')) ?>', '<?= (float)($p['precio'] ?? 0) ?>', '<?= h(addslashes($p['descripcion'] ?? '')) ?>')"
                                         class="w-8 h-8 rounded-lg border border-transparent text-[var(--tx-d)] flex items-center justify-center hover:bg-white/10 hover:text-[var(--tx)] transition-all cursor-pointer" title="Editar">
                                     <i class="bi bi-pencil-square text-[0.85rem]"></i>
                                 </button>
 
                                 <form action="" method="POST" class="shrink-0">
                                     <input type="hidden" name="accion" value="toggle">
-                                    <input type="hidden" name="id" value="<?= (string)$p['_id'] ?>">
+                                    <input type="hidden" name="csrf_token" value="<?= h($csrfToken) ?>">
+                                    <input type="hidden" name="id" value="<?= $p['id'] ?>">
                                     <button type="submit" class="w-8 h-8 rounded-lg border border-transparent flex items-center justify-center transition-all cursor-pointer <?= $activo ? 'text-[var(--tx-d)] hover:bg-rose-500/10 hover:text-rose-400' : 'text-[var(--tx-d)] hover:bg-emerald-500/10 hover:text-emerald-400' ?>" title="<?= $activo ? 'Desactivar' : 'Activar' ?>">
                                         <i class="bi <?= $activo ? 'bi-eye-slash-fill' : 'bi-eye-fill' ?> text-[0.85rem]"></i>
                                     </button>
@@ -268,7 +282,8 @@ $pagina_activa = 'productos';
 
                                 <form action="" method="POST" onsubmit="return confirm('¿Eliminar producto definitivamente?')" class="shrink-0">
                                     <input type="hidden" name="accion" value="eliminar">
-                                    <input type="hidden" name="id" value="<?= (string)$p['_id'] ?>">
+                                    <input type="hidden" name="csrf_token" value="<?= h($csrfToken) ?>">
+                                    <input type="hidden" name="id" value="<?= $p['id'] ?>">
                                     <button type="submit" class="w-8 h-8 rounded-lg border border-transparent text-[var(--tx-d)] flex items-center justify-center hover:bg-rose-500/10 hover:text-rose-400 transition-all cursor-pointer" title="Eliminar">
                                         <i class="bi bi-trash3 text-[0.85rem]"></i>
                                     </button>
@@ -293,6 +308,7 @@ $pagina_activa = 'productos';
         </div>
         <form action="" method="POST" enctype="multipart/form-data" class="space-y-4">
             <input type="hidden" name="accion" value="editar">
+            <input type="hidden" name="csrf_token" value="<?= h($csrfToken) ?>">
             <input type="hidden" name="id" id="editId">
 
             <div>

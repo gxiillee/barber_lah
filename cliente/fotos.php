@@ -66,9 +66,10 @@ $pagina_activa = 'fotos';
             </div>
 
             <div class="flex flex-col items-end gap-1.5 sm:gap-2">
-                <div style="font-size:0.75rem; color:var(--gold-l); opacity:0.8;">
+                <div style="font-size:0.75rem; color:var(--gold-l); opacity:0.8;" data-foto-contador>
                     <?= $total_fotos ?> / <?= FotoCliente::MAX_FOTOS ?> fotos
                 </div>
+                <div id="foto-accion">
                 <?php if ($puede_subir): ?>
                     <a href="subir_foto.php"
                        class="flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg transition-opacity"
@@ -87,6 +88,7 @@ $pagina_activa = 'fotos';
                     </span>
                 <?php endif; ?>
             </div>
+            </div>
         </div>
 
         <!-- Banner informativo -->
@@ -104,7 +106,7 @@ $pagina_activa = 'fotos';
             <?php if ($puede_subir): ?>
                 <a href="subir_foto.php"
                    class="flex flex-col items-center justify-center rounded-xl p-4 foto-add-btn w-full cursor-pointer"
-                   style="text-decoration:none; aspect-ratio:1;">
+                   style="text-decoration:none; aspect-ratio:4/3;">
                     <i class="bi bi-camera" style="font-size:1.8rem; color:var(--tx-d); transition:color 0.2s;"></i>
                     <span style="font-size:0.75rem; color:var(--tx-m); margin-top:8px; transition:color 0.2s;">Añadir foto</span>
                 </a>
@@ -124,13 +126,13 @@ $pagina_activa = 'fotos';
                 } catch (Exception $e) {}
                 ?>
                 <div class="relative rounded-xl overflow-hidden border foto-item"
-                     style="aspect-ratio:1; border-color:var(--brd); background:var(--bg3);"
+                     style="aspect-ratio:4/3; border-color:var(--brd); background:var(--bg3);"
                      data-lightbox-index="<?= $foto_index - 1 ?>">
 
                     <!-- Imagen (clic para abrir lightbox) -->
                     <img src="<?= h('../' . $foto['ruta']) ?>"
                          alt="Foto historial de corte"
-                         class="w-full h-full object-cover cursor-pointer"
+                         class="w-full h-full object-cover cursor-pointer foto-img"
                          data-lightbox-img="true"
                          loading="lazy"
                          style="transition:transform 0.3s ease;"
@@ -146,7 +148,7 @@ $pagina_activa = 'fotos';
                     </div>
 
                     <!-- Botón eliminar: aparece en hover sobre la foto -->
-                    <div class="foto-overlay-btn absolute top-2 right-2 opacity-0 transition-opacity duration-200">
+                    <div class="foto-overlay-btn absolute top-2 right-2 transition-opacity duration-200">
                         <form data-ajax-delete-foto action="eliminar_foto.php" method="POST" class="m-0">
                             <input type="hidden" name="csrf_token" value="<?= h($csrf_token) ?>">
                             <input type="hidden" name="id_foto"    value="<?= (int) $foto['id'] ?>">
@@ -215,6 +217,17 @@ document.addEventListener('click', function (e) {
         if (data.ok) {
             const item = form.closest('.foto-item');
             if (item) item.remove();
+
+            // Actualizar contador y botón sin recargar
+            const numFotos = document.querySelectorAll('.foto-item').length;
+            const contador = document.querySelector('[data-foto-contador]');
+            if (contador) contador.textContent = numFotos + ' / 8 fotos';
+            if (numFotos < 8) {
+                document.getElementById('foto-accion').innerHTML =
+                    '<a href="subir_foto.php" class="flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg transition-opacity" style="background:var(--gold); color:var(--bg); font-size:0.75rem; font-weight:600; text-decoration:none;">' +
+                    '<i class="bi bi-plus-lg"></i> Añadir foto </a>';
+            }
+
             if (window.Toast) Toast.mostrar('success', 'Foto eliminada');
         } else {
             if (window.Toast) Toast.mostrar('error', 'No se pudo eliminar');
@@ -342,6 +355,19 @@ document.addEventListener('click', function (e) {
         img.addEventListener('click', () => open(idx));
     });
 })();
+</script>
+
+<script>
+// Detectar orientación de cada foto y aplicar object-contain solo a verticales
+document.querySelectorAll('.foto-img').forEach(img => {
+    const check = () => {
+        if (img.naturalHeight > img.naturalWidth) {
+            img.classList.add('foto-img-vert');
+        }
+    };
+    if (img.complete) { check(); }
+    else { img.addEventListener('load', check); }
+});
 </script>
 
 </body>

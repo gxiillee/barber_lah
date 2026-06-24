@@ -1,174 +1,116 @@
 <?php
-/**
- * Corte — CRUD sobre MongoDB (colección: barberlah.galeria)
- *
- * Cada documento en MongoDB tiene la estructura:
- *   {
- *     "_id": ObjectId,
- *     "imagen": "public/uploads/galeria/corte-degradado.jpg",
- *     "categoria": "Corte degradado",
- *     "descripcion": "Degradado con tijera y navaja",
- *     "activo": true,
- *     "orden": 0,
- *     "fecha_subida": ISODate
- *   }
- *
- * Afecta a:
- *   - Landing pública (index.php raíz): muestra todos (ordenados por fecha desc)
- *   - Admin galeria.php: CRUD completo
- */
+
+require_once __DIR__ . '/BD.php';
+
 class Corte {
 
-    /**
-     * Devuelve todas las fotos de la galería para la landing pública.
-     * Solo activas, ordenadas por orden ascendente.
-     */
     public static function obtenerActivos(): array {
         try {
-            $db = ConexionMongo::conectar();
-            return $db->galeria->find(
-                ['activo' => true],
-                ['sort' => ['orden' => 1]]
-            )->toArray();
-        } catch (Exception $e) {
+            $conexion = BD::obtenerConexion();
+            $stmt = $conexion->query("SELECT * FROM galeria WHERE activo = 1 ORDER BY orden ASC");
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (\Throwable $e) {
             return [];
         }
     }
 
-    /**
-     * Devuelve TODAS las fotos (activas e inactivas) para el admin.
-     */
     public static function obtenerTodos(): array {
         try {
-            $db = ConexionMongo::conectar();
-            return $db->galeria->find(
-                [],
-                ['sort' => ['orden' => 1, '_id' => -1]]
-            )->toArray();
-        } catch (Exception $e) {
+            $conexion = BD::obtenerConexion();
+            $stmt = $conexion->query("SELECT * FROM galeria ORDER BY orden ASC, id DESC");
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (\Throwable $e) {
             return [];
         }
     }
 
-    /**
-     * Devuelve una foto por su ID (string ObjectId de MongoDB).
-     */
-    public static function obtenerPorId(string $id): ?array {
+    public static function obtenerPorId(int|string $id): ?array {
         try {
-            $db = ConexionMongo::conectar();
-            $doc = $db->galeria->findOne(['_id' => new MongoDB\BSON\ObjectId($id)]);
-            return $doc !== null ? (array)$doc : null;
-        } catch (Exception $e) {
+            $conexion = BD::obtenerConexion();
+            $stmt = $conexion->prepare("SELECT * FROM galeria WHERE id = :id");
+            $stmt->execute([':id' => (int)$id]);
+            $doc = $stmt->fetch(PDO::FETCH_ASSOC);
+            return $doc ?: null;
+        } catch (\Throwable $e) {
             return null;
         }
     }
 
-    /**
-     * Crea una nueva foto en la galería.
-     *
-     * @param array $datos Campos: imagen (ruta), categoria, descripcion, orden
-     */
     public static function crear(array $datos): bool {
         try {
-            $db = ConexionMongo::conectar();
-            $doc = [
-                'imagen'       => $datos['imagen'] ?? '',
-                'categoria'    => $datos['categoria'] ?? '',
-                'descripcion'  => $datos['descripcion'] ?? '',
-                'activo'       => true,
-                'orden'        => (int)($datos['orden'] ?? 0),
-                'fecha_subida' => new MongoDB\BSON\UTCDateTime(time() * 1000),
-            ];
-            $result = $db->galeria->insertOne($doc);
-            return $result->getInsertedCount() > 0;
-        } catch (Exception $e) {
+            $conexion = BD::obtenerConexion();
+            $stmt = $conexion->prepare("
+                INSERT INTO galeria (imagen, categoria, descripcion, activo, orden)
+                VALUES (:imagen, :categoria, :descripcion, 1, :orden)
+            ");
+            return $stmt->execute([
+                ':imagen'      => $datos['imagen'] ?? '',
+                ':categoria'   => $datos['categoria'] ?? '',
+                ':descripcion' => $datos['descripcion'] ?? '',
+                ':orden'       => (int)($datos['orden'] ?? 0),
+            ]);
+        } catch (\Throwable $e) {
             return false;
         }
     }
 
-    /**
-     * Actualiza una foto existente.
-     *
-     * @param string $id    ObjectId del documento
-     * @param array  $datos Campos a actualizar
-     */
-    public static function actualizar(string $id, array $datos): bool {
+    public static function actualizar(int|string $id, array $datos): bool {
         try {
-            $db = ConexionMongo::conectar();
+            $conexion = BD::obtenerConexion();
             $set = [];
-            if (isset($datos['imagen']))       $set['imagen'] = $datos['imagen'];
-            if (isset($datos['categoria']))    $set['categoria'] = $datos['categoria'];
-            if (isset($datos['descripcion']))  $set['descripcion'] = $datos['descripcion'];
-            if (isset($datos['orden']))        $set['orden'] = (int)$datos['orden'];
+            $params = [':id' => (int)$id];
+            if (isset($datos['imagen']))       { $set[] = 'imagen = :imagen';       $params[':imagen'] = $datos['imagen']; }
+            if (isset($datos['categoria']))    { $set[] = 'categoria = :categoria'; $params[':categoria'] = $datos['categoria']; }
+            if (isset($datos['descripcion']))  { $set[] = 'descripcion = :descripcion'; $params[':descripcion'] = $datos['descripcion']; }
+            if (isset($datos['orden']))        { $set[] = 'orden = :orden';         $params[':orden'] = (int)$datos['orden']; }
 
             if (empty($set)) return false;
 
-            $result = $db->galeria->updateOne(
-                ['_id' => new MongoDB\BSON\ObjectId($id)],
-                ['$set' => $set]
-            );
-            return $result->getModifiedCount() > 0;
-        } catch (Exception $e) {
+            $sql = "UPDATE galeria SET " . implode(', ', $set) . " WHERE id = :id";
+            $stmt = $conexion->prepare($sql);
+            return $stmt->execute($params);
+        } catch (\Throwable $e) {
             return false;
         }
     }
 
-    /**
-     * Alterna el estado activo/inactivo de una foto.
-     * Devuelve el nuevo estado o null si falla.
-     */
-    public static function toggleActivo(string $id): ?bool {
+    public static function toggleActivo(int|string $id): ?bool {
         try {
-            $db = ConexionMongo::conectar();
-            $doc = $db->galeria->findOne(['_id' => new MongoDB\BSON\ObjectId($id)]);
+            $conexion = BD::obtenerConexion();
+            $stmt = $conexion->prepare("SELECT activo FROM galeria WHERE id = :id");
+            $stmt->execute([':id' => (int)$id]);
+            $doc = $stmt->fetch(PDO::FETCH_ASSOC);
             if (!$doc) return null;
 
             $nuevo = !((bool)$doc['activo']);
-            $db->galeria->updateOne(
-                ['_id' => new MongoDB\BSON\ObjectId($id)],
-                ['$set' => ['activo' => $nuevo]]
-            );
+            $upd = $conexion->prepare("UPDATE galeria SET activo = :activo WHERE id = :id");
+            $upd->execute([':activo' => $nuevo ? 1 : 0, ':id' => (int)$id]);
             return $nuevo;
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             return null;
         }
     }
 
-    /**
-     * Reordena las fotos según el orden recibido (array de IDs).
-     * Cada posición en el array se convierte en el valor de 'orden'.
-     */
     public static function reordenar(array $ids): bool {
         try {
-            $db = ConexionMongo::conectar();
-            $bulk = [];
+            $conexion = BD::obtenerConexion();
+            $stmt = $conexion->prepare("UPDATE galeria SET orden = :orden WHERE id = :id");
             foreach ($ids as $orden => $idStr) {
-                $bulk[] = [
-                    'updateOne' => [
-                        ['_id' => new MongoDB\BSON\ObjectId($idStr)],
-                        ['$set' => ['orden' => $orden]]
-                    ]
-                ];
-            }
-            if (!empty($bulk)) {
-                $db->galeria->bulkWrite($bulk);
+                $stmt->execute([':orden' => (int)$orden, ':id' => (int)$idStr]);
             }
             return true;
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             error_log("Corte::reordenar error: " . $e->getMessage());
             return false;
         }
     }
 
-    /**
-     * Elimina una foto definitivamente de MongoDB.
-     */
-    public static function eliminar(string $id): bool {
+    public static function eliminar(int|string $id): bool {
         try {
-            $db = ConexionMongo::conectar();
-            $result = $db->galeria->deleteOne(['_id' => new MongoDB\BSON\ObjectId($id)]);
-            return $result->getDeletedCount() > 0;
-        } catch (Exception $e) {
+            $conexion = BD::obtenerConexion();
+            $stmt = $conexion->prepare("DELETE FROM galeria WHERE id = :id");
+            return $stmt->execute([':id' => (int)$id]);
+        } catch (\Throwable $e) {
             return false;
         }
     }

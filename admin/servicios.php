@@ -3,6 +3,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/../clases/Usuario.php';
 require_once __DIR__ . '/../clases/BD.php';
 require_once __DIR__ . '/../clases/Servicio.php';
+require_once __DIR__ . '/../clases/Csrf.php';
 require_once __DIR__ . '/../clases/helpers.php';
 
 iniciarSesionSegura();
@@ -13,6 +14,10 @@ if (!isset($_SESSION['usuario']) || !$_SESSION['usuario']->tieneRolAdmin()) {
 $mensaje = $error = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $csrf_token = $_POST['csrf_token'] ?? '';
+    if (!Csrf::validarToken('csrf_servicios', $csrf_token)) {
+        $error = 'Sesión caducada. Recarga la página.';
+    } else {
     $accion = $_POST['accion'] ?? '';
 
     if ($accion === 'crear') {
@@ -65,8 +70,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $error = "Por favor, rellena todos los campos obligatorios.";
         }
     }
+    } // else (CSRF válido)
 }
 
+$csrfToken = Csrf::generarToken('csrf_servicios');
 $servicios = Servicio::obtenerTodosIncluyendoInactivos();
 $pagina_activa = 'servicios';
 ?>
@@ -141,6 +148,7 @@ $pagina_activa = 'servicios';
 
             <form action="" method="POST" class="space-y-4">
                 <input type="hidden" name="accion" value="crear">
+                <input type="hidden" name="csrf_token" value="<?= h($csrfToken) ?>">
 
                 <div>
                     <label class="block text-[0.68rem] uppercase tracking-wider text-[var(--tx-m)] font-semibold mb-1.5">
@@ -157,7 +165,7 @@ $pagina_activa = 'servicios';
                             <i class="bi bi-clock text-[var(--gold)] mr-1"></i> Duración *
                         </label>
                         <div class="relative">
-                            <input type="number" name="duracion" required min="5" step="5" placeholder="30"
+                            <input type="number" name="duracion" required min="5" step="1" placeholder="30"
                                    oninput="previewServicio()"
                                    class="w-full bg-[#141414] border border-[var(--brd)] rounded-lg px-3 py-2 text-[0.8rem] text-[var(--tx)] focus:outline-hidden focus:border-[var(--gold-brd)]">
                             <span class="absolute right-3 top-1/2 -translate-y-1/2 text-[0.6rem] text-[var(--tx-d)]">min</span>
@@ -168,7 +176,7 @@ $pagina_activa = 'servicios';
                             <i class="bi bi-currency-euro text-[var(--gold)] mr-1"></i> Precio *
                         </label>
                         <div class="relative">
-                            <input type="number" name="precio" required min="1" step="0.50" placeholder="15.00"
+                            <input type="number" name="precio" required min="1" step="0.01" placeholder="15.00"
                                    oninput="previewServicio()"
                                    class="w-full bg-[#141414] border border-[var(--brd)] rounded-lg px-3 py-2 text-[0.8rem] text-[var(--tx)] focus:outline-hidden focus:border-[var(--gold-brd)]">
                             <span class="absolute right-3 top-1/2 -translate-y-1/2 text-[0.6rem] text-[var(--tx-d)]">€</span>
@@ -241,6 +249,7 @@ $pagina_activa = 'servicios';
                                 <!-- Toggle active/inactive -->
                                 <form action="" method="POST" class="shrink-0">
                                     <input type="hidden" name="accion" value="toggle">
+                                    <input type="hidden" name="csrf_token" value="<?= h($csrfToken) ?>">
                                     <input type="hidden" name="id" value="<?= $s->getIdServicio() ?>">
                                     <button type="submit"
                                             class="w-8 h-8 rounded-lg border border-transparent flex items-center justify-center transition-all cursor-pointer <?= $s->isActivo() ? 'text-[var(--tx-d)] hover:bg-rose-500/10 hover:text-rose-400' : 'text-[var(--tx-d)] hover:bg-emerald-500/10 hover:text-emerald-400' ?>"
@@ -269,6 +278,7 @@ $pagina_activa = 'servicios';
         </div>
         <form action="" method="POST" class="space-y-4">
             <input type="hidden" name="accion" value="actualizar">
+            <input type="hidden" name="csrf_token" value="<?= h($csrfToken) ?>">
             <input type="hidden" name="id" id="editId">
 
             <div>
@@ -279,11 +289,11 @@ $pagina_activa = 'servicios';
             <div class="grid grid-cols-2 gap-3">
                 <div>
                     <label class="block text-[0.68rem] uppercase tracking-wider text-[var(--tx-m)] font-semibold mb-1.5">Duración *</label>
-                    <input type="number" name="duracion" id="editDuracion" required min="5" step="5" class="w-full bg-[#141414] border border-[var(--brd)] rounded-lg px-3 py-2 text-[0.8rem] text-[var(--tx)] focus:outline-hidden focus:border-[var(--gold-brd)]">
+                    <input type="number" name="duracion" id="editDuracion" required min="5" step="1" class="w-full bg-[#141414] border border-[var(--brd)] rounded-lg px-3 py-2 text-[0.8rem] text-[var(--tx)] focus:outline-hidden focus:border-[var(--gold-brd)]">
                 </div>
                 <div>
                     <label class="block text-[0.68rem] uppercase tracking-wider text-[var(--tx-m)] font-semibold mb-1.5">Precio (€) *</label>
-                    <input type="number" name="precio" id="editPrecio" required min="1" step="0.50" class="w-full bg-[#141414] border border-[var(--brd)] rounded-lg px-3 py-2 text-[0.8rem] text-[var(--tx)] focus:outline-hidden focus:border-[var(--gold-brd)]">
+                    <input type="number" name="precio" id="editPrecio" required min="1" step="0.01" class="w-full bg-[#141414] border border-[var(--brd)] rounded-lg px-3 py-2 text-[0.8rem] text-[var(--tx)] focus:outline-hidden focus:border-[var(--gold-brd)]">
                 </div>
             </div>
 

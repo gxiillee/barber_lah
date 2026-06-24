@@ -17,9 +17,6 @@ if (!isset($_SESSION['usuario'])) {
     redirigir('../login.php');
 }
 
-// Auto-completar citas pasadas
-Reserva::actualizarCitasPasadas();
-
 /** @var Usuario $usuario */
 $usuario = $_SESSION['usuario'];
 
@@ -196,7 +193,9 @@ $puntos = (int) $usuario->getPuntosFidelidad();
                 </div>
                 <div style="font-size:0.58rem; color:var(--tx-d); margin-top:4px;">
                     <?php if ($puntos >= 10): ?>
-                        <span style="color:var(--gold);">¡corte gratis!</span>
+                        <span style="color:#34d399; font-weight:600;">🎁 ¡Corte gratis disponible!</span>
+                    <?php elseif ($puntos === 1 && !empty($proxima['gratis'])): ?>
+                        <span style="color:#34d399; font-weight:600;">✅ ¡Canjeaste tu corte gratis!</span>
                     <?php else: ?>
                         <?= 10 - $puntos ?> para gratis
                     <?php endif; ?>
@@ -246,9 +245,14 @@ $puntos = (int) $usuario->getPuntosFidelidad();
                         <?= h($proxima_fecha_larga) ?>
                     </div>
                     <div style="font-size:0.68rem; color:var(--tx-m); margin-top:3px;">
-                        <?= h($proxima['servicio']) ?>
-                        &nbsp;·&nbsp; <?= h($proxima_hora) ?>h
-                        &nbsp;·&nbsp; <?= h($proxima['duracion_historica']) ?> min
+                        <?php if (!empty($proxima['gratis'])): ?>
+                            <span class="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5" style="background:rgba(52,211,153,0.12); border:1px solid rgba(52,211,153,0.3); font-size:0.6rem; font-weight:700; color:#34d399; letter-spacing:0.08em; text-transform:uppercase;">
+                                <i class="bi bi-gift-fill" style="font-size:0.55rem;"></i> GRATIS
+                            </span>
+                            <span style="color:var(--gold); font-size:0.62rem;">· Cortesía fidelidad</span>
+                        <?php else: ?>
+                            <?= h($proxima['servicio']) ?>&nbsp;·&nbsp;<?= h($proxima_hora) ?>h&nbsp;·&nbsp;<?= h($proxima['duracion_historica']) ?> min
+                        <?php endif; ?>
                     </div>
                 </div>
                 <!-- Enlace a historial para ver detalles -->
@@ -285,9 +289,12 @@ $puntos = (int) $usuario->getPuntosFidelidad();
 
                 <!-- Texto personalizado según cuántos puntos tiene -->
                 <div style="font-size:0.82rem; margin-bottom:10px;">
-                    <?php if ($puntos >= 10): ?>
-                        <strong style="color:var(--gold)">¡Tienes un corte gratis!</strong>
-                        Díselo a Hassan en tu próxima visita
+                    <?php if (!empty($proxima['gratis'])): ?>
+                        <strong style="color:#34d399">✅ Tu próxima cita es GRATIS</strong><br>
+                        <span style="color:var(--tx-m); font-size:0.75rem;">Ya canjeaste tu corte de fidelidad — empieza a acumular de nuevo</span>
+                    <?php elseif ($puntos >= 10): ?>
+                        <strong style="color:#34d399">¡Tienes un corte gratis!</strong>
+                        Reserva tu cita y se aplicará automáticamente
                     <?php elseif ($puntos >= 7): ?>
                         ¡Casi! Te faltan <strong style="color:var(--gold)"><?= 10 - $puntos ?></strong> para tu corte gratis
                     <?php else: ?>

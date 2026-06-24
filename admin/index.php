@@ -16,15 +16,59 @@ iniciarSesionSegura();
 if (!isset($_SESSION['usuario'])) redirigir('../login.php');
 if (!$_SESSION['usuario']->tieneRolAdmin()) redirigir('../cliente/index.php');
 
-// Auto-completar citas pasadas
-Reserva::actualizarCitasPasadas();
-
 if (!defined('ID_BARBERO')) define('ID_BARBERO', 1);
 
 // ── Fecha ──
 $fecha_raw = $_GET['fecha'] ?? date('Y-m-d');
 if (!esFechaValida($fecha_raw)) $fecha_raw = date('Y-m-d');
 $fecha_seleccionada = $fecha_raw;
+
+/* ── Mover cita (AJAX) ── */
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['accion'] ?? '') === 'mover_cita') {
+    header('Content-Type: application/json; charset=utf-8');
+
+    if (!Csrf::validarToken('mover_cita', $_POST['csrf_token'] ?? '')) {
+        echo json_encode(['ok' => false, 'error' => 'Sesión caducada. Recarga la página.']);
+        exit;
+    }
+
+    $id_reserva  = (int)($_POST['id_reserva'] ?? 0);
+    $nueva_fecha = $_POST['nueva_fecha'] ?? '';
+    $nueva_hora  = $_POST['nueva_hora'] ?? '';
+    $motivo      = trim($_POST['motivo'] ?? '');
+
+    if ($id_reserva <= 0 || !esFechaValida($nueva_fecha) || $nueva_hora === '') {
+        echo json_encode(['ok' => false, 'error' => 'Parámetros inválidos.']);
+        exit;
+    }
+
+    require_once __DIR__ . '/../clases/NotificadorReserva.php';
+
+    $resultado = Reserva::mover($id_reserva, $nueva_fecha, $nueva_hora, $motivo !== '' ? $motivo : null);
+
+    if ($resultado === null) {
+        echo json_encode(['ok' => false, 'error' => 'Ese hueco ya no está disponible. Selecciona otra hora.']);
+        exit;
+    }
+
+    $cli = new Usuario(
+        $resultado['id_cliente'], null,
+        $resultado['cliente_nombre'], $resultado['cliente_email'],
+        null, null, null, 0, 'cliente'
+    );
+
+    NotificadorReserva::enviarCambio($cli, [
+        'servicio' => $resultado['servicio_nombre'],
+        'fecha'    => fechaHumana($resultado['fecha_vieja']),
+        'hora'     => $resultado['hora_vieja'],
+    ], [
+        'fecha'    => fechaHumana($resultado['fecha_nueva']),
+        'hora'     => $resultado['hora_nueva'],
+    ], $motivo !== '' ? $motivo : null);
+
+    echo json_encode(['ok' => true]);
+    exit;
+}
 
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion'])) {
         if (!Csrf::validarToken('agenda', $_POST['csrf_token'] ?? '')) {
@@ -37,8 +81,10 @@ $fecha_seleccionada = $fecha_raw;
                 $conexion = BD::obtenerConexion();
                 $horaActual = date('H:i:s');
                 $antes = $conexion->prepare(
-                    "SELECT r.id_cliente, r.hora, s.nombre AS servicio_nombre
-                     FROM reservas r JOIN servicios s ON r.id_servicio = s.id
+                    "SELECT r.id_cliente, r.hora, u.nombre, u.email, s.nombre AS servicio_nombre
+                     FROM reservas r
+                     JOIN servicios s ON r.id_servicio = s.id
+                     JOIN usuarios u ON r.id_cliente = u.id AND u.activo = 1
                      WHERE r.id_barbero = :b AND r.fecha = :f AND r.estado = 'confirmada'
                        AND r.hora >= :hora_actual"
                 );
@@ -49,15 +95,17 @@ $fecha_seleccionada = $fecha_raw;
                 if ($canceladas > 0) {
                     require_once __DIR__ . '/../clases/NotificadorReserva.php';
                     foreach ($aCancelar as $r) {
-                        $cli = Cliente::obtenerPorId((int)$r['id_cliente']);
-                        if ($cli) {
-                            $_f = $fecha_seleccionada;
-                            NotificadorReserva::enviarCancelacion($cli, [
-                                'servicio' => $r['servicio_nombre'] ?? '',
-                                'fecha'    => $_f !== '' ? fechaHumana($_f) : '',
-                                'hora'     => $r['hora'] ?? '',
-                            ], $motivo);
-                        }
+                        $cli = new Usuario(
+                            (int)$r['id_cliente'], null,
+                            $r['nombre'], $r['email'],
+                            null, null, null, 0, 'cliente'
+                        );
+                        $_f = $fecha_seleccionada;
+                        NotificadorReserva::enviarCancelacion($cli, [
+                            'servicio' => $r['servicio_nombre'] ?? '',
+                            'fecha'    => $_f !== '' ? fechaHumana($_f) : '',
+                            'hora'     => $r['hora'] ?? '',
+                        ], $motivo);
                     }
                     $_SESSION['toast'] = ['type' => 'success', 'message' => "$canceladas cita(s) cancelada(s) por: $motivo"];
                 } else {
@@ -175,6 +223,7 @@ $total_bloqueados = count(array_filter($slots_agrupados, fn($s) => $s['estado'] 
 $pagina_activa = 'agenda';
 $titulo_fecha  = fechaHumana($fecha_seleccionada);
 $token_csrf    = Csrf::generarToken('agenda');
+$token_mover   = Csrf::generarToken('mover_cita');
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -322,7 +371,7 @@ $token_csrf    = Csrf::generarToken('agenda');
             <div class="flex flex-col items-center justify-center py-16 px-6 text-center gap-3">
                 <i class="bi bi-moon-stars text-4xl text-[var(--tx-d)] opacity-50 mb-1"></i>
                 <p class="text-[1.1rem] text-[var(--tx-m)]" style="font-family: var(--pf);">Día cerrado</p>
-                <p class="text-[0.7rem] text-[var(--tx-d)] max-w-xs">Hassan ha bloqueado este día completo.</p>
+                <p class="text-[0.7rem] text-[var(--tx-d)] max-w-xs">Este día ha sido bloqueado por completo.</p>
             </div>
         <?php elseif (empty($tramos_del_dia)): ?>
             <div class="flex flex-col items-center justify-center py-16 px-6 text-center gap-3">
@@ -354,6 +403,14 @@ $token_csrf    = Csrf::generarToken('agenda');
                         ?>">
 
                         <span class="inline-flex items-center justify-center min-w-[46px] px-2 py-1 rounded-md bg-black/30 text-[0.68rem] font-semibold text-[var(--tx)] shrink-0 mt-0.5 leading-none"><?= h($slot['hora']) ?></span>
+
+                        <?php if ($res['estado'] === 'confirmada' || $res['estado'] === 'pendiente'): ?>
+                            <button type="button" onclick="event.stopPropagation(); abrirMoverCita(<?= (int)$res['id'] ?>)"
+                                    class="ml-auto shrink-0 w-7 h-7 rounded-lg flex items-center justify-center text-[var(--tx-d)] hover:text-[var(--gold)] hover:bg-[var(--gold-dim)] transition-all cursor-pointer"
+                                    title="Reagendar / Mover cita">
+                                <i class="bi bi-arrow-left-right text-[0.75rem]"></i>
+                            </button>
+                        <?php endif; ?>
 
                         <div class="flex-1 min-w-0">
                             <div class="flex items-center gap-2 flex-wrap">
@@ -444,7 +501,238 @@ $token_csrf    = Csrf::generarToken('agenda');
     </div>
 </div>
 
+<!-- Modal mover cita -->
+<div id="modalMoverCita" class="fixed inset-0 z-[9999] bg-black/80 hidden flex items-end lg:items-center justify-center p-0 lg:p-4 opacity-0 transition-opacity duration-200"
+     onclick="if(event.target===this)cerrarMoverCita()">
+    <div id="modalMoverCitaContent"
+         class="w-full lg:max-w-[600px] bg-[#1a1a1a] border border-white/[0.08] rounded-t-2xl lg:rounded-2xl shadow-2xl translate-y-0 lg:translate-y-0 lg:scale-95 transition-all duration-300 ease-out flex flex-col max-h-[85vh] lg:max-h-auto"
+         onclick="event.stopPropagation()">
+
+        <!-- Header -->
+        <div class="flex items-start justify-between p-5 pb-3 border-b border-white/[0.06] shrink-0">
+            <div class="min-w-0">
+                <h3 class="font-['Playfair_Display'] text-[1rem] font-semibold text-[#f5f0e8]">Mover cita</h3>
+                <p class="text-[0.65rem] text-[var(--tx-m)] mt-0.5 truncate" id="moverResumen">Selecciona nueva fecha y hora</p>
+            </div>
+            <button onclick="cerrarMoverCita()" class="w-8 h-8 rounded-lg flex items-center justify-center text-[#888] hover:bg-white/10 hover:text-[#f5f0e8] transition-all cursor-pointer shrink-0 ml-3">
+                <i class="bi bi-x-lg text-[0.8rem]"></i>
+            </button>
+        </div>
+
+        <!-- Cuerpo -->
+        <div class="p-5 pt-4 overflow-y-auto flex-1">
+            <label class="font-['Montserrat'] text-[0.65rem] font-semibold uppercase tracking-wider text-[#888] block mb-1.5">Nueva fecha</label>
+            <input type="date" id="moverFecha" onchange="cargarSlots()"
+                   class="w-full h-11 bg-[#0d0d0d] border border-white/[0.08] rounded-lg px-3 text-[0.85rem] text-[#f5f0e8] focus:outline-hidden focus:border-[#d4af37]/50 transition-all [color-scheme:dark] cursor-pointer mb-4">
+
+            <label class="font-['Montserrat'] text-[0.65rem] font-semibold uppercase tracking-wider text-[#888] block mb-1.5">Nueva hora</label>
+            <div id="moverSlotsContainer" class="mb-4">
+                <div class="flex items-center justify-center py-6 text-[var(--tx-d)]">
+                    <i class="bi bi-arrow-repeat animate-spin mr-2"></i>
+                    <span class="text-[0.7rem]">Cargando horarios...</span>
+                </div>
+            </div>
+
+            <details class="group">
+                <summary class="font-['Montserrat'] text-[0.65rem] font-semibold uppercase tracking-wider text-[#888] cursor-pointer select-none list-none flex items-center gap-2 mb-1.5">
+                    <i class="bi bi-chevron-right text-[0.6rem] group-open:rotate-90 transition-transform"></i>
+                    Añadir motivo <span class="text-[var(--tx-d)] font-normal normal-case tracking-normal">(opcional)</span>
+                </summary>
+                <textarea id="moverMotivo" rows="2"
+                          placeholder="Ej: El cliente pidió cambio de hora..."
+                          class="w-full bg-[#0d0d0d] border border-white/[0.08] rounded-lg px-3 py-2 text-[0.85rem] text-[#f5f0e8] focus:outline-hidden focus:border-[#d4af37]/50 transition-all resize-none mt-1"></textarea>
+            </details>
+        </div>
+
+        <!-- Footer -->
+        <div class="flex gap-3 p-5 pt-3 border-t border-white/[0.06] shrink-0">
+            <button type="button" onclick="cerrarMoverCita()"
+                    class="flex-1 px-4 py-2.5 rounded-lg border border-white/[0.08] font-['Montserrat'] text-[0.7rem] font-semibold tracking-wider text-[#888] hover:bg-white/5 transition-all cursor-pointer">
+                Cancelar
+            </button>
+            <button type="button" onclick="confirmarMoverCita()"
+                    class="flex-1 px-4 py-2.5 rounded-lg bg-[var(--gold)] text-[#0d0d0d] font-['Montserrat'] text-[0.7rem] font-semibold tracking-wider uppercase hover:opacity-90 transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                    id="btnConfirmarMover">
+                Confirmar cambio
+            </button>
+        </div>
+    </div>
+</div>
+
 <script>
+/* ── Mover cita ── */
+let moverState = { id: 0, fechaBase: '' };
+
+function abrirMoverCita(id) {
+    moverState.id = id;
+    moverState.fechaBase = '';
+    moverState.selectedHora = '';
+
+    const modal = document.getElementById('modalMoverCita');
+    const content = document.getElementById('modalMoverCitaContent');
+
+    document.getElementById('moverResumen').textContent = 'Cargando...';
+    document.getElementById('moverSlotsContainer').innerHTML =
+        '<div class="flex items-center justify-center py-6 text-[var(--tx-d)]">' +
+        '<i class="bi bi-arrow-repeat animate-spin mr-2"></i>' +
+        '<span class="text-[0.7rem]">Cargando horarios...</span></div>';
+    document.getElementById('moverMotivo').value = '';
+    document.getElementById('btnConfirmarMover').disabled = false;
+
+    modal.classList.remove('hidden');
+    requestAnimationFrame(() => {
+        modal.classList.remove('opacity-0');
+        content.classList.remove('translate-y-0', 'lg:scale-95');
+        content.classList.add('translate-y-0', 'lg:scale-100');
+    });
+
+    // Sin fecha → el backend usa la fecha actual de la reserva
+    fetch('ajax_mover_cita_slots.php?id_reserva=' + id)
+        .then(r => r.json())
+        .then(data => {
+            if (data.ok) {
+                document.getElementById('moverFecha').value = data.reserva_fecha;
+                moverState.fechaBase = data.reserva_fecha;
+                renderizarSlots(data.slots);
+                document.getElementById('moverResumen').textContent = data.resumen || '';
+            } else {
+                document.getElementById('moverSlotsContainer').innerHTML =
+                    '<div class="flex items-center justify-center py-6 text-red-400">' +
+                    '<i class="bi bi-exclamation-circle mr-2"></i>' +
+                    '<span class="text-[0.7rem]">' + (data.error || 'Error') + '</span></div>';
+            }
+        })
+        .catch(() => {
+            document.getElementById('moverSlotsContainer').innerHTML =
+                '<div class="flex items-center justify-center py-6 text-red-400">' +
+                '<i class="bi bi-exclamation-circle mr-2"></i>' +
+                '<span class="text-[0.7rem]">Error al cargar horarios</span></div>';
+        });
+}
+
+function cerrarMoverCita() {
+    const modal = document.getElementById('modalMoverCita');
+    const content = document.getElementById('modalMoverCitaContent');
+    modal.classList.add('opacity-0');
+    content.classList.remove('translate-y-0', 'lg:scale-100');
+    content.classList.add('lg:scale-95');
+    setTimeout(() => {
+        modal.classList.add('hidden');
+        document.querySelectorAll('#moverSlotsContainer .slot-pill.selected').forEach(el => el.classList.remove('selected'));
+    }, 250);
+}
+
+function cargarSlots() {
+    const fecha = document.getElementById('moverFecha').value;
+    if (!fecha || moverState.id === 0) return;
+
+    document.getElementById('moverSlotsContainer').innerHTML =
+        '<div class="flex items-center justify-center py-6 text-[var(--tx-d)]">' +
+        '<i class="bi bi-arrow-repeat animate-spin mr-2"></i>' +
+        '<span class="text-[0.7rem]">Cargando horarios...</span></div>';
+    document.querySelectorAll('#moverSlotsContainer .slot-pill.selected').forEach(el => el.classList.remove('selected'));
+
+    fetch('ajax_mover_cita_slots.php?id_reserva=' + moverState.id + '&fecha=' + encodeURIComponent(fecha))
+        .then(r => r.json())
+        .then(data => {
+            if (data.ok) {
+                renderizarSlots(data.slots);
+            } else {
+                document.getElementById('moverSlotsContainer').innerHTML =
+                    '<div class="flex items-center justify-center py-6 text-red-400">' +
+                    '<i class="bi bi-exclamation-circle mr-2"></i>' +
+                    '<span class="text-[0.7rem]">' + (data.error || 'Error') + '</span></div>';
+            }
+        })
+        .catch(() => {
+            document.getElementById('moverSlotsContainer').innerHTML =
+                '<div class="flex items-center justify-center py-6 text-red-400">' +
+                '<i class="bi bi-exclamation-circle mr-2"></i>' +
+                '<span class="text-[0.7rem]">Error de conexión</span></div>';
+        });
+}
+
+function renderizarSlots(slots) {
+    const container = document.getElementById('moverSlotsContainer');
+    if (!slots || slots.length === 0) {
+        container.innerHTML =
+            '<div class="flex flex-col items-center justify-center py-8 text-[var(--tx-d)] gap-2">' +
+            '<i class="bi bi-clock-history text-xl"></i>' +
+            '<span class="text-[0.7rem]">No hay horarios disponibles para esta fecha</span></div>';
+        return;
+    }
+
+    let html = '<div class="grid grid-cols-3 sm:grid-cols-4 gap-2">';
+    slots.forEach(h => {
+        html += '<button type="button" class="slot-pill w-full py-2.5 px-2 rounded-lg border border-white/[0.08] bg-white/[0.03] text-[0.78rem] font-medium text-[var(--tx)] hover:border-[var(--gold-brd)] hover:bg-[var(--gold-dim)] hover:text-[var(--gold)] transition-all cursor-pointer focus:outline-hidden" onclick="seleccionarSlot(this, \'' + h + '\')">' + h + '</button>';
+    });
+    html += '</div>';
+    container.innerHTML = html;
+}
+
+function seleccionarSlot(btn, hora) {
+    document.querySelectorAll('#moverSlotsContainer .slot-pill').forEach(el => {
+        if (el.classList.contains('selected')) {
+            el.classList.remove('selected');
+            el.style.borderColor = '';
+            el.style.backgroundColor = '';
+            el.style.color = '';
+        }
+    });
+    btn.classList.add('selected');
+    btn.style.borderColor = 'var(--gold)';
+    btn.style.backgroundColor = 'var(--gold-dim)';
+    btn.style.color = 'var(--gold)';
+    moverState.selectedHora = hora;
+}
+
+function confirmarMoverCita() {
+    const hora = moverState.selectedHora;
+    const fecha = document.getElementById('moverFecha').value;
+    const motivo = document.getElementById('moverMotivo').value.trim();
+
+    if (!fecha || !hora) {
+        if (window.Toast) Toast.mostrar('error', 'Selecciona una fecha y hora.');
+        return;
+    }
+
+    const btn = document.getElementById('btnConfirmarMover');
+    btn.disabled = true;
+    btn.textContent = 'Moviendo...';
+
+    const params = new URLSearchParams();
+    params.append('accion', 'mover_cita');
+    params.append('csrf_token', '<?= h($token_mover) ?>');
+    params.append('id_reserva', moverState.id.toString());
+    params.append('nueva_fecha', fecha);
+    params.append('nueva_hora', hora);
+    params.append('motivo', motivo);
+
+    fetch('index.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: params.toString()
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.ok) {
+            cerrarMoverCita();
+            if (window.Toast) Toast.mostrar('success', 'Cita movida correctamente. Cliente notificado.');
+            setTimeout(() => window.location.reload(), 600);
+        } else {
+            if (window.Toast) Toast.mostrar('error', data.error || 'No se pudo mover la cita.');
+            cargarSlots(); // refrescar slots
+        }
+    })
+    .catch(() => {
+        if (window.Toast) Toast.mostrar('error', 'Error de conexión.');
+    })
+    .finally(() => {
+        btn.disabled = false;
+        btn.textContent = 'Confirmar cambio';
+    });
+}
+
 function abrirCancelarDia() {
     const modal = document.getElementById('modalCancelarDia');
     const content = document.getElementById('modalCancelarDiaContent');

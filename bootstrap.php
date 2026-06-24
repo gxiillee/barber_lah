@@ -5,9 +5,18 @@
  */
 require_once __DIR__ . '/vendor/autoload.php';
 
-// Session persistente 30 días
-ini_set('session.cookie_lifetime', 2592000);
-ini_set('session.gc_maxlifetime',   2592000);
+// Session persistente 30 días (solo si aún no arrancó)
+if (session_status() === PHP_SESSION_NONE) {
+    ini_set('session.cookie_lifetime', 2592000);
+    ini_set('session.gc_maxlifetime',   2592000);
+}
+
+// Zona horaria centralizada (España peninsular)
+date_default_timezone_set('Europe/Madrid');
+
+// Log de errores de la aplicación en archivo
+ini_set('log_errors', '1');
+ini_set('error_log', __DIR__ . '/logs/app.log');
 
 use Dotenv\Dotenv;
 
@@ -29,7 +38,7 @@ function iniciarSesionSegura(): void {
         if ($pwdAtSesion !== null) {
             try {
                 $c = new PDO(
-                    "pgsql:host={$_ENV['DB_HOST']};port={$_ENV['DB_PORT']};dbname={$_ENV['DB_NAME']}",
+                    "mysql:host={$_ENV['DB_HOST']};port={$_ENV['DB_PORT']};dbname={$_ENV['DB_NAME']};charset=utf8mb4",
                     $_ENV['DB_USER'], $_ENV['DB_PASS'],
                     [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]
                 );

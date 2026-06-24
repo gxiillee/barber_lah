@@ -24,9 +24,6 @@ if ($usuario->tieneRolAdmin()) {
 }
 
 // ── Fase 3: Recuperación de datos ─────────────────────────────────
-// Actualizar estado de citas pasadas antes de consultar el historial
-Reserva::actualizarCitasPasadas();
-
 $id_usuario = (int)$usuario->getId();
 $historial  = Reserva::obtenerHistorialPorCliente($id_usuario);
 $pagina_activa = 'historial';

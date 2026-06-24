@@ -113,7 +113,7 @@ class Servicio {
 
         $nuevo = !((bool)$fila['activo']);
         $upd = $conexion->prepare("UPDATE servicios SET activo = :activo WHERE id = :id");
-        $upd->execute([':activo' => $nuevo ? 'true' : 'false', ':id' => $id]);
+        $upd->execute([':activo' => $nuevo ? 1 : 0, ':id' => $id]);
         return $nuevo;
     }
 

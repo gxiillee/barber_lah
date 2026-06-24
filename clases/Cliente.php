@@ -23,10 +23,10 @@ class Cliente extends Usuario {
      * Soluciona el error de desajuste de parámetros con la clase padre Usuario.
      */
     public function __construct(
-        ?int $id = null,
-        ?string $google_id = null,
         string $nombre,
         string $email,
+        ?int $id = null,
+        ?string $google_id = null,
         ?string $password = null,
         ?string $avatar = null,
         ?string $telefono = null,
@@ -53,8 +53,7 @@ class Cliente extends Usuario {
 
         $stmt = $conexion->prepare("
             INSERT INTO usuarios (nombre, email, password, telefono, rol, activo, puntos_fidelidad) 
-            VALUES (:nombre, :email, :password, :telefono, 'cliente', true, 0)
-            RETURNING id
+            VALUES (:nombre, :email, :password, :telefono, 'cliente', 1, 0)
         ");
 
         $stmt->execute([
@@ -64,8 +63,7 @@ class Cliente extends Usuario {
             'telefono' => $telefono
         ]);
 
-        $fila = $stmt->fetch(PDO::FETCH_ASSOC);
-        return (int)($fila['id'] ?? 0);
+        return (int)$conexion->lastInsertId();
     }
 
     // --------------------------------------------------------------
@@ -128,10 +126,10 @@ class Cliente extends Usuario {
         }
 
         $cliente = new Cliente(
-            $fila['id'],
-            $fila['google_id'],
             $fila['nombre'],
             $fila['email'],
+            $fila['id'],
+            $fila['google_id'],
             $fila['password'],
             $fila['avatar'],
             $fila['telefono'],

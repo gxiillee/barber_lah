@@ -45,25 +45,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($accion === 'registro') {
 
-        // El registro lo gestiona Cliente (mantiene su flujo intacto)
-        $resultado = Cliente::procesarRegistroLogin($_POST);
+        if (!Csrf::validarToken('csrf_login', $_POST['csrf_token'] ?? null)) {
+            $errorReg = 'Sesión caducada. Recarga la página.';
+        } else {
 
-        if ($resultado['usuario'] instanceof Usuario) {
-            session_regenerate_id(true);
-            $_SESSION['usuario'] = $resultado['usuario'];
-            $_SESSION['pwd_updated_at'] = $resultado['usuario']->getPasswordUpdatedAt();
+            $resultado = Cliente::procesarRegistroLogin($_POST);
 
-            // Redirección: reserva pendiente > index
-            if (isset($_SESSION['reserva_pendiente'])) {
-                redirigir('cliente/confirmar_reserva.php');
-            } else {
-                redirigir('index.php');
+            if ($resultado['usuario'] instanceof Usuario) {
+                session_regenerate_id(true);
+                $_SESSION['usuario'] = $resultado['usuario'];
+                $_SESSION['pwd_updated_at'] = $resultado['usuario']->getPasswordUpdatedAt();
+
+                if (isset($_SESSION['reserva_pendiente'])) {
+                    redirigir('cliente/confirmar_reserva.php');
+                } else {
+                    redirigir('index.php');
+                }
             }
+
+            $errorReg   = $resultado['errorRegistro'] ?? '';
+            $valores    = $resultado['valores'] ?? $valores;
         }
 
-        // Si el registro fallo, repoblar campos y mostrar error
-        $errorReg   = $resultado['errorRegistro'] ?? '';
-        $valores    = $resultado['valores'] ?? $valores;
         $modoActivo = 'registro';
 
     } else {
@@ -107,9 +110,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $errorLogin = 'Email o contraseña incorrectos.';
 
                 } catch (Exception $e) {
-                    // Si el método comprobarLogin lanza una excepción, capturamos su mensaje
-                    // (ej: "Esta cuenta se registró a través de Google...")
-                    $errorLogin = $e->getMessage();
+                    error_log("login.php comprobarLogin: " . $e->getMessage());
+                    $msg = $e->getMessage();
+                    $errorLogin = str_contains($msg, 'Google')
+                        ? $msg
+                        : 'Error al iniciar sesión. Inténtalo de nuevo.';
                 }
             }
         }
@@ -341,6 +346,17 @@ $wrapperClase = 'login-wrapper ' . ($modoActivo === 'registro' ? 'es-registro' :
             btn.setAttribute('aria-label', isPassword ? 'Ocultar contraseña' : 'Mostrar contraseña');
         });
     });
+
+    // Tooltip teléfono — toggle en móvil (hover no funciona sin ratón)
+    const phoneTipBtn = document.querySelector('[aria-label="¿Por qué pedimos tu teléfono?"]');
+    if (phoneTipBtn) {
+        const tooltip = phoneTipBtn.querySelector('div');
+        phoneTipBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            tooltip.classList.toggle('opacity-100');
+        });
+        document.addEventListener('click', () => tooltip.classList.remove('opacity-100'), { once: false });
+    }
 
     // Medidor de fuerza de contraseña
     const pwdReg = document.getElementById('passwordRegistro');

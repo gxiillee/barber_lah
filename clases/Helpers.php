@@ -109,6 +109,27 @@ function fechaHumana(string $fecha): string
  * Lee los metadatos de orientación, rota el recurso GD y sobrescribe el archivo.
  * Compatible con JPEG, PNG y WebP; solo aplica rotación a JPEG con datos EXIF.
  */
+/**
+ * Valida que un archivo subido sea una imagen real (MIME) y no exceda el tamaño máximo.
+ * Retorna string vacío si es válido, o un mensaje de error si no.
+ */
+function validarSubidaImagen(array $archivo, int $maxMB = 5): string {
+    if ($archivo['error'] !== UPLOAD_ERR_OK) {
+        return 'Error al subir el archivo.';
+    }
+    $maxBytes = $maxMB * 1024 * 1024;
+    if ($archivo['size'] > $maxBytes) {
+        return "El archivo excede el tamaño máximo de {$maxMB} MB.";
+    }
+    $finfo = new finfo(FILEINFO_MIME_TYPE);
+    $mime = $finfo->file($archivo['tmp_name']);
+    $permitidos = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/avif'];
+    if (!in_array($mime, $permitidos, true)) {
+        return 'Tipo de archivo no permitido. Solo imágenes (JPG, PNG, WebP, GIF, AVIF).';
+    }
+    return '';
+}
+
 function corregirOrientacionImagen(string $ruta): void {
     if (!file_exists($ruta) || !function_exists('exif_read_data')) return;
     $info = @getimagesize($ruta);

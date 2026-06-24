@@ -59,6 +59,20 @@ class Horario {
     }
 
     /**
+     * Devuelve los datos de un horario por su ID.
+     */
+    public static function obtenerPorId(int $id): ?array {
+        $conexion = BD::obtenerConexion();
+        $stmt = $conexion->prepare("
+            SELECT id, id_barbero, dia_semana, hora_inicio, hora_fin
+            FROM horarios WHERE id = :id
+        ");
+        $stmt->execute([':id' => $id]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $row ?: null;
+    }
+
+    /**
      * Agrega un nuevo tramo horario.
      */
     public static function agregar(int $idBarbero, string $diaSemana, string $horaInicio, string $horaFin): int {
@@ -68,7 +82,7 @@ class Horario {
         $conexion = BD::obtenerConexion();
         $stmt = $conexion->prepare("
             INSERT INTO horarios (id_barbero, dia_semana, hora_inicio, hora_fin)
-            VALUES (:id_barbero, :dia_semana, :hora_inicio::time, :hora_fin::time)
+            VALUES (:id_barbero, :dia_semana, :hora_inicio, :hora_fin)
         ");
         $stmt->execute([
             ':id_barbero'  => $idBarbero,
@@ -86,8 +100,8 @@ class Horario {
         $conexion = BD::obtenerConexion();
         $stmt = $conexion->prepare("
             UPDATE horarios
-            SET hora_inicio = :hora_inicio::time,
-                hora_fin    = :hora_fin::time
+            SET hora_inicio = :hora_inicio,
+                hora_fin    = :hora_fin
             WHERE id = :id
         ");
         return $stmt->execute([

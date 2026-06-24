@@ -4,7 +4,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/../bootstrap.php';
 iniciarSesionSegura();
 require_once __DIR__ . '/../clases/Usuario.php';
-require_once __DIR__ . '/../clases/Helpers.php';
+require_once __DIR__ . '/../clases/helpers.php';
 
 define('GOOGLE_CLIENT_ID',     $_ENV['GOOGLE_CLIENT_ID']);
 define('GOOGLE_CLIENT_SECRET', $_ENV['GOOGLE_CLIENT_SECRET']);

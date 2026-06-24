@@ -20,6 +20,7 @@ const DOM = {
   mainVideo: document.getElementById("mainVideo"),
   videoSection: document.getElementById("experiencia"),
   transitionOverlay: document.getElementById("transitionOverlay"),
+  endMessageInner: document.getElementById("endMessageInner"),
 
   // Intro
   introBlock: document.getElementById("introBlock"),
@@ -58,13 +59,17 @@ function quitarCarga() {
     setTimeout(() => {
       p.classList.add("hidden");
       document.body.style.overflow = "auto";
-    }, 500);
+    }, 250);
   }
 }
 
-// Oculta cuando todo ha cargado (load = incluye videos, fuentes, etc.)
+// Oculta en cuanto el DOM está listo (sin esperar videos, fuentes, etc.)
+document.addEventListener("DOMContentLoaded", () => {
+  setTimeout(quitarCarga, 100);
+});
+// Segundo intento al cargar todo (por si DOMContentLoaded no se disparó bien)
 window.addEventListener("load", () => {
-  setTimeout(quitarCarga, 1000);
+  setTimeout(quitarCarga, 800);
 });
 
 // Failsafe: si algo falla, lo oculta en 5s
@@ -101,6 +106,13 @@ let currentTime = 0;
 let currentZoom = 1;
 let lastScrollY = -1;
 let cachedProgress = -1;
+let maxProgressReached = -1;
+let progressFreezeUntil = 0;
+const FREEZE_MS = 800;
+let deferFirstSeek = false;
+let firstVideoFrame = true;
+let wasInOverlay = false;
+let lastP = 0;
 
 function lerp(a, b, t) {
   return a + (b - a) * t;
@@ -166,16 +178,56 @@ function updateIntroTitle(p) {
  * currentTime=0 al cargar causa que el video se quede en negro.
  */
 function renderFrame() {
-  const p = getScrollProgress(); // progreso 0 → 1
+  const rawP = getScrollProgress(); // progreso puro (sin freeze)
+  let p = rawP;
 
-  /* ── Video scrubbing ── */
-  if (DOM.mainVideo && DOM.mainVideo.duration && DOM.mainVideo.readyState >= 2) {
-    targetTime = p * DOM.mainVideo.duration;
-    currentTime = lerp(currentTime, targetTime, LERP_FACTOR);
-    // Threshold: si la diferencia es menor a 5ms, no tocamos el video
-    // Esto evita el bug de Safari donde setear currentTime=0 da negro
-    if (Math.abs(currentTime - DOM.mainVideo.currentTime) > SEEK_THRESHOLD) {
-      DOM.mainVideo.currentTime = currentTime;
+  /* ── Anti-bounce persistente (congela el progreso aunque el bucle se pause) ── */
+  if (p > maxProgressReached) {
+    maxProgressReached = p;
+  }
+  if (p >= 0.97) {
+    progressFreezeUntil = performance.now() + FREEZE_MS;
+  }
+  if (maxProgressReached >= 0.97 && p < maxProgressReached && performance.now() < progressFreezeUntil) {
+    p = maxProgressReached;
+  }
+
+  /* ── Video scrubbing (solo cuando la sección está expandida) ── */
+  const videoReady = DOM.videoSection && DOM.videoSection.classList.contains("video-ready");
+  if (videoReady && DOM.mainVideo && DOM.mainVideo.duration && DOM.mainVideo.readyState >= 2) {
+    // Si acabamos de expandirnos en medio del scroll, congelar en frame 0
+    // hasta que el usuario vuelva al inicio de la sección
+    if (firstVideoFrame) {
+      firstVideoFrame = false;
+      if (p > 0.15) deferFirstSeek = true;
+    }
+
+    if (deferFirstSeek) {
+      targetTime = 0;
+      currentTime = lerp(currentTime, 0, LERP_FACTOR);
+      if (p < 0.05) deferFirstSeek = false;
+      if (Math.abs(DOM.mainVideo.currentTime) > SEEK_THRESHOLD) {
+        DOM.mainVideo.currentTime = 0;
+      }
+    } else {
+      targetTime = p * DOM.mainVideo.duration;
+      currentTime = lerp(currentTime, targetTime, LERP_FACTOR);
+      // Threshold: si la diferencia es menor a 5ms, no tocamos el video
+      // Esto evita el bug de Safari donde setear currentTime=0 da negro
+      if (Math.abs(currentTime - DOM.mainVideo.currentTime) > SEEK_THRESHOLD) {
+        // Solo seek si la posición ya está buffereada (evita tirones en conexiones lentas)
+        const b = DOM.mainVideo.buffered;
+        let canSeek = false;
+        for (let i = 0; i < b.length; i++) {
+          if (currentTime >= b.start(i) && currentTime <= b.end(i)) {
+            canSeek = true;
+            break;
+          }
+        }
+        if (canSeek) {
+          DOM.mainVideo.currentTime = currentTime;
+        }
+      }
     }
 
     // Zoom suave (lerp bajo para transición cinematográfica)
@@ -183,6 +235,10 @@ function renderFrame() {
     currentZoom = lerp(currentZoom, targetZoom, ZOOM_LERP);
     DOM.mainVideo.style.transform = `translate(-50%, -50%) scale(${currentZoom})`;
   }
+
+  /* ── Detectar dirección de scroll para transiciones suaves ── */
+  const goingBackward = rawP < lastP;
+  lastP = rawP;
 
   /* ── Hint de scroll (desaparece tras el primer desplazamiento) ── */
   if (p > 0.04) {
@@ -203,18 +259,42 @@ function renderFrame() {
   const pct = Math.round(p * 100);
   DOM.progressFill.style.width = `${pct}%`;
 
-  /* ── Overlay de transición: fade a negro en el último 10% ──
-       Crea la sensación cinematográfica de "corte a negro"
-       antes de revelar la sección siguiente.
-    ── */
+  /* ── Overlay de transición: fade a negro ──
+     Adelante: fade 0→1 en p 0.9→1.0
+     Atrás:    fade 1→0 en p 1.0→0.82 (continuo, sin saltos) ── */
   let overlayOpacity = 0;
 
-  if (p >= 0.9) {
-    // De 0.90 a 1.00: fade de 0 a 1
-    overlayOpacity = (p - 0.9) / 0.1;
+  if (videoReady && DOM.mainVideo && DOM.mainVideo.videoWidth > 0) {
+    if (goingBackward && wasInOverlay) {
+      overlayOpacity = Math.min(1, Math.max(0, (p - 0.60) / 0.40));
+      if (p < 0.60) wasInOverlay = false;
+    } else if (p >= 0.9) {
+      wasInOverlay = true;
+      overlayOpacity = Math.min(1, Math.max(0, (p - 0.9) / 0.1));
+    } else {
+      wasInOverlay = false;
+    }
   }
 
-  DOM.transitionOverlay.style.opacity = Math.min(1, overlayOpacity);
+  DOM.transitionOverlay.style.opacity = overlayOpacity;
+
+  /* ── Mensaje de bienvenida — fade gradual (direccional) ── */
+  if (DOM.endMessageInner) {
+    let em = 0;
+    if (videoReady && DOM.mainVideo && DOM.mainVideo.videoWidth > 0) {
+      if (goingBackward && wasInOverlay) {
+        // Al ir hacia atrás: el mensaje se mantiene visible y se desvanece más tarde
+        if (p >= 0.92) em = 1;
+        else if (p >= 0.65) em = Math.max(0, (p - 0.65) / 0.27);
+      } else {
+        // Hacia adelante o primera vez: fade in normal
+        if (p >= 0.97) em = 1;
+        else if (p >= 0.92) em = (p - 0.92) / 0.05;
+      }
+    }
+    DOM.endMessageInner.style.opacity = em.toString();
+    DOM.endMessageInner.style.transform = em > 0 ? "translateY(0)" : "translateY(0.75rem)";
+  }
 
   /* Continúa el bucle */
   rafId = requestAnimationFrame(renderFrame);
@@ -253,24 +333,42 @@ if (DOM.mainVideo) {
   DOM.mainVideo.play().then(() => DOM.mainVideo.pause()).catch(() => {});
 }
 
-/* ── Expande sección si el video carga ──
-   #experiencia empieza en 100vh. Si el video consigue datos en los
-   primeros 2 segundos, se expande a 350vh para scroll scrubbing.
-   Si no (ngrok lento, móvil sin datos), se queda en 100vh y solo
-   se ve el poster — sin scroll innecesario. */
+/* ── Expande sección solo si hay suficiente buffer ──
+   #experiencia empieza en 100vh. Si el video bufferea ≥4s en los
+   primeros 5 segundos, se expande a 350vh para scroll scrubbing.
+   Si no (conexión lenta), se queda en 100vh, solo se ve el poster,
+   y nunca se activa el scroll-scrub. */
 if (DOM.videoSection && DOM.mainVideo) {
-  function expandSection() {
-    DOM.videoSection.classList.add("video-ready");
+  const MIN_BUFFER = 4; // segundos mínimos buffereados para expandir
+  const TIMEOUT_MS = 5000;
+  let expanded = false;
+  const startTime = Date.now();
+
+  function getBufferedSeconds() {
+    const b = DOM.mainVideo.buffered;
+    return b.length > 0 ? b.end(b.length - 1) : 0;
   }
-  function checkReady() {
-    if (DOM.mainVideo.readyState >= 2) expandSection();
+
+  function tryExpand() {
+    if (expanded) return;
+    if (DOM.mainVideo.videoWidth > 0 && getBufferedSeconds() >= MIN_BUFFER) {
+      DOM.videoSection.classList.add("video-ready");
+      expanded = true;
+    }
   }
-  // Si ya está listo, expande ya
-  checkReady();
-  // Si no, espera 2s para ver si carga
-  setTimeout(checkReady, 2000);
-  // Evento loadeddata por si llega antes del timeout
-  DOM.mainVideo.addEventListener("loadeddata", expandSection, { once: true });
+
+  // Poll cada 500ms hasta alcanzar buffer mínimo o agotar timeout
+  const pollId = setInterval(() => {
+    tryExpand();
+    if (expanded || Date.now() - startTime >= TIMEOUT_MS) {
+      clearInterval(pollId);
+    }
+  }, 500);
+
+  // Intento inicial
+  tryExpand();
+  // Evento canplay (frame decodificado y listo para reproducir)
+  DOM.mainVideo.addEventListener("canplay", tryExpand, { once: true });
 }
 
 /* ────────────────────────────────────────────────────────────────
@@ -618,7 +716,7 @@ document.addEventListener("DOMContentLoaded", () => {
 })();
 
 /* ================================================================
-   RESEÑAS — carrusel simple con flechas
+   RESEÑAS — carrusel con flechas + drag (ratón y táctil)
    ================================================================ */
 
 (function initResenas() {
@@ -639,9 +737,47 @@ document.addEventListener("DOMContentLoaded", () => {
     current = i;
     const card = track.children[current];
     const scrollTarget = card.offsetLeft - (track.clientWidth - card.offsetWidth) / 2;
-    track.scrollTo({ left: scrollTarget, behavior: "smooth" });
+    track.scrollTo({ left: Math.max(0, scrollTarget), behavior: "smooth" });
   }
 
   prev.addEventListener("click", function() { goTo(current - 1); });
   next.addEventListener("click", function() { goTo(current + 1); });
+
+  /* ── Drag con ratón ── */
+  let isDown = false;
+  let startX = 0;
+  let scrollLeft = 0;
+
+  track.addEventListener("mousedown", (e) => {
+    isDown = true;
+    track.classList.add("grabbing");
+    startX = e.pageX - track.offsetLeft;
+    scrollLeft = track.scrollLeft;
+  });
+
+  track.addEventListener("mouseleave", () => {
+    if (!isDown) return;
+    isDown = false;
+    track.classList.remove("grabbing");
+  });
+
+  track.addEventListener("mouseup", () => {
+    isDown = false;
+    track.classList.remove("grabbing");
+  });
+
+  track.addEventListener("mousemove", (e) => {
+    if (!isDown) return;
+    e.preventDefault();
+    const x = e.pageX - track.offsetLeft;
+    const walk = (x - startX) * 1.5;
+    track.scrollLeft = scrollLeft - walk;
+  });
+
+  /* ── Centrar primera tarjeta al cargar ── */
+  if (track.children.length > 0) {
+    const firstCard = track.children[0];
+    const scrollTarget = firstCard.offsetLeft - (track.clientWidth - firstCard.offsetWidth) / 2;
+    track.scrollTo({ left: Math.max(0, scrollTarget), behavior: "instant" });
+  }
 })();

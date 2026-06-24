@@ -18,7 +18,7 @@ $admin_nombre = $admin->getNombre();
 $admin_email  = $admin->getEmail();
 $admin_telefono = $admin->getTelefono();
 
-$resumen_mes  = Administrador::obtenerResumenMesActual();
+$resumen_mes  = Administrador::obtenerResumenMes();
 
 // Total de clientes y servicios
 $conexion = BD::obtenerConexion();

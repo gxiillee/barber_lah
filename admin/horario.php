@@ -5,6 +5,9 @@ date_default_timezone_set('Europe/Madrid');
 require_once __DIR__ . '/../clases/Usuario.php';
 require_once __DIR__ . '/../clases/BD.php';
 require_once __DIR__ . '/../clases/Horario.php';
+require_once __DIR__ . '/../clases/Reserva.php';
+require_once __DIR__ . '/../clases/NotificadorReserva.php';
+require_once __DIR__ . '/../clases/Csrf.php';
 require_once __DIR__ . '/../clases/helpers.php';
 
 iniciarSesionSegura();
@@ -17,6 +20,10 @@ $error = '';
 
 // ── POST ──
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $csrf_token = $_POST['csrf_token'] ?? '';
+    if (!Csrf::validarToken('csrf_horario', $csrf_token)) {
+        $error = 'Sesión caducada. Recarga la página.';
+    } else {
     $accion = $_POST['accion'] ?? '';
 
     if ($accion === 'agregar') {
@@ -39,9 +46,38 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $horaFin   = $_POST['hora_fin'] ?? '';
 
         if ($id > 0 && $horaInicio < $horaFin) {
-            Horario::actualizar($id, $horaInicio, $horaFin);
-            $_SESSION['toast'] = ['type' => 'success', 'message' => 'Tramo actualizado.'];
-            redirigir('horario.php');
+            $datos = Horario::obtenerPorId($id);
+            if (Horario::actualizar($id, $horaInicio, $horaFin)) {
+                $canceladas = 0;
+                if ($datos) {
+                    // Citas que caen fuera del nuevo horario
+                    $afectadas = Reserva::obtenerFuturasPorDiaYHora(
+                        ID_BARBERO, $datos['dia_semana'],
+                        $horaInicio, $horaFin, true
+                    );
+                    foreach ($afectadas as $r) {
+                        if (Reserva::cancelar((int)$r['id'], 'Hemos tenido que cancelar tu cita porque el horario de esa franja ha cambiado y ya no está disponible. Disculpa las molestias.')) {
+                            $canceladas++;
+                            $cliente = new Usuario(
+                                (int)$r['id_cliente'], null,
+                                $r['cliente_nombre'], $r['cliente_email'],
+                                null, null, null, 0, 'cliente'
+                            );
+                            NotificadorReserva::enviarCancelacion($cliente, [
+                                'servicio' => $r['servicio_nombre'] ?? '',
+                                'fecha'    => fechaHumana($r['fecha']),
+                                'hora'     => $r['hora'],
+                            ], 'Hemos tenido que cancelar tu cita porque el horario de esa franja ha cambiado y ya no está disponible. Disculpa las molestias.');
+                        }
+                    }
+                }
+                $msg = 'Tramo actualizado.';
+                if ($canceladas > 0) $msg .= " Se cancelaron $canceladas cita(s) y se notificó a los clientes.";
+                $_SESSION['toast'] = ['type' => 'success', 'message' => $msg];
+                redirigir('horario.php');
+            } else {
+                $error = 'Datos inválidos.';
+            }
         } else {
             $error = 'Datos inválidos.';
         }
@@ -49,15 +85,47 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($accion === 'eliminar') {
         $id = (int)($_POST['id'] ?? 0);
-        if ($id > 0 && Horario::eliminar($id)) {
-            $_SESSION['toast'] = ['type' => 'success', 'message' => 'Tramo eliminado.'];
-            redirigir('horario.php');
+        $canceladas = 0;
+        $errores = '';
+        if ($id > 0) {
+            $datos = Horario::obtenerPorId($id);
+            if ($datos) {
+                $afectadas = Reserva::obtenerFuturasPorDiaYHora(
+                    ID_BARBERO, $datos['dia_semana'],
+                    $datos['hora_inicio'], $datos['hora_fin']
+                );
+                foreach ($afectadas as $r) {
+                    if (Reserva::cancelar((int)$r['id'], 'Hemos tenido que cancelar tu cita porque el horario ya no está disponible. Disculpa las molestias.')) {
+                        $canceladas++;
+                        $cliente = new Usuario(
+                            (int)$r['id_cliente'], null,
+                            $r['cliente_nombre'], $r['cliente_email'],
+                            null, null, null, 0, 'cliente'
+                        );
+                        NotificadorReserva::enviarCancelacion($cliente, [
+                            'servicio' => $r['servicio_nombre'] ?? '',
+                            'fecha'    => fechaHumana($r['fecha']),
+                            'hora'     => $r['hora'],
+                        ], 'Hemos tenido que cancelar tu cita porque el horario ya no está disponible. Disculpa las molestias.');
+                    }
+                }
+            }
+            if (Horario::eliminar($id)) {
+                $msg = 'Tramo eliminado.';
+                if ($canceladas > 0) $msg .= " Se cancelaron $canceladas cita(s) y se notificó a los clientes.";
+                $_SESSION['toast'] = ['type' => 'success', 'message' => $msg];
+                redirigir('horario.php');
+            } else {
+                $error = 'No se pudo eliminar el tramo.';
+            }
         } else {
             $error = 'No se pudo eliminar el tramo.';
         }
     }
+    } // else (CSRF válido)
 }
 
+$csrfToken = Csrf::generarToken('csrf_horario');
 $horarios = Horario::obtenerTodosPorBarbero(ID_BARBERO);
 $pagina_activa = 'horario';
 
@@ -153,6 +221,7 @@ $dias_con_horario = count(array_filter($horarios, fn($d) => !empty($d)));
                             </button>
                             <form action="" method="POST" class="inline" onsubmit="return confirm('¿Eliminar este tramo?')">
                                 <input type="hidden" name="accion" value="eliminar">
+                                <input type="hidden" name="csrf_token" value="<?= h($csrfToken) ?>">
                                 <input type="hidden" name="id" value="<?= $tramo_id ?>">
                                 <button type="submit"
                                         class="w-7 h-7 flex items-center justify-center rounded-lg text-[var(--tx-d)] hover:text-rose-400 hover:bg-rose-500/10 transition-all cursor-pointer"
@@ -195,6 +264,7 @@ $dias_con_horario = count(array_filter($horarios, fn($d) => !empty($d)));
         </div>
         <form action="" method="POST" class="space-y-4">
             <input type="hidden" name="accion" value="agregar">
+            <input type="hidden" name="csrf_token" value="<?= h($csrfToken) ?>">
             <input type="hidden" name="dia" id="agregarDia">
 
             <div>
@@ -234,6 +304,7 @@ $dias_con_horario = count(array_filter($horarios, fn($d) => !empty($d)));
         </div>
         <form action="" method="POST" class="space-y-4">
             <input type="hidden" name="accion" value="editar">
+            <input type="hidden" name="csrf_token" value="<?= h($csrfToken) ?>">
             <input type="hidden" name="id" id="editarId">
 
             <div>

@@ -5,6 +5,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/../clases/BD.php';
 require_once __DIR__ . '/../clases/helpers.php';
 require_once __DIR__ . '/../clases/Usuario.php';
+require_once __DIR__ . '/../clases/Csrf.php';
 
 // ── Fase 2: Control de acceso ─────────────────────────────────────
 iniciarSesionSegura();
@@ -30,6 +31,10 @@ $exito = '';
 
 // ── Fase 3: Procesar el Formulario ────────────────────────────────
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $csrf_token = $_POST['csrf_token'] ?? '';
+    if (!Csrf::validarToken('csrf_cambiar_password', $csrf_token)) {
+        $error = 'Sesión caducada. Recarga la página.';
+    } else {
     $password_nueva = $_POST['password_nueva'] ?? '';
     $password_conf  = $_POST['password_confirmar'] ?? '';
 
@@ -99,7 +104,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
     }
+    } // else (CSRF válido)
 }
+
+$csrfToken = Csrf::generarToken('csrf_cambiar_password');
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -180,6 +188,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <?php endif; ?>
 
                 <form action="cambiar_password.php" method="POST" class="flex flex-col gap-6">
+                    <input type="hidden" name="csrf_token" value="<?= h($csrfToken) ?>">
 
                     <?php if ($tienePassword): ?>
                     <div>
