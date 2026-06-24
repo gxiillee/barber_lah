@@ -8,7 +8,8 @@ composer.lock
 .env
 logs/
 backups/
-*.sql
 *.sql.gz
+*.sql
+!database/schema.sql
 public/uploads/
 public/assets/video/
